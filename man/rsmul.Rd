@@ -6,7 +6,8 @@
 coxph function using relative survival.
 }
 \usage{
-rsmul(formula, data, ratetable = survexp.us, int,na.action,init,method,control,...)
+rsmul(formula, data, ratetable = survexp.us, int,na.action,init,
+      method,control,...)
 }
 \arguments{
 \item{formula}{
@@ -58,7 +59,8 @@ mellitus survival data.", \emph{Biometrics,} 921-932, 1985.
 \examples{
 data(slopop)
 data(rdata)
-rsmul(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365.24,sex=sex,year=year),ratetable=slopop,data=rdata)
+rsmul(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
+      sex=sex,year=year),ratetable=slopop,data=rdata)
 }
 
 

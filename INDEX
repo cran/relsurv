@@ -1,7 +1,14 @@
 invtime                 Inverse transforming of time in Relative
                         Survival
+plot.rs.zph             Graphical Inspection of Proportional Hazards
+                        Assumption in Additive Relative Survival Models
 rdata                   Survival Data
+residuals.rsadd         Calculate Residuals for a "rsadd" Fit
 rformulate              Auxiliary Function for relsurv
+rs.br                   Test the Proportional Hazards Assumption for
+                        Relative Survival Regression Models
+rs.zph                  Behaviour of Covariates in Time for Relative
+                        Survival Regression Models
 rsadd                   Fit an Additive model for Relative Survival
 rsmul                   Fit Andersen et al Multiplicative Regression
                         Model for Relative Survival
@@ -9,5 +16,5 @@ rstrans                 Fit Cox Proportional Hazards Model in
                         Transformed Time
 slopop                  Census Data Set for the Slovene Population
 srvxp.fit               Work Function to Compute Expected Survival
-survsplit               Split a survival data set at specified times
+survsplit               Split a Survival Data Set at Specified Times
 transrate               Reorganize Data into a Ratetable Object

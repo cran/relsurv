@@ -64,7 +64,8 @@ of the Royal Statistical Society: Series C} , 54 115-126, 2005.
 \examples{
 data(slopop)
 data(rdata)
-rstrans(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365.24,sex=sex,year=year),ratetable=slopop,data=rdata)
+rstrans(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
+        sex=sex,year=year),ratetable=slopop,data=rdata)
 }
 
 

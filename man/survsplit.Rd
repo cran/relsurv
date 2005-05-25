@@ -1,7 +1,7 @@
 \name{survsplit}
 \alias{survsplit}
 
-\title{Split a survival data set at specified times}
+\title{Split a Survival Data Set at Specified Times}
 \description{
   Given a survival data set and a set of specified cut times, the function splits
  each record into multiple records at each cut time. The new data 
@@ -10,7 +10,8 @@ time, and event status for each record. More general than \code{survSplit}
  as it also works with the data already in the \code{counting process} format.
 }
 \usage{
-survsplit(data, cut, end, event, start, id = NULL, zero = 0, episode = NULL,interval=NULL)
+survsplit(data, cut, end, event, start, id = NULL, zero = 0,
+          episode = NULL,interval=NULL)
 }
 
 \arguments{
