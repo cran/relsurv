@@ -6,13 +6,16 @@
 \alias{maxlik}
 \alias{glmxp}
 \alias{lik.fit}
+
+
 \title{Fit an Additive model for Relative Survival}
 \description{
 The function fits an additive model to the data. The methods implemented are the maximum likelihood method,
 a glm model with a \code{binomial} error and a glm model with a \code{poisson} error. 
 }
 \usage{
-rsadd(formula, data=parent.frame(), ratetable = survexp.us, int, na.action, method, init,control,...)
+rsadd(formula, data=parent.frame(), ratetable = survexp.us,
+      int, na.action, method, init,centered,control,...)
 }
 \arguments{
 \item{formula}{
@@ -42,10 +45,14 @@ long and include the maximum observed follow-up time.
 \item{method}{\code{glm.bin} or \code{glm.poi} for a glm model and \code{max.lik} for the maximum likelihood model (default). }
 \item{init}{vector of initial values of the iteration.  Default initial
           value is zero for all variables. }
+
+\item{centered}{if \code{TRUE}, all the variables are centered before fitting and the baseline excess hazard
+	is calculated accordingly. Default is \code{FALSE}. }
+
 \item{control}{a list of parameters for controlling the fitting process. 
           See the documentation for \code{glm.control} for details.
 }
-\item{...}{Other arguments will be passed to \code{glm.control}.}
+\item{...}{other arguments will be passed to \code{glm.control}.}
 }
 
 \Details{
@@ -62,6 +69,8 @@ An object of class \code{rsadd} is a list containing at least the following comp
 \item{warnme}{the number of groups with the observed number of deaths is smaller than the expected.}
 \item{ratetable}{the ratetable used.}
 \item{int}{the maximum time (in years) used. All the events at and after this value are censored.}
+\item{method}{the fitting method that was used.}
+\item{linear.predictors}{the vector of linear predictors, one per subject.}
 Additionally the glm models include:
 \item{groups}{life tables for groups specified by the covariates.}
 }
@@ -69,7 +78,8 @@ Additionally the glm models include:
 \examples{
 data(slopop)
 data(rdata)
-rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365.24,sex=sex,year=year),ratetable=slopop,data=rdata,int=5)
+rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,sex=sex,year=year),
+      ratetable=slopop,data=rdata,int=5)
 }
 
 
