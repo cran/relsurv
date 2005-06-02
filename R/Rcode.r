@@ -1189,22 +1189,24 @@ rstrans <- function (formula = formula(data), data = parent.frame(), ratetable =
     stop <- 1 - srvxp.fit(rform$R, rform$Y, rform$ratetable)
     if(length(int)!=1)int <- max(int)
     data <- rform$data
+    stat <- rform$status
     if (rform$m == 0) {
         if (rform$type == "counting") 
-            fit <- coxph(Surv(start, stop, stat) ~ 1, data = data, 
+            fit <- coxph(Surv(start, stop, stat) ~ 1,
                 init = init, control = control, x = TRUE, ...)
-        else fit <- coxph(Surv(stop, stat) ~ 1, data = data, 
+        else fit <- coxph(Surv(stop, stat) ~ 1, 
             init = init, control = control, x = TRUE, ...)
     }
     else {
         xmat <- as.matrix(data[, (4 + nfk):ncol(data)])
-        fit <- coxph(Surv(start, stop, stat) ~ xmat, data = data, 
+        fit <- coxph(Surv(start, stop, stat) ~ xmat,  
             init = init, control = control, x = TRUE, ...)
         names(fit[[1]]) <- names(rform$X)
     }
     fit$call <- match.call()
     if (length(rform$na.action)) 
         fit$na.action <- rform$na.action
+    data$start <- start
     data$Y <- stop
     fit$data <- data
     fit$int <- int

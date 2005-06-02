@@ -78,8 +78,8 @@ Additionally the glm models include:
 \examples{
 data(slopop)
 data(rdata)
-rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,sex=sex,year=year),
-      ratetable=slopop,data=rdata,int=5)
+rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,sex=sex,
+      year=year),ratetable=slopop,data=rdata,int=5)
 }
 
 
