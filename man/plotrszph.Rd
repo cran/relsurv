@@ -7,7 +7,8 @@
 Displays a graph of the scaled partial residuals, along with a smooth curve.
 }
 \usage{
-\method{plot}{rs.zph}(x, resid=TRUE, df = 4, nsmo = 40,var,cex=1,add=FALSE,col=1,lty=1,xlab,ylab,scale=1,...)
+\method{plot}{rs.zph}(x, resid=TRUE, df = 4, nsmo = 40,var,cex=1,add=FALSE,col=1,
+    lty=1,xlab,ylab,scale=1,...)
 }
 
 \arguments{
@@ -47,8 +48,8 @@ the set of variables for which plots are desired.  By
 \examples{
 data(slopop)
 data(rdata)
-fit <- rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,sex=sex,year=year),
-      ratetable=slopop,data=rdata,int=5)
+fit <- rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,sex=sex,
+       year=year),ratetable=slopop,data=rdata,int=5)
 rszph <- rs.zph(fit)
 plot(rszph)
 }
