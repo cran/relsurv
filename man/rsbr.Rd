@@ -47,7 +47,7 @@ of the Brownian bridge}
 
 \references{
 Stare J., Pohar M., Henderson R. "Goodness of fit for relative survival models." \emph{Statistics
-in Medicine}. To appear in 2005.  
+in Medicine} 24 3911-3925, 2005.
 }
 
 

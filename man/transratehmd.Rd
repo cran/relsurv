@@ -1,0 +1,33 @@
+\name{transrate.hmd}
+\alias{transrate.hmd}
+\title{Reorganize Data obtained from Human Mortality Database into a Ratetable Object}
+\description{
+ The function assists in reorganizing the .txt files obtained from Human Mortality Database
+(http://www.mortality.org)  into a ratetable object.
+}
+\usage{
+transrate.hmd(male,female)
+}
+
+\arguments{
+  \item{male}{
+	a .txt file, containing the data on males. 
+  }
+  \item{female}{
+	a .txt file, containing the data on females.   }
+}
+\details{ 
+This function works with tables organised in the format provided by the Human Mortality 
+Database. The period lifetables, organized by date of death, must be downloaded separately for men and
+women for each country and the top line deleted. The function only works for tables that have yearly
+cutpoints for age as well as calendar year (1x1). The only two columns needed are calendar year (Year) 
+and probability of death (qx). Death probabilities must be calculated up to age 110 (in yearly intervals).
+}
+\value{An object of class \code{ratetable}.}
+\examples{
+\dontrun{
+auspop <- transrate.hmd("fltper_1x1.txt","mltper_1x1.txt")
+}
+}
+\seealso{\code{\link{ratetable}}, \code{\link{transrate.hld}}, \code{\link{joinrate}}, \code{\link{transrate}}.}
+\keyword{survival}

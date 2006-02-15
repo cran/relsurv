@@ -57,6 +57,7 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
             varlist <- attr(ratetable, "dimid")
         else stop("Invalid rate table")
         ftemp <- deparse(formula)
+        ftemp <- paste(ftemp,collapse="")
         formula <- xx(paste(ftemp, "+ ratetable(", paste(varlist, 
             "=", varlist, collapse = ","), ")"))
         Terms <- if (missing(data)) 
@@ -146,7 +147,7 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
     if (mm != 0) 
         data <- cbind(data, X)
     out <- list(data = data, R = R, status = status, start = start, 
-        Y = Y, X = X, m = mm, n = n, type = type, Y.surv = Y.surv, 
+        Y = Y, X = as.data.frame(X), m = mm, n = n, type = type, Y.surv = Y.surv, 
         Terms = Terms, ratetable = ratetable, offset = offset)
     na.action <- attr(m, "na.action")
     if (length(na.action)) 
@@ -165,6 +166,8 @@ maxlik <- function (rform, interval, subset, init, control)
     data <- cbind(data, offset = rform$offset)
     data <- survsplit(data, cut = interval[-1] * 365.24, end = "Y", 
         event = "stat", start = "start", episode = "epi", interval = interval)
+    del <- which(data$start==data$Y)
+    if(length(del))    data <- data[-del,]
     offset <- data$offset
     data$offset <- NULL
     d.int <- diff(interval)
@@ -277,15 +280,15 @@ survsplit <- function (data, cut, end, event, start, id = NULL, zero = 0,
                 rep(0, drop3)))
         }
         fu <- as.data.frame(fu)
-        names(fu) <- c(paste("fu [", interval[-length(interval)], 
-            ",", interval[-1], ")", sep = ""))
+        names(fu) <- c(paste("fu [", interval[1], ",", interval[2], "]", sep = ""),paste("fu (", interval[-c(1,length(interval))]
+			, ",", interval[-(1:2)], "]", sep = ""))
         newdata <- cbind(newdata, fu)
     }
     else if (length(interval) == 2) {
         fu <- rep(1, sum(!drop))
         newdata <- cbind(newdata, fu)
         names(newdata)[ncol(newdata)] <- paste("fu [", interval[1], 
-            ",", interval[2], ")", sep = "")
+            ",", interval[2], "]", sep = "")
     }
     if (!is.null(episode)) 
         newdata[, episode] <- epi[!drop]
@@ -362,12 +365,12 @@ glmxp <- function (rform, data, interval, method, control)
     Z$xind <- rep(0, nz)
     if (nrow(Z) > 0) 
         Z[, 4:(nfk + 3)] <- Z[, 4:(nfk + 3)] + matrix(Z$start, 
-            ncol = nfk, byrow = F, nrow = nrow(Z)) * matrix(fk, 
-            ncol = nfk, byrow = T, nrow = nrow(Z))
+            ncol = nfk, byrow = FALSE, nrow = nrow(Z)) * matrix(fk, 
+            ncol = nfk, byrow = TRUE, nrow = nrow(Z))
     X <- X[X$start < int[2], ]
     X$fin <- (X$Y <= int[2])
     X$event <- X$fin * X$stat
-    ford <- eval(substitute(paste("[", a, ",", b, ")", sep = ""), 
+    ford <- eval(substitute(paste("[", a, ",", b, "]", sep = ""), 
         list(a = meje[1], b = meje[2])))
     X$fu <- rep(ford, rform$n - nz)
     t.int <- int[2] - int[1]
@@ -391,9 +394,14 @@ glmxp <- function (rform, data, interval, method, control)
             X$fin <- X$Y <= int[i]
             X$event <- X$fin * X$stat
             l <- sum(int[i - 1] >= meje * 365.24)
-            ford <- c(ford, eval(substitute(paste("(", a, ",", 
-                b, "]", sep = ""), list(a = meje[l], b = meje[l + 
-                1]))))
+            if(l==1)
+            	ftemp <- eval(substitute(paste("[", a, ",", b, "]", sep = ""),
+            		 list(a = meje[l], b = meje[l + 1])))
+            
+            else
+            	ftemp <- eval(substitute(paste("(", a, ",", b, "]", sep = ""),
+            		 list(a = meje[l], b = meje[l + 1])))
+            ford <- c(ford, ftemp)
             X$fu <- rep(ford[i - 1], ni)
             t.int <- int[i] - int[i - 1]
             index <- X$origstart < int[i - 1]
@@ -737,6 +745,7 @@ rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE)
 
     options(warn = 0)
     nvar <- ncol(sresid)
+    survfit <- getFromNamespace("survfit", "survival")
     temp <- survfit(fit$y, type = "kaplan-meier")
     n.risk <- temp$n.risk
     n.time <- temp$time
@@ -1165,6 +1174,8 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = s
         names(fit[[1]]) <- names(U)[(3 + nfk + 1):(ncol(U) - 
             2)]
     }
+     class(fit) <- c("rsmul",class(fit))
+    fit$lambda <- log(lambda)
     fit$data <- rform$data
     fit$call <- match.call()
     fit$int <- int
@@ -1234,8 +1245,264 @@ transrate <- function (men, women, yearlim, int.length = 1)
         (0:(dimi[2] - 1)))), dimid = c("age", "sex", "year"), 
         factor = c(0, 1, 0), cutpoints = list((0:(dimi[1] - 1)) * 
             (365.24), NULL, cp), class = "ratetable")
+    attributes(temp)$summary <- function (R) 
+	{
+		x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
+		1])/355.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
+		x2 <- as.character(as.date(c(min(R[, 3]), max(R[, 3]))))
+		paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
+		x[3], " female:", x[4], "\n", " date of entry from", 
+		x2[1], "to", x2[2], "\n")
+	}
     temp
 }
+
+transrate.hld <- function(file, cut.year,race){
+	nfiles <- length(file)
+	data <- NULL
+	for(it in 1:nfiles){
+		tdata <- read.table(file[it],sep=",",header=TRUE)
+		if(!any(tdata$TypeLT==1)) stop("Currently only TypeLT 1 is implemented")
+		names(tdata) <- gsub(".","",names(tdata),fixed=T)
+		tdata <- tdata[,c("Country","Year1","Year2","TypeLT","Sex","Age","AgeInt","qx")]
+		tdata <- tdata[tdata$TypeLT==1&tdata$AgeInt==1,]
+		if(!missing(race))tdata$race <- rep(race[it],nrow(tdata))
+		data <- rbind(data,tdata)
+	}
+	if(length(unique(data$Country))>1)warning("The data belongs to different countries")
+	data <- data[order(data$Year1,data$Age),]
+	data$qx <- as.character(data$qx)
+	options(warn = -1)
+	data$qx[data$qx=="."] <- NA
+	data$qx <- as.numeric(data$qx)
+	options(warn = 0)
+	if(missing(cut.year)){
+		y1 <-  unique(data$Year1)
+		y2 <-  unique(data$Year2)
+		if(any(apply(cbind(y1[-1],y2[-length(y2)]),1,diff)!=-1))warning("Data is not given for all the cut.year between the minimum and the maximum, use argument 'cut.year'")
+	}
+	else
+		y1 <- cut.year
+	if(length(y1)!=length(unique(data$Year1)))stop("Length 'cut.year' must match the number of unique values of Year1")
+	cp <- as.date(apply(matrix(y1,ncol=1),1,function(x){paste("1jan",x,sep="")}))
+	dn2 <- as.character(y1)
+	amax <- max(data$Age)
+	a.fun <- function(data,amax){
+		mdata <- data[data$Sex==1,]
+		wdata <- data[data$Sex==2,]
+		men <-NULL
+		women <- NULL
+		k <- sum(mdata$Age==0)
+		mind <- c(which(mdata$Age[-nrow(mdata)] != mdata$Age[-1]-1),nrow(mdata))
+		wind <- c(which(wdata$Age[-nrow(wdata)] != wdata$Age[-1]-1),nrow(wdata))
+		mst <- wst <- 1
+		for(it in 1:k){
+			qx <- mdata[mst:mind[it],]$qx
+			lqx <- length(qx)
+			if(lqx!=amax+1){
+				nmiss <- amax + 1 - lqx
+				qx <- c(qx,rep(qx[lqx],nmiss))
+			}
+			naqx <- max(which(!is.na(qx)))
+			if(naqx!=amax+1) qx[(naqx+1):(amax+1)] <- qx[naqx]
+			men <- cbind(men,qx)
+			mst <- mind[it]+1 
+			qx <- wdata[wst:wind[it],]$qx
+			lqx <- length(qx)
+			if(lqx!=amax+1){
+				nmiss <- amax + 1 - lqx
+				qx <- c(qx,rep(qx[lqx],nmiss))
+			}
+			naqx <- max(which(!is.na(qx)))
+			if(naqx!=amax+1) qx[(naqx+1):(amax+1)] <- qx[naqx]
+			women <- cbind(women,qx)
+			wst <- wind[it]+1 
+		}
+		men<- -log(1-men)/365.241
+		women<- -log(1-women)/365.241
+		dims <- c(dim(men),2)
+		array(c(men,women),dim=dims)
+	}
+	if(missing(race)){
+		out <- a.fun(data,amax)
+		dims <- dim(out)
+		attributes(out)<-list(
+			dim=dims,		
+			dimnames=list(as.character(0:amax),as.character(y1),c("male","female")),	
+			dimid=c("age","year","sex"),
+			factor=c(0,0,1),
+			cutpoints=list((0:amax)*(365.24),cp,NULL),
+			class="ratetable"
+		)
+		
+	}
+	else{
+		race.val <- unique(race)
+		if(length(race)!=length(file))stop("Length of 'race' must match the number of files")
+		for(it in 1:length(race.val)){
+			if(it==1){
+				out <- a.fun(data[data$race==race.val[it],],amax)
+				dims <- dim(out)
+				out <- array(out,dim=c(dims,1))
+			}
+			else{
+				out1 <- array(a.fun(data[data$race==race.val[it],],amax),dim=c(dims,1))
+				out <- array(c(out,out1),dim=c(dims,it))
+			}
+		}
+		attributes(out)<-list(
+			dim=c(dims,it),		
+			dimnames=list(as.character(0:amax),as.character(y1),c("male","female"),race.val),	
+			dimid=c("age","year","sex","race"),
+			factor=c(0,0,1,1),
+			cutpoints=list((0:amax)*(365.24),cp,NULL,NULL),
+			class="ratetable"
+		)
+		attributes(out)$summary <- function (R) 
+		{
+			x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
+			1])/355.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
+			x2 <- as.character(as.date(c(min(R[, 3]), max(R[, 3]))))
+			paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
+			x[3], " female:", x[4], "\n", " date of entry from", 
+			x2[1], "to", x2[2], "\n")
+		}
+	}
+	out
+}
+
+transrate.hmd <- function(male,female){
+	nfiles <- 2
+	men <- read.table(male,sep="",header=TRUE)
+	men <- men[,c("Year","Age","qx")]
+	y1 <- sort(unique(men$Year))
+	ndata <- nrow(men)/111
+	if(round(ndata)!=ndata)stop("Each year must contain ages from 0 to 110")
+	men <- matrix(men$qx, ncol=ndata)
+	women <- read.table(female,sep="",header=TRUE)
+	women <- women[,"qx"]
+	if(length(women)!=length(men))stop("Number of rows in the table must be equal for both sexes")
+	women <- matrix(women, ncol=ndata)
+	cp <- as.date(apply(matrix(y1,ncol=1),1,function(x){paste("1jan",x,sep="")}))
+	dn2 <- as.character(y1)
+	men<- -log(1-men)/365.241
+	women<- -log(1-women)/365.241
+	dims <- c(dim(men),2)
+	out <- array(c(men,women),dim=dims)
+	attributes(out)<-list(
+		dim=dims,
+		dimnames=list(as.character(0:110),as.character(y1),c("male","female")),	
+		dimid=c("age","year","sex"),
+		factor=c(0,0,1),
+		cutpoints=list((0:110)*(365.24),cp,NULL),
+		class="ratetable"
+	)
+	attributes(out)$summary <- function (R) 
+	{
+		x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
+		1])/355.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
+		x2 <- as.character(as.date(c(min(R[, 3]), max(R[, 3]))))
+		paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
+		x[3], " female:", x[4], "\n", " date of entry from", 
+		x2[1], "to", x2[2], "\n")
+	}
+	out
+}
+
+
+
+
+joinrate <- function(tables,dim.name="country"){
+	nfiles <- length(tables)
+	if(is.null(names(tables))) names(tables) <- paste("D",1:nfiles,sep="")
+	if(any(!unlist(lapply(tables,is.ratetable))))stop("Tables must be in ratetable format")
+	if(length(attributes(tables[[1]])$dim)!=3)stop("Currently implemented only for ratetables with 3 dimensions")
+
+	
+	for(it in 2:nfiles){
+		if(length(attributes(tables[[it]])$dimid)!=3)stop("Each ratetable must have 3 dimensions: age, year and sex")
+		mc <- match(attributes(tables[[it]])$dimid,attributes(tables[[1]])$dimid,nomatch=0)
+		if(any(mc)==0) stop("Each ratetable must have 3 dimensions: age, year and sex")
+		if(any(mc!=1:3)){
+			atts <- attributes(tables[[it]])
+			tables[[it]] <- aperm(tables[[it]],mc)
+			atts$dimid <- atts$dimid[mc]
+			atts$dimnames <- atts$dimnames[mc]
+			atts$cutpoints <- atts$cutpoints[mc]
+			atts$factor <- atts$factor[mc]
+			atts$dim <- atts$dim[mc]
+			attributes(tables[[it]]) <- atts
+		}
+	}
+	
+	list.eq <- function(l1,l2){
+		n <- length(l1)
+		rez <- rep(TRUE,n)
+		for(it in 1:n){
+			if(length(l1[[it]])!=length(l2[[it]]))rez[it] <- FALSE
+			else if(any(l1[[it]]!=l2[[it]]))rez[it] <- FALSE
+		}
+		rez
+	}
+	
+		
+	equal <- rep(TRUE,3)
+	for(it in 2:nfiles){
+		equal <- equal*list.eq(attributes(tables[[1]])$cutpoints,attributes(tables[[it]])$cutpoints)
+	}
+		
+	
+	kir <-  which(!equal)
+		
+	newat <- attributes(tables[[1]])
+	imena <- list(d1=NULL,d2=NULL,d3=NULL)
+	
+	for(jt in kir){
+		listy <- NULL
+		for(it in 1:nfiles){
+			listy <- c(listy,attributes(tables[[it]])$cutpoints[[jt]])
+		}
+		imena[[jt]] <- names(table(listy)[table(listy) == nfiles])
+		if(!length(imena[[jt]]))stop(paste("There are no common cutpoints for dimension", attributes(tables[[1]])$dimid[jt]))
+	}
+	
+	
+	for(it in 1:nfiles){
+		keep <- lapply(dim(tables[[it]]),function(x)1:x)
+		for(jt in kir){
+			meci <- which(match(attributes(tables[[it]])$cutpoints[[jt]],imena[[jt]],nomatch=0)!=0)
+			
+			if(it==1){
+				newat$dimnames[[jt]] <- attributes(tables[[it]])$dimnames[[jt]][meci] 
+				newat$dim[[jt]] <- length(imena[[jt]])
+				newat$cutpoints[[jt]] <- attributes(tables[[it]])$cutpoints[[jt]][meci]
+			}
+			if(length(meci)>1){if(max(diff(meci)!=1))warning(paste("The cutpoints for ",attributes(tables[[1]])$dimid[jt] ," are not equally spaced",sep=""))}
+			keep[[jt]] <- meci		
+		}
+		tables[[it]] <- tables[[it]][keep[[1]],keep[[2]],keep[[3]]]
+	}
+	dims <- newat$dim
+	out <- array(tables[[1]],dim=c(dims,1))
+	for(it in 2:nfiles){
+		out1 <- array(tables[[it]],dim=c(dims,1))
+		out <- array(c(out,out1),dim=c(dims,it))
+	}
+	mc <- 1:4
+	if(any(newat$factor>1)){
+		wh <- which(newat$factor>1)
+		mc <- c(mc[-wh],wh)
+		out <- aperm(out,mc)
+	}
+	newat$dim <- c(dims,nfiles)[mc]
+	newat$dimid <- c(newat$dimid,dim.name)[mc]
+	newat$cutpoints <- list(newat$cutpoints[[1]],newat$cutpoints[[2]],newat$cutpoints[[3]],NULL)[mc]
+	newat$factor <- c(newat$factor,1)[mc]
+	newat$dimnames <- list(newat$dimnames[[1]],newat$dimnames[[2]],newat$dimnames[[3]],names(tables))[mc]
+	attributes(out) <- newat
+	out
+}
+ 
 
 srvxp.fit <- function (x, y, ratetable) 
 {
