@@ -55,7 +55,7 @@ long and include the maximum observed follow-up time.
 \item{...}{other arguments will be passed to \code{glm.control}.}
 }
 
-\Details{
+\details{
 The methods using glm are methods for grouped data. The groups are formed according to the covariate values.
 This should be taken into account when fitting a model.
 }
