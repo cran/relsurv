@@ -18,4 +18,9 @@
  }
 }
 
+\references{
+Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
+}
+
+
 \keyword{datasets}

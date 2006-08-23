@@ -4,10 +4,11 @@ joinrate                Join ratetables
 plot.rs.zph             Graphical Inspection of Proportional Hazards
                         Assumption in Relative Survival Models
 rdata                   Survival Data
-residuals.rsadd         Calculate Residuals for a rsadd Fit
+residuals.rsadd         Calculate Residuals for a "rsadd" Fit
 rformulate              Auxiliary Function for relsurv
 rs.br                   Test the Proportional Hazards Assumption for
                         Relative Survival Regression Models
+rs.surv                 Compute a Relative Survival Curve
 rs.zph                  Behaviour of Covariates in Time for Relative
                         Survival Regression Models
 rsadd                   Fit an Additive model for Relative Survival

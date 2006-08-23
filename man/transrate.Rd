@@ -34,5 +34,10 @@ men <- cbind(exp(-365*exp(-14.5+.08*(0:100))),exp(-365*exp(-14.7+.085*(0:100))))
 women <- cbind(exp(-365*exp(-15.5+.085*(0:100))),exp(-365*exp(-15.7+.09*(0:100))))
 table <- transrate(men,women,yearlim=c(1980,1990),int.length=10)
 }
-\seealso{\code{\link{ratetable}}, \code{\link{transrate.hld}}, \code{\link{joinrate}}, \code{\link{transrate.hmd}}.}
+
+\references{
+Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
+}
+
+\seealso{\code{\link{ratetable}}.}
 \keyword{survival}

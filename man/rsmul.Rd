@@ -50,6 +50,8 @@ be more computationally intensive.}
 an object of class \code{coxph}.
 }
 \references{
+Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
+
 Andersen, P.K., Borch-Johnsen, K., Deckert, T., Green, A.,
 Hougaard, P., Keiding, N. and Kreiner, S. "A Cox regression
 model for relative mortality and its application to diabetes

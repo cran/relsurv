@@ -1,23 +1,411 @@
+rsfitterem<-function(data,b,maxiter,ratetable,tol,bwin,p,cause,Nie){
+ pr.time<-proc.time()[3]
+if (maxiter<1) stop("There must be at least one iteration run")
+n<-nrow(data)
+m <- p
+dtimes <- which(data$stat==1)			#the positions of event times in data$Y
+td <- data$Y[dtimes]				#event times
+ntd <- length(td)				#number of event times
+utimes <- which(c(1,diff(td))!=0)		#the positions of unique event times among td
+utd <- td[utimes]				#unique event times
+nutd <- length(utd)				#number of unique event times
+udtimes <- dtimes[utimes]			#the positions of unique event times among data$Y
+razteg <- function(x){
+	# x is a 0/1 vector, the output is a vector of length sum(x), with the corresponding rep numbers
+	n <- length(x)
+	repu <- rep(1,n)
+	repu[x==1] <- 0
+	repu <- rev(cumsum(rev(repu)))
+	repu <- repu[x==1]
+	repu <- -diff(c(repu,0))+1
+	if(sum(repu)!=n)repu <- c(n-sum(repu),repu)  #ce je prvi cas censoring, bo treba se kej narest??
+	repu
+}
+rutd <- rep(0,ntd)
+rutd[utimes] <- 1
+rutd <- razteg(rutd)				#from  unique event times to event times
+rtd <- razteg(data$stat)			#from event times to data$Y
+
+a <- data$a[data$stat==1]
+
+if(bwin[1]!=0){
+	#the vector of change points for the smoothing bandwidth
+	nt4 <- c(1,ceiling(c(nutd*.25,nutd/2,nutd*.75,nutd)))
+	if(missing(bwin))bwin <- rep(1,4)
+	else bwin <- rep(bwin,4)
+	for(it in 1:4){
+		bwin[it] <- bwin[it]*max(diff(utd[nt4[it]:nt4[it+1]]))
+	}
+	while(utd[nt4[2]]<bwin[1]){		# ce je bwin velik, skrajsamo nt4
+	       nt4 <- nt4[-2]
+	       if(length(nt4)==1)break
+	}
+	#the smoothing matrix
+	krn <- kernerleftch(utd,bwin,nt4)
+}
+
+
+
+#forming the new dataset
+if(p>0){
+whtemp <- data$stat==1&cause==2
+dataded <- data[data$stat==1&cause==2,]				#events with unknown cause
+datacens <- data[data$stat==0|cause<2,]				#censorings or known cause
+
+datacens$cause <- cause[data$stat==0|cause<2]*data$stat[data$stat==0|cause<2]	
+
+databig <- lapply(dataded, rep, 2)				
+databig <- do.call("data.frame", databig)
+databig$cause <- rep(2,nrow(databig))
+nded <- nrow(databig)
+databig$cens <- c(rep(1,nded/2),rep(0,nded/2))
+
+datacens$cens <- rep(0,nrow(datacens))
+datacens$cens[datacens$cause<2] <- datacens$cause[datacens$cause<2] 
+names(datacens) <- names(databig)
+
+databig <- rbind(databig,datacens)
+
+cause <- cause[data$stat==1]
+
+
+#model matrix for relative survival
+xmat <- as.matrix(data[,7:(6+m)])
+
+#ebx at initial values of b
+ebx <- as.vector(exp(xmat%*%b))
+
+#model matrix for coxph
+modmat <- as.matrix(databig[,7:(6+m)])
+varnames <- names(data)[7:(6+m)]
+}
+else{
+	cause <- cause[data$stat==1]
+	ebx <- rep(1,n)
+}
+
+
+#for time-dependent data:
+starter <- sort(data$start)
+starter1<-c(starter[1],starter[-length(starter)])
+          
+#the values of interest in the cumsums of the obsolete values (there is at least one value - the 1st)
+index <- c(TRUE,(starter!=starter1)[-1])
+          
+starter <- starter[index]
+#the number of repetitions in each cumsum difference - needed for s0 calculation
+val1 <- apply(matrix(starter,ncol=1),1,function(x,Y)sum(x>=Y),data$Y)
+val1 <- c(val1[1],diff(val1),length(data$Y)-val1[length(val1)])
+
+
+
+
+eb <- ebx[data$stat==1]
+s0 <- cumsum((ebx)[n:1])[n:1]
+        
+ebx.st <- ebx[order(data$start)]
+s0.st <- ((cumsum(ebx.st[n:1]))[n:1])[index]
+s0.st <- rep(c(s0.st,0),val1)
+s0 <- s0 - s0.st
+
+
+#s0 only at times utd
+s0 <- s0[udtimes]
+
+
+#find the corresponding value of Y for each start!=0 - needed for likelihood calculation
+start <- data$start
+if(any(start!=0)){
+	wstart <- rep(NA,n)
+	ustart <- unique(start[start!=0])
+	for(its in ustart){
+		wstart[start==its] <- min(which(Y==its))
+	}
+}
+
+
+#tale del je zelo sumljiv - kako se racuna likelihood za ties???
+difft <- c(data$Y[data$stat==1][1],diff(td))
+difft <- difft[difft!=0]
+difft <- rep(difft,rutd)
+a0 <- a*difft
+      
+
+if(sum(Nie==.5)!=0)maxit0 <- maxiter
+else maxit0<- maxiter - 3
+for(i in 1:maxit0){
+	
+	#Nie is of length ntd, should be nutd, with the values at times being the sum
+	nietemp <- rep(1:nutd,rutd)
+	Nies <- as.vector(by(Nie,nietemp,sum))  #shorter Nie - only at times utd
+	
+	lam0 <- Nies/s0
+	#the smooting of lam0        
+        if(bwin[1]!=0)lam0s <- krn%*%lam0
+        else lam0s <- lam0/difft
+        
+        #extended to all event times 
+        lam0s <- rep(lam0s,rutd)
+        
+                
+        #compute Nie, only for those with unknown hazard
+    	Nie[cause==2] <- as.vector(lam0s*eb/(a+lam0s*eb))[cause==2]
+}
+if(maxit0!=maxiter & i==maxit0) i <- maxiter
+#likelihood calculation - manjka ti se likelihood za nicelni model!!!
+#the cumulative hazard     
+Lam0  <- cumsum(lam0)
+#extended to all event times
+Lam0 <- rep(Lam0,rutd)
+if(data$stat[1]==0) Lam0 <- c(0,Lam0)
+#extended to all exit times
+Lam0 <- rep(Lam0,rtd)
+#for time dependent covariates: replace by the difference
+if(any(start!=0))Lam0[start!=0] <- Lam0[start!=0] - Lam0[wstart[start!=0]]
+       
+lam0 <- rep(lam0,rutd)
+     	
+likely0 <- sum(log(a0 + lam0*eb)) - sum(data$ds + Lam0*ebx)
+likely <- likely0
+tempind <- Nie<=0|Nie>=1
+if(any(tempind)){
+	if(any(Nie<=0))Nie[Nie<=0] <- tol
+	if(any(Nie>=1))Nie[Nie>=1] <- 1-tol
+}
+	
+if(p>0)databig$wei <- c(Nie[cause==2],1-Nie[cause==2],rep(1,nrow(datacens)))
+
+
+if(maxiter>=1&p!=0){
+for(i in 1:maxiter){
+        
+        if(p>0){
+        b00<-b
+        if(i==1)fit <- coxph(Surv(start,Y,cens)~modmat,data=databig,weights=wei,init=b00,x=TRUE,iter.max=maxiter)
+        else    fit <- coxph(Surv(start,Y,cens)~modmat,data=databig,weights=wei,x=TRUE,iter.max=maxiter)
+             
+        
+        if(any(is.na(fit$coeff))) stop("X matrix deemed to be singular, variable ",which(is.na(fit$coeff)))
+        
+        b <- fit$coeff
+        
+        ebx <- as.vector(exp(xmat%*%b))
+        }
+        else ebx <- rep(1,n)
+       
+        eb <- ebx[data$stat==1]
+
+        s0 <- cumsum((ebx)[n:1])[n:1]
+        
+        ebx.st <- ebx[order(data$start)]
+        s0.st <- ((cumsum(ebx.st[n:1]))[n:1])[index]
+        s0.st <- rep(c(s0.st,0),val1)
+        s0 <- s0 - s0.st
+        
+        #Nie is of length ntd, should be nutd, with the values at times being the sum
+        nietemp <- rep(1:nutd,rutd)
+        Nies <- as.vector(by(Nie,nietemp,sum))  #shorter Nie - only at times utd
+        #s0 only at times utd
+        s0 <- s0[udtimes]
+        
+	lam0 <- Nies/s0
+	
+	#the cumulative hazard     
+        Lam0  <- cumsum(lam0)
+        #extended to all event times
+        Lam0 <- rep(Lam0,rutd)
+        if(data$stat[1]==0) Lam0 <- c(0,Lam0)
+        #extended to all exit times
+        Lam0 <- rep(Lam0,rtd)
+        #for time dependent covariates: replace by the difference
+        if(any(start!=0))Lam0[start!=0] <- Lam0[start!=0] - Lam0[wstart[start!=0]]
+       
+        #the smooting of lam0        
+        if(bwin[1]!=0)lam0s <- krn%*%lam0
+        else lam0s <- lam0/difft
+        
+        #extended to all event times 
+        lam0s <- rep(lam0s,rutd)
+        
+                
+        #compute Nie, only for those with unknown hazard
+    	Nie[cause==2] <- as.vector(lam0s*eb/(a+lam0s*eb))[cause==2]
+        
+                        
+        #likelihood calculation - manjka ti se likelihood za nicelni model!!!
+       	lam0 <- rep(lam0,rutd)
+     	
+              
+        likely <- sum(log(a0 + lam0*eb)) - sum(data$ds + Lam0*ebx)
+	
+	if(p>0){
+        	tempind <- Nie<=0|Nie>=1
+	        if(any(tempind)){
+	                if(any(Nie<=0))Nie[Nie<=0] <- tol
+	                if(any(Nie>=1))Nie[Nie>=1] <- 1-tol
+	                #if(which(tempind)!=nev)warning("Weights smaller than 0")                       
+	                #if(any(is.na( match(which(tempind),c(1,nev)) )))browser()                      
+        	}
+        	if(nded==0) break()
+        	databig$wei[1:nded] <- c(Nie[cause==2],1-Nie[cause==2])
+        	bd <- abs(b-b00)
+		if(max(bd)< tol) break()    
+        }
+        #early stopping time for no covariates???
+}
+}
+iter <- i
+#if (maxiter > 1& iter>=maxiter) 
+#        warning("Ran out of iterations and did not converge")
+if(p>0){
+if(nded!=0){
+	resi <- resid(fit,type="schoenfeld")
+	if(!is.null(dim(resi)))resi <- resi[1:(nded/2),]
+	else resi <- resi[1:(nded/2)]
+	swei <- fit$weights[1:(nded/2)]
+	
+	if(is.null(dim(resi))) fishem <- sum((resi^2*swei*(1-swei)))
+	else {
+		fishem <- apply(resi,1,function(x)outer(x,x))
+		fishem <- t(t(fishem)*swei*(1-swei))
+		fishem <- matrix(apply(fishem,1,sum),ncol=m)
+	}
+}
+else fishem <- 0
+fishcox <- solve(fit$var)
+fisher <- fishcox - fishem
+fit$var <- solve(fisher)
+names(fit$coefficients)<-varnames
+fit$lambda0 <- lam0s
+}
+else fit <- list(lambda0 = lam0s)
+fit$lambda0 <- fit$lambda0[utimes]
+fit$Lambda0 <- Lam0[udtimes]
+fit$times <- utd
+fit$Nie <- Nie
+fit$bwin <- bwin
+fit$iter <- i
+class(fit) <- c("rsadd",class(fit))
+fit$loglik <- c(likely0,likely)
+fit
+}
+
+
+
+em <- function (rform, init, control, bwin) 
+{
+    data <- rform$data
+    n <- nrow(data)
+    p <- rform$m
+    id <- order(data$Y)
+    rform$cause <- rform$cause[id]
+    data <- data[id, ]
+    fk <- (attributes(rform$ratetable)$factor != 1)
+    nfk <- length(fk)
+    nev <- length(data$Y[data$stat == 1])
+    data$a <- rep(NA, n)
+    xx <- srvxp.fit(data[, 4:(nfk + 3)], data$Y - data$start, rform$ratetable)
+    data$ds <- -log(xx)
+    data1 <- data
+    data1[, 4:(nfk + 3)] <- data[, 4:(nfk + 3)] + data$Y %*% t(fk)
+    xx <- srvxp.fit(data1[data1$stat == 1, 4:(nfk + 3)], rep(1, 
+        nev), rform$ratetable)
+    data$a[data$stat == 1] <- -log(xx)
+    
+    if (p > 0) {
+        if (!missing(init) && !is.null(init)) {
+            if (length(init) != p) 
+                stop("Wrong length for inital values")
+        }
+        else init <- rep(0, p)
+        beta <- matrix(init, p, 1)
+    }
+    pr.time<-proc.time()[3]
+    
+    Nie <- rep(.5,sum(data$stat==1))
+    Nie[rform$cause[data$stat==1]<2] <-  rform$cause[data$stat==1][rform$cause[data$stat==1]<2]
+    
+    if(missing(bwin))bwin <- -1
+    if(bwin<0){
+
+	if(p>0)data1 <- data[,-c(7:(6+p))]    
+	else  data1 <- data
+	nfk <- length(attributes(rform$ratetable)$dimid)
+	names(data)[4:(3+nfk)] <- attributes(rform$ratetable)$dimid
+	expe <- rs.surv(Surv(Y,stat)~1,data,ratetable=rform$ratetable,method="conditional")
+	esurv <- -log(expe$surv[expe$n.event!=0])
+	if(esurv[length(esurv)]==Inf)esurv[length(esurv)] <-  esurv[length(esurv)-1]
+	x <- seq(.1,3,length=5)
+	dif <- rep(NA,5)
+	options(warn=-1)
+	diter <- max(round(max(data$Y)/356.24),3)
+	for(it in 1:5){
+		fit <- rsfitterem(data1,NULL,diter,rform$ratetable,control$epsilon,x[it],0,rform$cause,Nie)
+		dif[it] <- sum((esurv-fit$Lambda0)^2)
+	}
+	wh <- which.min(dif)
+	if(wh==1)x <- seq(x[wh],x[wh+1]-.1,length=5)
+	else if(wh==5)x <- c(x, max(data$Y)/ max(diff(data$Y)))
+	if(wh!=1)
+	x <- seq(x[wh-1]+.1,x[wh+1]-.1,length=5)
+    	dif <- rep(NA,5)
+    	
+   	for(it in 1:5){
+		fit <- rsfitterem(data1,NULL,diter,rform$ratetable,control$epsilon,x[it],0,rform$cause,Nie)
+		dif[it] <- sum((esurv-fit$Lambda0)^2)
+	}
+	options(warn=0)
+	Nie <- fit$Nie
+	bwin <- x[which.min(dif)]
+    }
+       
+        fit <- rsfitterem(data, beta, control$maxit, rform$ratetable, 
+                 control$epsilon, bwin, p, rform$cause,Nie)
+        
+        Nie <- rep(0,nrow(data))
+        Nie[data$stat==1] <- fit$Nie 
+        fit$Nie <- Nie[order(id)]
+         fit$bwin <- list(bwin=fit$bwin,bwinfac=bwin)
+         fit
+     }
+
+
 rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
-    int, na.action, method = "max.lik", init, centered = FALSE, control, ...) 
+    int, na.action, method = "max.lik", init, bwin, centered = FALSE, 
+    cause, control, ...) 
 {
     call <- match.call()
     if (missing(control)) 
         control <- glm.control(...)
-   
-   
+    #if (missing(cause)) 
+    #    cause <- rep(FALSE, nrow(data))
+    #if (!is.logical(cause)) 
+    #    stop("Variable 'cause' must be logical")
+    if (missing(cause)) 
+           cause <- rep(2, nrow(data))
+    if (length(cause) != nrow(data)) 
+            stop("Length of cause does not match data dimensions")
+        data$cause <- cause
     rform <- rformulate(formula, data, ratetable, na.action, 
-        int, centered)
-        
-	if (missing(int)) 
-	    int <- ceiling(max(rform$Y/365.24))
-	if (length(int) == 1) {
-	    if (int <= 0) 
-		stop("The value of 'int' must be positive ")
-	    int <- 0:int
-	}
-	else if (int[1] != 0) 
-	    stop("The first interval in 'int' must start with 0")
+        int, centered, cause)
+    if (method == "EM") {
+        if (!missing(int)) {
+            if (length(int) > 1 | any(int) <= 0) 
+                stop("Invalid value of 'int'")
+        }
+    }
+    else {
+        if (missing(int)) 
+            int <- ceiling(max(rform$Y/365.24))
+        if (length(int) == 1) {
+            if (int <= 0) 
+                stop("The value of 'int' must be positive ")
+            int <- 0:int
+        }
+        else if (int[1] != 0) 
+            stop("The first interval in 'int' must start with 0")
+    }
+    method <-  match.arg(method,c("glm.bin","glm.poi","max.lik","EM"))
 
     if (method == "glm.bin" | method == "glm.poi") 
         fit <- glmxp(rform = rform, interval = int, method = method, 
@@ -25,7 +413,8 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
     else if (method == "max.lik") 
         fit <- maxlik(rform = rform, interval = int, init = init, 
             control = control)
-    else stop("Unknown method")
+    else if (method == "EM") 
+        fit <- em(rform, init, control, bwin)
     fit$call <- call
     fit$formula <- formula
     fit$data <- rform$data
@@ -34,20 +423,25 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
         fit$na.action <- rform$na.action
     fit$y <- rform$Y.surv
     fit$method <- method
+    if (method == "EM") {
+        if (!missing(int)) 
+            fit$int <- int
+        else fit$int <- ceiling(max(rform$Y[rform$status == 1])/365.24)
+    }
     if (rform$m > 0) 
         fit$linear.predictors <- as.matrix(rform$X) %*% fit$coef[1:ncol(rform$X)]
     fit
 }
 
 rformulate <- function (formula, data = parent.frame(), ratetable, na.action, 
-    int, centered) 
+    int, centered, cause) 
 {
     call <- match.call()
     m <- match.call(expand = FALSE)
     m$ratetable <- m$int <- m$centered <- NULL
     Terms <- if (missing(data)) 
-        terms(formula, "ratetable")
-    else terms(formula, "ratetable", data = data)
+        terms(formula, "ratetable", "cause")
+    else terms(formula, "ratetable", "cause", data = data)
     rate <- attr(Terms, "specials")$ratetable
     if (length(rate) > 1) 
         stop("Can have only 1 ratetable() call in a formula")
@@ -57,7 +451,7 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
             varlist <- attr(ratetable, "dimid")
         else stop("Invalid rate table")
         ftemp <- deparse(formula)
-        ftemp <- paste(ftemp,collapse="")
+         ftemp <- paste(ftemp,collapse="")
         formula <- xx(paste(ftemp, "+ ratetable(", paste(varlist, 
             "=", varlist, collapse = ","), ")"))
         Terms <- if (missing(data)) 
@@ -78,12 +472,14 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
         status <- Y[, 2]
         Y <- Y[, 1]
         start <- rep(0, n)
+        ncol0 <- 2
     }
     else if (attr(Y, "type") == "counting") {
         type <- attr(Y, "type")
         status <- Y[, 3]
         start <- Y[, 1]
         Y <- Y[, 2]
+        ncol0 <- 3
     }
     else stop("Illegal response value")
     if (any(c(Y, start) < 0)) 
@@ -102,12 +498,18 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
         mm <- 0
     }
     else {
-        if (length(rate == 1)) {
-            formula[[3]] <- formula[[3]][[2]]
-        }
+        #if (length(rate == 1)) {
+        #    formula[[3]] <- formula[[3]][[2]]
+        #}
         X <- as.data.frame(model.matrix(formula, data = data))[, 
             -1, drop = FALSE]
         mm <- ncol(X)
+        X <- X[,1:(mm-ncol(R)),drop=FALSE]
+        mm <- ncol(X)
+        #mn <- names(X)
+        #X <- data.frame(do.call("cbind",m))
+	#X <- X[,(ncol0+1):(ncol0+mm),drop=FALSE]
+        #names(X) <- mn
     }
     if (!missing(centered)) {
         if (mm != 0 & centered == TRUE) 
@@ -125,9 +527,10 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
         ff
     }
     keep <- Y > start
-   
+    cause <- model.extract(m, "cause")
+    #status[cause==0] <- 0
     if (!missing(int)) {
-    	int <- max(int)
+        int <- max(int)
         status[Y > int * 365.24] <- 0
         Y <- pmin(Y, int * 365.24)
         keep <- keep & (start < int * 365.24)
@@ -141,14 +544,15 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
     R <- R[keep, ]
     offset <- offset[keep]
     Y.surv <- Y.surv[keep, , drop = FALSE]
-    
+    cause <- cause[keep]
     n <- sum(keep)
     data <- data.frame(start = start, Y = Y, stat = status, R)
     if (mm != 0) 
         data <- cbind(data, X)
     out <- list(data = data, R = R, status = status, start = start, 
         Y = Y, X = as.data.frame(X), m = mm, n = n, type = type, Y.surv = Y.surv, 
-        Terms = Terms, ratetable = ratetable, offset = offset)
+        Terms = Terms, ratetable = ratetable, offset = offset, 
+        cause = cause)
     na.action <- attr(m, "na.action")
     if (length(na.action)) 
         out$na.action <- na.action
@@ -166,7 +570,7 @@ maxlik <- function (rform, interval, subset, init, control)
     data <- cbind(data, offset = rform$offset)
     data <- survsplit(data, cut = interval[-1] * 365.24, end = "Y", 
         event = "stat", start = "start", episode = "epi", interval = interval)
-    del <- which(data$start==data$Y)
+    del <- which(data$start==data$Y)   
     if(length(del))    data <- data[-del,]
     offset <- data$offset
     data$offset <- NULL
@@ -186,8 +590,28 @@ maxlik <- function (rform, interval, subset, init, control)
     data$Y <- data$Y/365.24
     data$start <- data$start/365.24
     data <- data[, -(4:(3 + nfk))]
-    fit <- lik.fit(data, rform$m, length(interval[-1]), init, 
-        control, offset)
+    intn <- length(interval[-1])
+    m <- rform$m
+    p <-  m + intn
+    if (!missing(init) && !is.null(init)) {
+        if (length(init) != p) 
+            stop("Wrong length for inital values")
+    }
+    else init <- rep(0, p)
+    if(m>0){
+    	init0 <- init[-(1:m)]
+    	data1 <- data[,-(4:(3+m))]
+    }
+    else{
+    	init0 <- init
+    	data1 <- data
+    }
+    fit0 <- lik.fit(data1, 0, intn, init0,  control, offset)
+    if(m>0){
+       	init[-(1:m)] <- fit0$coef
+    	fit <- lik.fit(data, m, intn, init,  control, offset)
+    }
+    else fit <- fit0
     fit$int <- interval
     class(fit) <- "rsadd"
     fit
@@ -280,8 +704,8 @@ survsplit <- function (data, cut, end, event, start, id = NULL, zero = 0,
                 rep(0, drop3)))
         }
         fu <- as.data.frame(fu)
-        names(fu) <- c(paste("fu [", interval[1], ",", interval[2], "]", sep = ""),paste("fu (", interval[-c(1,length(interval))]
-			, ",", interval[-(1:2)], "]", sep = ""))
+        names(fu) <- c(paste("fu [", interval[-length(interval)], 
+            ",", interval[-1], ")", sep = ""))
         newdata <- cbind(newdata, fu)
     }
     else if (length(interval) == 2) {
@@ -331,7 +755,7 @@ glmxp <- function (rform, data, interval, method, control)
         else data.rest <- X[1, c((3 + nfk + 1):(3 + nfk + rform$m), 
             7 + nfk + rform$m)]
         cbind(nd = nd, ld = ld, ps = ps, lny = lny, dstar = dstar, 
-            k = k, data.rest,g=X$grupa[1])
+            k = k, data.rest)
     }
     nint <- length(interval)
     if (nint < 2) 
@@ -395,12 +819,12 @@ glmxp <- function (rform, data, interval, method, control)
             X$event <- X$fin * X$stat
             l <- sum(int[i - 1] >= meje * 365.24)
             if(l==1)
-            	ftemp <- eval(substitute(paste("[", a, ",", b, "]", sep = ""),
-            		 list(a = meje[l], b = meje[l + 1])))
-            
-            else
-            	ftemp <- eval(substitute(paste("(", a, ",", b, "]", sep = ""),
-            		 list(a = meje[l], b = meje[l + 1])))
+		ftemp <- eval(substitute(paste("[", a, ",", b, "]", sep = ""),
+			 list(a = meje[l], b = meje[l + 1])))
+
+	    else
+		ftemp <- eval(substitute(paste("(", a, ",", b, "]", sep = ""),
+			 list(a = meje[l], b = meje[l + 1])))
             ford <- c(ford, ftemp)
             X$fu <- rep(ford[i - 1], ni)
             t.int <- int[i] - int[i - 1]
@@ -460,7 +884,7 @@ glmxp <- function (rform, data, interval, method, control)
             local.ht <- glm(cbind(nd, ld - nd) ~ -1 + fu + offset(log(k)), 
                 data = grm1, family = ht)
         else {
-            xmat <- as.matrix(grm1[, 7:(ncol(grm1) - 2)])
+            xmat <- as.matrix(grm1[, 7:(ncol(grm1) - 1)])
             local.ht <- glm(cbind(nd, ld - nd) ~ -1 + xmat + 
                 fu + offset(log(k)), data = grm1, family = ht)
         }
@@ -498,7 +922,7 @@ glmxp <- function (rform, data, interval, method, control)
             local.ht <- glm(nd ~ -1 + fu, data = grm1, family = pot, 
                 offset = lny)
         else {
-            xmat <- as.matrix(grm1[, 7:(ncol(grm1) - 2)])
+            xmat <- as.matrix(grm1[, 7:(ncol(grm1) - 1)])
             local.ht <- glm(nd ~ -1 + xmat + fu, data = grm1, 
                 family = pot, offset = lny)
         }
@@ -526,7 +950,8 @@ residuals.rsadd <- function (object, type = "schoenfeld", ...)
     nfk <- length(fk)
     n <- nrow(data)
     scale <- 1
-    
+    if (object$method == "EM") 
+        scale <- 365.24
     m <- ncol(data)
     rem <- m - nfk - 3
     interval <- object$int
@@ -535,38 +960,63 @@ residuals.rsadd <- function (object, type = "schoenfeld", ...)
     lp <- matrix(-log(srvxp.fit(as.matrix(R), rep(365.24, n), 
         object$ratetable))/scale, ncol = 1)
     fu <- NULL
-   
-   
-	pon <- NULL
-	for (i in 1:(length(interval) - 1)) {
-	    width <- ceiling(interval[i + 1]) - floor(interval[i])
-	    lo <- interval[i]
-	    hi <- min(interval[i + 1], floor(interval[i]) + 1)
-	    for (j in 1:width) {
-		fu <- as.data.frame(cbind(fu, as.numeric(stop/365.24 < 
-		  hi & stop/365.24 >= lo)))
-		names(fu)[ncol(fu)] <- paste("fu", lo, "-", hi, 
-		  sep = "")
-		if (j == width) {
-		  pon <- c(pon, sum(fu[event == 1, (ncol(fu) - 
-		    width + 1):ncol(fu)]))
-		  break()
+    if (object$method == "EM") {
+        death.time <- stop[event == 1]
+        for (it in 1:int) {
+            fu <- as.data.frame(cbind(fu, as.numeric(death.time/365.24 < 
+                it & (death.time/365.24) >= (it - 1))))
+        }
+        if(length(death.time)!=length(unique(death.time))){
+        	utimes <- which(c(1,diff(death.time))!=0)
+        	razteg <- function(x){
+		# x is a 0/1 vector, the output is a vector of length sum(x), with the corresponding rep numbers
+			n <- length(x)
+			repu <- rep(1,n)
+			repu[x==1] <- 0
+			repu <- rev(cumsum(rev(repu)))
+			repu <- repu[x==1]
+			repu <- -diff(c(repu,0))+1
+			if(sum(repu)!=n)repu <- c(n-sum(repu),repu)  #ce je prvi cas censoring, bo treba se kej narest??
+			repu
 		}
-		else {
-		  lo <- hi
-		  hi <- min(interval[i + 1], floor(interval[i]) + 
-		    1 + j)
-		}
-	    }
+		rutd <- rep(0,length(death.time))
+		rutd[utimes] <- 1
+		rutd <- razteg(rutd)				#from  unique event times to event times
 	}
-	m <- ncol(data)
-	data <- cbind(data, fu)
-	rem <- m - nfk - 3
-	lambda0 <- rep(exp(beta[rem + 1:(length(interval) - 1)]), 
-	    pon)
-	fu <- fu[event == 1, , drop = FALSE]
-	beta <- beta[1:rem]
-
+	else rutd <- rep(1,length(death.time))
+        lambda0 <- rep(object$lambda0,rutd)
+    }
+    else {
+        pon <- NULL
+        for (i in 1:(length(interval) - 1)) {
+            width <- ceiling(interval[i + 1]) - floor(interval[i])
+            lo <- interval[i]
+            hi <- min(interval[i + 1], floor(interval[i]) + 1)
+            for (j in 1:width) {
+                fu <- as.data.frame(cbind(fu, as.numeric(stop/365.24 < 
+                  hi & stop/365.24 >= lo)))
+                names(fu)[ncol(fu)] <- paste("fu", lo, "-", hi, 
+                  sep = "")
+                if (j == width) {
+                  pon <- c(pon, sum(fu[event == 1, (ncol(fu) - 
+                    width + 1):ncol(fu)]))
+                  break()
+                }
+                else {
+                  lo <- hi
+                  hi <- min(interval[i + 1], floor(interval[i]) + 
+                    1 + j)
+                }
+            }
+        }
+        m <- ncol(data)
+        data <- cbind(data, fu)
+        rem <- m - nfk - 3
+        lambda0 <- rep(exp(beta[rem + 1:(length(interval) - 1)]), 
+            pon)
+        fu <- fu[event == 1, , drop = FALSE]
+        beta <- beta[1:rem]
+    }
     if (int >= 2) {
         for (j in 2:int) {
             R <- R + matrix(fk * 365.24, ncol = ncol(R), byrow = TRUE, 
@@ -710,6 +1160,7 @@ resid.com <- function (start, stop, event, z, beta, lp, lambda0, fup, n, rem,
 
 rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE) 
 {
+    test <- match.arg(test,c("max","cvm"))	
     if (inherits(fit, "rsadd")) {
         if (missing(sc)) 
             sc <- resid(fit, "schoenfeld")
@@ -727,6 +1178,16 @@ rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE)
         if (is.null(dim(varr))) 
             varr <- array(varr, dim = c(1, 1, length(varr)))
         sresid <- as.matrix(sresid)
+    }
+    if (inherits(fit, "coxph")) {
+	if(is.null(fit$data)){
+		temp <- fit$y
+		class(temp) <- "matrix"
+		if(ncol(fit$y)==2)temp <- data.frame(rep(0,nrow(fit$y)),temp)
+		names(temp) <- c("start","Y","stat")
+		if(is.null(fit$x))stop("The coxph model should be called with x=TRUE argument")
+		fit$data <- data.frame(temp,fit$x)
+	}
     }
     data <- fit$data[order(fit$data$Y), ]
     time <- data$Y[data$stat == 1]
@@ -780,8 +1241,8 @@ rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE)
     bbt <- as.list(1:(nvar + global))
     for (i in 1:nvar) {
         if (nvar != 1) 
-            usable <- which(varr[i, i, ] > 0)
-        else usable <- which(varr != 0)
+            usable <- which(varr[i, i, ] > 1e-12)
+        else usable <- which(varr > 1e-12)
         w <- (n.risk[usable])^rho
         w <- w/sum(w)
         if (nvar != 1) {
@@ -794,7 +1255,7 @@ rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE)
                 w <- as.vector(by(w, time[usable], sum))
             }
             else {
-                w <- w * as.vector(table(time))
+                w <- w * as.vector(table(time))[usable]
                 w <- w/sum(w)
             }
         }
@@ -817,7 +1278,7 @@ rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE)
             vector
         diagonal <- apply(varr, 3, diag)
         sumdiag <- apply(diagonal, 2, sum)
-        usable <- which(sumdiag > 0)
+        usable <- which(sumdiag > 1e-12)
         score <- t(beta) %*% t(sresid[usable, ])
         varr <- varr[, , usable]
         qf <- apply(varr, 3, qform, vector = beta)
@@ -854,39 +1315,41 @@ rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE)
 rs.zph <- function (fit, sc, transform = "identity", var.type = "sum") 
 {
     if (inherits(fit, "rsadd")) {
-        if (missing(sc)) 
-            sc <- resid(fit, "schoenfeld")
-        sresid <- sc$res
-        varr <- sc$kvarr
-        fvar <- solve(sc$kvarr1)
-        sresid <- as.matrix(sresid)
+            if (missing(sc)) 
+                sc <- resid(fit, "schoenfeld")
+            sresid <- sc$res
+            varr <- sc$kvarr
+            fvar <- solve(sc$kvarr1)
+            sresid <- as.matrix(sresid)
+        }
+        else {
+            coef <- fit$coef
+            options(warn = -1)
+            sc <- coxph.detail(fit)
+            options(warn = 0)
+            sresid <- as.matrix(resid(fit, "schoenfeld"))
+            varr <- sc$imat
+            fvar <- fit$var
     }
-    else {
-        coef <- fit$coef
-        options(warn = -1)
-        sc <- coxph.detail(fit)
-        options(warn = 0)
-        sresid <- as.matrix(resid(fit, "schoenfeld"))
-        varr <- sc$imat
-        fvar <- fit$var
-    }
-    data <- fit$data[order(fit$data$Y), ]
-    time <- data$Y
-    stat <- data$stat
-   
-    if (!inherits(fit, "rsadd")) {
-            ties <- as.vector(table(time[stat==1]))
-            if(is.null(dim(varr))) varr <- rep(varr/ties,ties)
+   data <- fit$data[order(fit$data$Y), ]
+   time <- data$Y
+   stat <- data$stat
+
+   if (!inherits(fit, "rsadd")) {
+           ties <- as.vector(table(time[stat==1]))
+           if(is.null(dim(varr))) varr <- rep(varr/ties,ties)
             else{
-		    varr <- apply(varr,1:2,function(x)rep(x/ties,ties))
-		    varr <- aperm(varr,c(2,3,1))
-	    }
+    		    varr <- apply(varr,1:2,function(x)rep(x/ties,ties))
+    		    varr <- aperm(varr,c(2,3,1))
+    	    }
     }
     keep <- 1:(length(fit$coef) - length(fit$int) + 1)
     varnames <- names(fit$coef)[keep]
     nvar <- length(varnames)
     ndead <- length(sresid)/nvar
-    times <- time[stat == 1]
+    if (inherits(fit, "rsadd")) 
+        times <- time[stat == 1]
+    else times <- sc$time
     if (is.character(transform)) {
         tname <- transform
         ttimes <- switch(transform, identity = times, rank = rank(times), 
@@ -907,15 +1370,25 @@ rs.zph <- function (fit, sc, transform = "identity", var.type = "sum")
         ttimes <- transform(times)
     }
     if (var.type == "each") {
-        invV <- apply(varr, 3, function(x) try(solve(x), silent = TRUE))
-        if (length(invV) == length(varr)) 
-            usable <- rep(TRUE, dim(varr)[3])
-        else {
-            usable <- unlist(lapply(invV, is.matrix))
-            if (!any(usable)) 
-                stop("All the matrices are singular")
-            invV <- invV[usable]
-            sresid <- sresid[usable, , drop = FALSE]
+            invV <- apply(varr, 3, function(x) try(solve(x), silent = TRUE))
+            if (length(invV) == length(varr)){ 
+                if(!is.numeric(invV)){
+                	usable <- rep(FALSE, dim(varr)[3])
+                	options(warn=-1)
+                	invV <- as.numeric(invV)
+                	usable[1:(min(which(is.na(invV)))-1)] <- TRUE
+                	invV <- invV[usable]
+                	sresid <- sresid[usable,,drop=FALSE]
+                	options(warn=0)
+                }
+                else usable <- rep(TRUE, dim(varr)[3])
+            }
+            else {
+                usable <- unlist(lapply(invV, is.matrix))
+                if (!any(usable)) 
+                    stop("All the matrices are singular")
+                invV <- invV[usable]
+                sresid <- sresid[usable, , drop = FALSE]
         }
         di1 <- dim(varr)[1]
         di3 <- sum(usable)
@@ -926,18 +1399,22 @@ rs.zph <- function (fit, sc, transform = "identity", var.type = "sum")
         r2 <- t(apply(uv, 3, function(x) x[1:di1, ] %*% x[di1 + 
             1, ]))
         r2 <- matrix(r2, ncol = di1)
+        whr2 <-  apply(r2<100,1,function(x)!any(x==FALSE))
+        usable <- as.logical(usable*whr2)
+        r2 <- r2[usable,]
+        u <- u[,,usable]
         dimnames(r2) <- list(times[usable], varnames)
         temp <- list(x = ttimes[usable], y = r2 + outer(rep(1, 
             sum(usable)), fit$coef[keep]), var = u, call = call, 
             transform = tname)
     }
     else if (var.type == "sum") {
-        xx <- ttimes - mean(ttimes)
-        r2 <- t(fvar %*% t(sresid) * ndead)
-        r2 <- as.matrix(r2)
-        dimnames(r2) <- list(times, varnames)
-        temp <- list(x = ttimes, y = r2 + outer(rep(1, ndead), 
-        fit$coef[keep]), var = fvar, transform = tname)
+       xx <- ttimes - mean(ttimes)
+       r2 <- t(fvar %*% t(sresid) * ndead)
+       r2 <- as.matrix(r2)
+       dimnames(r2) <- list(times, varnames)
+       temp <- list(x = ttimes, y = r2 + outer(rep(1, ndead), 
+       fit$coef[keep]), var = fvar, transform = tname)
     }
     else stop("Unknown 'var.type'")
     class(temp) <- "rs.zph"
@@ -948,7 +1425,8 @@ plot.rs.zph <- function (x,resid = TRUE, df = 4, nsmo = 40, var, cex = 1,  add =
     lty = 1, xlab, ylab, scale = 1, ...) 
 {
     require(splines)
-    xx <- x$x/scale
+    xx <- x$x
+    if(x$transform=="identity")xx <- xx/scale
     yy <- x$y
     d <- nrow(yy)
     df <- max(df)
@@ -977,7 +1455,7 @@ plot.rs.zph <- function (x,resid = TRUE, df = 4, nsmo = 40, var, cex = 1,  add =
             pred.x <- exp(pred.x)
         }
     else if (x$transform != "identity") {
-            xtime <- as.numeric(dimnames(yy)[[1]])
+            xtime <- as.numeric(dimnames(yy)[[1]])/scale
             apr1 <- approx(xx, xtime, seq(min(xx), max(xx), length = 17)[2 * 
                 (1:8)])
             temp <- signif(apr1$y, 2)
@@ -1011,6 +1489,7 @@ plot.rs.zph <- function (x,resid = TRUE, df = 4, nsmo = 40, var, cex = 1,  add =
 plot.rs.br <- function (x, var, ylim = c(-2, 2), xlab, ylab, ...) 
 {
     bbt <- x$bbt
+    par(ask = TRUE)
     if (missing(var)) 
         var <- 1:nrow(x$table)
     ychange <- FALSE
@@ -1032,9 +1511,36 @@ plot.rs.br <- function (x, var, ylim = c(-2, 2), xlab, ylab, ...)
         abline(h = -1.36, col = 2)
         abline(h = -1.63, col = 2)
     }
+    par(ask = FALSE)
 }
 
 
+Kernmatch <- function (t, tv, b, tD, nt4) 
+{
+    kmat <- NULL
+    for (it in 1:(length(nt4) - 1)) {
+        kmat1 <- (outer(t[(nt4[it] + 1):nt4[it + 1]], tv, "-")/b[it])
+        kmat1 <- kmat1^(kmat1 >= 0)
+        kmat <- rbind(kmat, pmax(1 - kmat1^2, 0) * (1.5/b[it]))
+    }
+    kmat
+}
+
+kernerleftch <- function (td, b, nt4) 
+{
+    n <- length(td)
+    ttemp <- td[td >= b[1]]
+    ntemp <- length(ttemp)
+    if (ntemp == n) 
+        nt4 <- c(0, nt4[-1])
+    else {
+        nfirst <- n - ntemp
+        nt4 <- c(0, 1:nfirst, nt4[-1])
+        b <- c(td[1:nfirst], b)
+    }
+    krn <- Kernmatch(td, td, b, max(td), nt4)
+    krn
+}
 
 
 invtime <- function (y = 0.1, age = 23011, sex = "male", year = 9497, scale = 1, 
@@ -1092,6 +1598,8 @@ invtime <- function (y = 0.1, age = 23011, sex = "male", year = 9497, scale = 1,
     age <- round(age/365.24, 0.01)
     return(list(age, sex, year, Y = y, T = t))
 }
+
+
 
 
 rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
@@ -1174,7 +1682,7 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = s
         names(fit[[1]]) <- names(U)[(3 + nfk + 1):(ncol(U) - 
             2)]
     }
-     class(fit) <- c("rsmul",class(fit))
+    class(fit) <- c("rsmul",class(fit))
     fit$lambda <- log(lambda)
     fit$data <- rform$data
     fit$call <- match.call()
@@ -1223,7 +1731,6 @@ rstrans <- function (formula = formula(data), data = parent.frame(), ratetable =
     fit$int <- int
     return(fit)
 }
-
 transrate <- function (men, women, yearlim, int.length = 1) 
 {
     if (any(dim(men) != dim(women))) 
@@ -1263,7 +1770,7 @@ transrate.hld <- function(file, cut.year,race){
 	for(it in 1:nfiles){
 		tdata <- read.table(file[it],sep=",",header=TRUE)
 		if(!any(tdata$TypeLT==1)) stop("Currently only TypeLT 1 is implemented")
-		names(tdata) <- gsub(".","",names(tdata),fixed=T)
+		names(tdata) <- gsub(".","",names(tdata),fixed=TRUE)
 		tdata <- tdata[,c("Country","Year1","Year2","TypeLT","Sex","Age","AgeInt","qx")]
 		tdata <- tdata[tdata$TypeLT==1&tdata$AgeInt==1,]
 		if(!missing(race))tdata$race <- rep(race[it],nrow(tdata))
@@ -1379,22 +1886,32 @@ transrate.hmd <- function(male,female){
 	ndata <- nrow(men)/111
 	if(round(ndata)!=ndata)stop("Each year must contain ages from 0 to 110")
 	men <- matrix(men$qx, ncol=ndata)
+	men <- matrix(as.numeric(men),ncol=ndata)
 	women <- read.table(female,sep="",header=TRUE)
 	women <- women[,"qx"]
 	if(length(women)!=length(men))stop("Number of rows in the table must be equal for both sexes")
 	women <- matrix(women, ncol=ndata)
-	cp <- as.date(apply(matrix(y1,ncol=1),1,function(x){paste("1jan",x,sep="")}))
+	women <- matrix(as.numeric(women),ncol=ndata)
+		cp <- as.date(apply(matrix(y1,ncol=1),1,function(x){paste("1jan",x,sep="")}))
 	dn2 <- as.character(y1)
+	tfun <- function(vec){
+		ind <- which(vec == 1 | is.na(vec))
+		if(length(ind)>0)vec[min(ind):length(vec)] <- 0.999
+		vec
+	}
+	men <- apply(men,2,tfun)
+	women <- apply(women,2,tfun)
 	men<- -log(1-men)/365.241
 	women<- -log(1-women)/365.241
+	nr <- nrow(men)-1
 	dims <- c(dim(men),2)
 	out <- array(c(men,women),dim=dims)
 	attributes(out)<-list(
 		dim=dims,
-		dimnames=list(as.character(0:110),as.character(y1),c("male","female")),	
+		dimnames=list(as.character(0:nr),as.character(y1),c("male","female")),	
 		dimid=c("age","year","sex"),
 		factor=c(0,0,1),
-		cutpoints=list((0:110)*(365.24),cp,NULL),
+		cutpoints=list((0:nr)*(365.24),cp,NULL),
 		class="ratetable"
 	)
 	attributes(out)$summary <- function (R) 
@@ -1590,8 +2107,25 @@ print.rsadd <- function (x, digits = max(3, getOption("digits") - 3), ...)
             print.gap = 2, quote = FALSE)
     }
     else cat("No coefficients\n\n")
-    if (length(x$warnme)) 
-        cat("\n", x$warnme, "\n\n")
+    if(x$method=="EM")
+    		cat("\n", "Expected number of disease specific deaths: ",format(round(sum(x$Nie),2))," = ",format(round(100*sum(x$Nie)/sum(x$data$stat),1)),"% \n" ,sep="")
+    if(x$method=="EM"|x$method=="max.lik"){
+        	chi <- 2*max((x$loglik[2]-x$loglik[1]),0)
+        	if(x$method=="EM")df <- length(x$coef)
+        	else df <- length(x$coef)-length(x$int)+1
+        	if(df>0){
+        		p.val <- 1- pchisq(chi,df)
+        		if(x$method=="max.lik")cat("\n")
+        		cat("Likelihood ratio test=",format(round(chi,2)),", on ",df," df, p=",format(p.val),"\n",sep="")
+        	}
+        	else cat("\n")
+    }
+    cat("n=",nrow(x$data),sep="")
+    if(length(x$na.action))cat("  (",length(x$na.action)," observations deleted due to missing)",sep="")
+    cat("\n")
+     if (length(x$warnme)) 
+            cat("\n", x$warnme, "\n\n")
+   else cat("\n")
     invisible(x)
 }
 
@@ -1702,3 +2236,141 @@ print.summary.rsadd <- function (x, digits = max(3, getOption("digits") - 3), sy
     invisible(x)
 }
 
+
+rs.surv <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulinen",...) 
+{	
+    call <- match.call()
+    
+    if (mode(call[[2]]) == "call" & call[[2]][[1]] == as.name("Surv")) {
+                formula <- eval(parse(text = paste(deparse(call[[2]]), 
+                    1, sep = "~")))
+                environment(formula) <- parent.frame()
+    }
+
+    else if (mode(call[[2]]) == "call" & any(regexpr("ratetable",call[[2]][[3]])>0)){
+                formula <- eval(parse(text = paste(deparse(call[[2]][[2]]),"~1+",deparse(call[[2]][[3]]) 
+                    , sep = "")))
+                environment(formula) <- parent.frame()
+    }
+
+    Terms <- if (missing(data)) terms(formula, "ratetable")
+    else terms(formula, "ratetable", data = data)
+      
+    
+    rate <- attr(Terms, "specials")$ratetable
+
+    if (length(rate) > 1) 
+        stop("Can have only 1 ratetable() call in a formula")
+    if (length(rate) == 0) {
+        xx <- function(x) formula(x)
+        if (is.ratetable(ratetable)) 
+            varlist <- attr(ratetable, "dimid")
+        else stop("Invalid rate table")
+        ftemp <- deparse(formula)
+        ftemp <- paste(ftemp,collapse="")
+        formula <- xx(paste(ftemp, "+ ratetable(", paste(varlist, 
+            "=", varlist, collapse = ","), ")"))
+        Terms <- if (missing(data)) 
+            terms(formula, "ratetable")
+        else terms(formula, "ratetable", data = data)
+        rate <- attr(Terms, "specials")$ratetable
+    }
+     m <- match.call(expand = FALSE)
+     m$ratetable <- m$fin.date <- m$method  <- m$... <- NULL
+  
+
+    m$formula <- Terms
+    m[[1]] <- as.name("model.frame")
+    m <- eval(m, parent.frame())
+    n <- nrow(m)
+    Y <- model.extract(m, "response")
+    status <- Y[,2]
+     
+    rtemp <- match.ratetable(m[, rate], ratetable)
+    R <- rtemp$R
+    coll <- match("year",attributes(ratetable)$dimid)
+    year <- R[,coll]	
+	
+    if(missing(fin.date)) fin.date <- max(year+Y[,1])
+   
+    
+    formula.obs <- formula
+    
+    if (!is.null(rate)) formula.obs[[3]] <- formula.obs[[3]][[2]]
+   
+    obs.hak <- survfit(formula.obs,data,...)	
+    times <- obs.hak$time
+    times <- unique(sort(times))
+    nc <- 1
+    o1 <- summary(obs.hak, time=times)
+    if(!is.null(obs.hak$strata))   nc<-length(obs.hak$strata.all)
+    
+    k <- rep(1,length(o1$time))
+    ind <- o1$time < c(0,o1$time[-length(o1$time)])
+    kend <- length(k)
+    
+    for (i in which(ind)){
+    	k[i:kend] <- k[i:kend]+1
+    }
+    method <-  match.arg(method,c("hakulinen","conditional"))
+
+    if(method=="hakulinen"){
+ 	 data$time1 <- Y[,1]
+         wh <- which(status==1)
+         data$time1[wh] <- fin.date - year[wh]
+         data <- data[data$time1>0,]
+         data <- data[!is.na(data$time1),]
+    	 data$status <- status	
+    	  xx <- function(x) formula(x)
+  	condi <- FALSE
+	 survex <- "Surv(time1,status)"
+	  formula.exp <- xx(paste(survex,paste(names(m)[-1],collapse="+"),sep="~"))
+
+    }
+    else{
+   	condi <- TRUE
+   	formula.exp <- formula
+    }
+    
+    deli <- function(x=o1$surv,kji=k,y=exp.hak$surv){
+    	xnew <- x
+    	for(it in unique(sort(k))){
+    		d <- sum(kji==it)
+    		nom <- x[kji==it]
+    		if(length(unique(k))>1)	denom <- y[1:d,it]
+    		else denom <- y[1:d]
+    		nom[denom==0] <- 0
+    		denom[denom==0] <- 1
+    		xnew[kji==it] <- nom/denom
+       	}
+       	xnew
+    }
+    
+    exp.hak <- survexp(formula.exp,data,conditional=condi,cohort=TRUE,ratetable=ratetable,times=times)
+    
+    rel.hak <- deli()
+    o1$serr <- (o1$upper - o1$surv)
+    serr <- deli(x=o1$serr,y=exp.hak$surv)
+    
+    ktime <- NULL
+    for(it in unique(sort(k))){
+    	d <- sum(k==it)
+    	ktime <- c(ktime,times[1:d])
+    }
+    
+    out <- obs.hak
+    out$surv <- as.vector(rel.hak)
+    out$time <- ktime
+    out$n.risk <- o1$n.risk
+    out$n.event <- o1$n.event
+    out$lower <- as.vector(rel.hak - serr)
+    out$upper <- as.vector(rel.hak + serr)
+    if(obs.hak$conf.type=="plain") out$std.err <- as.vector(serr)/pchisq(obs.hak$conf.int^2,1)
+    else if (obs.hak$conf.type=="log")    out$std.err <- -log(as.vector(serr)/pchisq(obs.hak$conf.int^2,1))
+    else out$std.err <- log(-log(as.vector(serr)/pchisq(obs.hak$conf.int^2,1)))
+    out$ntimes.strata <- table(k)
+    out$strata <- out$ntimes.strata
+    names(out$strata) <- names(obs.hak$strata)
+       
+    out
+}

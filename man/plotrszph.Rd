@@ -48,8 +48,8 @@ the set of variables for which plots are desired.  By
 \examples{
 data(slopop)
 data(rdata)
-fit <- rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,sex=sex,
-       year=year),ratetable=slopop,data=rdata,int=5)
+fit <- rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
+             sex=sex,year=year),ratetable=slopop,data=rdata,int=5)
 rszph <- rs.zph(fit)
 plot(rszph)
 }

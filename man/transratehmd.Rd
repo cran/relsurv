@@ -2,7 +2,7 @@
 \alias{transrate.hmd}
 \title{Reorganize Data obtained from Human Mortality Database into a Ratetable Object}
 \description{
- The function assists in reorganizing the .txt files obtained from Human Mortality Database
+ The function assists in reorganizing the .txt files obtained from Human Mortality Database 
 (http://www.mortality.org)  into a ratetable object.
 }
 \usage{
