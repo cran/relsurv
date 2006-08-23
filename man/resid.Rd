@@ -3,12 +3,12 @@
 \alias{resid.com}
 
 
-\title{Calculate Residuals for a rsadd Fit}
+\title{Calculate Residuals for a "rsadd" Fit}
 \description{
 Calculates partial residuals for an additive relative survival model.
 }
 \usage{
-   \method{residuals}{rsadd}(object,type="schoenfeld",...)
+      \method{residuals}{rsadd}(object,type="schoenfeld",...)
 }
 
 \arguments{

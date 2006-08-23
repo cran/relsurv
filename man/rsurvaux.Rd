@@ -1,7 +1,8 @@
 \name{rsurvaux}
 \alias{rformulate}
 \alias{mlfit}
-
+\alias{kernerleftch}
+\alias{Kernmatch}
 
 
 

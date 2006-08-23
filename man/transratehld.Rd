@@ -2,7 +2,7 @@
 \alias{transrate.hld}
 \title{Reorganize Data obtained from Human Life-Table Database into a Ratetable Object}
 \description{
- The function assists in reorganizing the .txt files obtained from Human Life-Table Database
+ The function assists in reorganizing the .txt files obtained from Human Life-Table Database 
 (http://www.lifetable.de -> Data by Country)  into a ratetable object.
 }
 \usage{
@@ -37,5 +37,10 @@ nzpop <- transrate.hld(c("NZL_1980-82_Non-maori.txt","NZL_1985-87_Non-maori.txt"
 	 cut.year=c(1980,1985),race=rep(c("nonmaori","maori"),each=2))
 }
 }
+
+\references{
+Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
+}
+
 \seealso{\code{\link{ratetable}}, \code{\link{transrate.hmd}}, \code{\link{joinrate}}, \code{\link{transrate}}.}
 \keyword{survival}

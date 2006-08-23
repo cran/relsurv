@@ -25,7 +25,8 @@ the same length, a warning message is displayed.  Each rate table must have 3 di
 \value{An object of class \code{ratetable}.}
 \examples{
 data(ratetables)
-newpop <- joinrate(list(Arizona=survexp.az,Florida=survexp.fl,Minnesota=survexp.mn),dim.name="state")
+newpop <- joinrate(list(Arizona=survexp.az,Florida=survexp.fl,
+	  Minnesota=survexp.mn),dim.name="state")
 }
 \seealso{\code{\link{ratetable}}, \code{\link{transrate.hld}}, \code{\link{transrate.hmd}}, \code{\link{transrate}}.}
 \keyword{survival}

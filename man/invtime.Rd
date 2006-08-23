@@ -6,7 +6,7 @@
 This function can be used when predicting in Relative Survival using the transformed time regression
 model (using \code{rstrans} function). It inverses the time from Y to T in relative survival using the
 given ratetable. The times Y can be produced with the \code{rstrans} function, in which case, this is the reverse
-function. This function does the transformation for one person at a time.  
+function. This function does the transformation for one person at a time. 
 }
 \details{
 Works only with ratetables that are split by age, sex and year.

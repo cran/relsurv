@@ -56,8 +56,10 @@ the maximum observed follow-up time.
 
 
 \references{
-Stare J., Henderson R., Pohar M. "An individual measure for Relative Survival." \emph{Journal
+Stare J., Henderson R., Pohar M. "An individual measure for relative survival." \emph{Journal
 of the Royal Statistical Society: Series C} , 54 115-126, 2005.
+
+Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
 }
 
 
