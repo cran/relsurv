@@ -26,7 +26,7 @@ and probability of death (qx). Death probabilities must be calculated up to age 
 \value{An object of class \code{ratetable}.}
 \examples{
 \dontrun{
-auspop <- transrate.hmd("fltper_1x1.txt","mltper_1x1.txt")
+auspop <- transrate.hmd("mltper_1x1.txt","fltper_1x1.txt")
 }
 }
 \seealso{\code{\link{ratetable}}, \code{\link{transrate.hld}}, \code{\link{joinrate}}, \code{\link{transrate}}.}

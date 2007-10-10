@@ -66,8 +66,12 @@ Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and
 \examples{
 data(slopop)
 data(rdata)
-rstrans(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
+fit <- rstrans(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
         sex=sex,year=year),ratetable=slopop,data=rdata)
+
+
+#check the goodness of fit
+rs.br(fit)
 }
 
 

@@ -1,10 +1,10 @@
 Package: relsurv
 Title: Relative survival regression
-Version: 1.3
-Author: Maja Pohar
+Version: 1.4
+Author: Maja Pohar Perme
 Description: Various functions for
  regression in relative survival.
-Maintainer: Maja Pohar <maja.pohar@mf.uni-lj.si>
-Depends: survival
-License: GPL version 2 or newer
-Packaged: Wed Aug 23 12:56:19 2006; majap
+Maintainer: Maja Pohar Perme <maja.pohar@mf.uni-lj.si>
+Depends: survival, splines
+License: GPL2
+Packaged: Wed Oct 10 08:02:02 2007; Maja

@@ -18,6 +18,7 @@ rstrans                 Fit Cox Proportional Hazards Model in
                         Transformed Time
 slopop                  Census Data Set for the Slovene Population
 srvxp.fit               Work Function to Compute Expected Survival
+survfit.rsadd           Compute a Predicited Survival Curve
 survsplit               Split a Survival Data Set at Specified Times
 transrate               Reorganize Data into a Ratetable Object
 transrate.hld           Reorganize Data obtained from Human Life-Table

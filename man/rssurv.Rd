@@ -1,40 +1,46 @@
 \name{rs.surv}
 \alias{rs.surv}
+\alias{rs.surv.rsadd}
 
 
 \title{Compute a Relative Survival Curve}
-}
+
 \description{
-Computes an estimate of the relative survival curve using
-     the Kaplan-Meier method for the observed and the Hakulinen or Ederer II method for
-	the expected survival.
+     Computes an estimate of the relative survival curve using the
+     Kaplan-Meier method for the observed and the Hakulinen method for
+     the expected survival.
 }
 \usage{
-rs.surv(formula, data,ratetable=survexp.us,fin.date,method="hakulinen",...) 
-}
+     rs.surv(formula, data,ratetable=survexp.us,fin.date,method="hakulinen",...) }
 \arguments{
 \item{formula}{
-a formula object, with the response as a \code{Surv} object on the left of a \code{~} operator, and,
-if desired, terms separated  by the \code{+} operator on the right. If the variables are not organized and named
-in the same way as in the population tables, a \code{ratetable} term must be added to match each subject 
-to his/her expected cohort.  The time must be in days.  For a single survival curve the \code{~ 1} part of the
-formula is not required. 
-
+a formula object, with the response as a \code{Surv} object on the
+          left of a \code{~} operator, and, if desired, terms separated  by
+          the \code{+} operator on the right. If the variables are not
+          organized and named in the same way as in the population
+          tables, a \code{ratetable} term must be added to match each
+          subject  to his/her expected cohort.  The time must be in
+          days.  For a single survival curve the \code{~ 1} part of the
+          formula is not required. 
 }
 \item{data}{
-a data.frame in which to interpret the variables named in
-the \code{formula}.
+a data.frame in which to interpret the variables named in the
+          \code{formula}. 
+
 }
 \item{ratetable}{
-a table of event rates, organized as a \code{ratetable} object, such as \code{survexp.us}. 
+a table of event rates, organized as a \code{ratetable} object,
+          such as \code{survexp.us}.  
 }
-\item{fin.date}{The date of the study ending, used for calculating the potential follow-up times in the Hakulinen method. If missing,
-it is calculated as \code{max(year+time)}. Only to be specified when using the \code{method=hakulinen}.
+\item{fin.date}{ The date of the study ending, used for calculating the
+          potential follow-up times in the Hakulinen method. If
+          missing, it is calculated as \code{max(year+time)}. 
 }
-\item{method}{The method to be chosen for the estimation of the population survival. \code{hakulinen} for the Hakulinen method, \code{conditional} 
-for the Ederer II method.
+\item{method}{The method for calculating the expected survival. The options are \code{hakulinen}(default) and \code{conditional}, see \code{survexp} for details.}
+\item{...}{
+other arguments will be passed to the \code{survfit} function that
+          calculates the observed survival.
 }
-\item{...}{other arguments will be passed to the \code{survfit} function that calculates the observed survival.}
 }
 
 \details{
@@ -59,8 +65,8 @@ rs.surv(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
 
 
 \seealso{
-\code{\link{survfit}},
-\code{\link{survexp}}
+\code{survfit},
+\code{survexp}
 }
 
 \keyword{survival}

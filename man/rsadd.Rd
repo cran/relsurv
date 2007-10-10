@@ -87,8 +87,11 @@ An object of class \code{rsadd} is a list containing at least the following comp
 \examples{
 data(slopop)
 data(rdata)
-rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
+fit <- rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
 	   sex=sex,year=year), ratetable=slopop,data=rdata,int=5)
+
+#check the goodness of fit
+rs.br(fit)
 
 #use the EM method and plot the smoothed baseline excess hazard
 fit <- rsadd(Surv(time,cens)~sex+age+ratetable(age=age*365,
