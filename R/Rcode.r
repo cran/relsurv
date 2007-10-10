@@ -119,7 +119,7 @@ if(any(start!=0)){
 	wstart <- rep(NA,n)
 	ustart <- unique(start[start!=0])
 	for(its in ustart){
-		wstart[start==its] <- min(which(Y==its))
+		wstart[start==its] <- min(which(data$Y==its))
 	}
 }
 
@@ -181,8 +181,8 @@ for(i in 1:maxiter){
         
         if(p>0){
         b00<-b
-        if(i==1)fit <- coxph(Surv(start,Y,cens)~modmat,data=databig,weights=wei,init=b00,x=TRUE,iter.max=maxiter)
-        else    fit <- coxph(Surv(start,Y,cens)~modmat,data=databig,weights=wei,x=TRUE,iter.max=maxiter)
+        if(i==1)fit <- coxph(Surv(start,Y,cens)~modmat,data=databig,weights=databig$wei,init=b00,x=TRUE,iter.max=maxiter)
+        else    fit <- coxph(Surv(start,Y,cens)~modmat,data=databig,weights=databig$wei,x=TRUE,iter.max=maxiter)
              
         
         if(any(is.na(fit$coeff))) stop("X matrix deemed to be singular, variable ",which(is.na(fit$coeff)))
@@ -419,6 +419,7 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
     fit$formula <- formula
     fit$data <- rform$data
     fit$ratetable <- rform$ratetable
+    fit$n <- nrow(rform$data)
     if (length(rform$na.action)) 
         fit$na.action <- rform$na.action
     fit$y <- rform$Y.surv
@@ -427,6 +428,8 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
         if (!missing(int)) 
             fit$int <- int
         else fit$int <- ceiling(max(rform$Y[rform$status == 1])/365.24)
+        fit$terms <- rform$Terms
+        if(centered)fit$mvalue <- rform$mvalue
     }
     if (rform$m > 0) 
         fit$linear.predictors <- as.matrix(rform$X) %*% fit$coef[1:ncol(rform$X)]
@@ -484,6 +487,8 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
     else stop("Illegal response value")
     if (any(c(Y, start) < 0)) 
         stop("Negative follow up time")
+    if(max(Y)<30)
+    	warning("The event times must be expressed in days! (Your max time in the data is less than 30 days) \n")
     if (is.ratetable(ratetable)) {
         israte <- TRUE
         rtemp <- match.ratetable(m[, rate], ratetable)
@@ -511,9 +516,12 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
 	#X <- X[,(ncol0+1):(ncol0+mm),drop=FALSE]
         #names(X) <- mn
     }
+    mvalue <- rep(0,mm)
     if (!missing(centered)) {
-        if (mm != 0 & centered == TRUE) 
+        if (mm != 0 & centered == TRUE) {
+            mvalue <- apply(as.matrix(X),2,mean)
             X <- apply(as.matrix(X), 2, function(x) x - mean(x))
+       }
     }
     offset <- attr(Terms, "offset")
     tt <- length(offset)
@@ -551,8 +559,8 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
         data <- cbind(data, X)
     out <- list(data = data, R = R, status = status, start = start, 
         Y = Y, X = as.data.frame(X), m = mm, n = n, type = type, Y.surv = Y.surv, 
-        Terms = Terms, ratetable = ratetable, offset = offset, 
-        cause = cause)
+        Terms = Terms, ratetable = ratetable, offset = offset, formula=formula,
+        cause = cause,mvalue=mvalue)
     na.action <- attr(m, "na.action")
     if (length(na.action)) 
         out$na.action <- na.action
@@ -1184,9 +1192,9 @@ rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE)
 		temp <- fit$y
 		class(temp) <- "matrix"
 		if(ncol(fit$y)==2)temp <- data.frame(rep(0,nrow(fit$y)),temp)
-		names(temp) <- c("start","Y","stat")
 		if(is.null(fit$x))stop("The coxph model should be called with x=TRUE argument")
 		fit$data <- data.frame(temp,fit$x)
+		names(fit$data)[1:3] <- c("start","Y","stat")
 	}
     }
     data <- fit$data[order(fit$data$Y), ]
@@ -1544,7 +1552,7 @@ kernerleftch <- function (td, b, nt4)
 
 
 invtime <- function (y = 0.1, age = 23011, sex = "male", year = 9497, scale = 1, 
-    ratetable = slop, lower, upper) 
+    ratetable = survexp.us, lower, upper) 
 {
     if (!is.numeric(age)) 
         stop("\"age\" must be numeric", call. = FALSE)
@@ -1706,7 +1714,8 @@ rstrans <- function (formula = formula(data), data = parent.frame(), ratetable =
     }
     else start <- rep(0, rform$n)
     stop <- 1 - srvxp.fit(rform$R, rform$Y, rform$ratetable)
-    if(length(int)!=1)int <- max(int)
+     if(any(stop==0&rform$Y!=0))stop[stop==0&rform$Y!=0] <- .Machine$double.eps
+     if(length(int)!=1)int <- max(int)
     data <- rform$data
     stat <- rform$status
     if (rform$m == 0) {
@@ -2240,7 +2249,9 @@ print.summary.rsadd <- function (x, digits = max(3, getOption("digits") - 3), sy
 rs.surv <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulinen",...) 
 {	
     call <- match.call()
-    
+     if (!inherits(formula, "formula")) 
+            temp <- UseMethod("rs.surv")
+
     if (mode(call[[2]]) == "call" & call[[2]][[1]] == as.name("Surv")) {
                 formula <- eval(parse(text = paste(deparse(call[[2]]), 
                     1, sep = "~")))

@@ -61,8 +61,13 @@ mellitus survival data.", \emph{Biometrics,} 921-932, 1985.
 \examples{
 data(slopop)
 data(rdata)
-rsmul(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
+fit <- rsmul(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
       sex=sex,year=year),ratetable=slopop,data=rdata)
+
+
+#check the goodness of fit
+rs.br(fit)
+
 }
 
 
