@@ -11,8 +11,6 @@ function (object, newdata, se.fit = TRUE, conf.int = 0.95, individual = FALSE,
     resp <- list(y=object$y,x=newdata)
     n <- object$n
     nvar <- length(object$coef)
-    y <- data$y
-    ny <- ncol(y)
     nx <- nrow(newdata)
     nt <- length(object$times)
     temp <- list(n=object$n,time=object$times,call=call,type="right")

@@ -24,6 +24,16 @@ cutpoints for age as well as calendar year (1x1). The only two columns needed ar
 and probability of death (qx). Death probabilities must be calculated up to age 110 (in yearly intervals).
 }
 \value{An object of class \code{ratetable}.}
+
+\references{
+\item{package}{Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.}
+
+\item{relative survival}{Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
+\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.}
+}
+
+
+
 \examples{
 \dontrun{
 auspop <- transrate.hmd("mltper_1x1.txt","fltper_1x1.txt")
