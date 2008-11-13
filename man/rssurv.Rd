@@ -19,9 +19,12 @@ a formula object, with the response as a \code{Surv} object on the
           the \code{+} operator on the right. If the variables are not
           organized and named in the same way as in the population
           tables, a \code{ratetable} term must be added to match each
-          subject  to his/her expected cohort.  The time must be in
-          days.  For a single survival curve the \code{~ 1} part of the
+          subject  to his/her expected cohort.   For a single survival curve the \code{~ 1} part of the
           formula is not required. 
+
+ NOTE: The time must be in days, and the same
+is required for the ratetable variables (the variables used in the population tables), for example age and year (year must be 
+given in the \code{date} format, i.e. in number of days since 01.01.1960). 
 }
 \item{data}{
 a data.frame in which to interpret the variables named in the
@@ -44,6 +47,10 @@ other arguments will be passed to the \code{survfit} function that
 }
 
 \details{
+NOTE: All times used in the formula argument must be specified in days. This is true for the follow-up time as well as for
+any variables needed \code{ratetable} object, like \code{age} and \code{year}. On the contrary, the \code{int} argument requires
+interval specification in years.
+
 The potential censoring times needed for the calculation of the expected survival by the Hakulinen method
 are calculated automatically. The times of censoring are left as they are, the times of events are replaced with 
 \code{fin.date - year}.
@@ -56,9 +63,23 @@ are calculated automatically. The times of censoring are left as they are, the t
 
 }
 
+\references{
+\item{package}{Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.}
+
+
+\item{relative survival}{Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
+\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.}
+}
+
+
+
+
 \examples{
 data(slopop)
 data(rdata)
+#calculate the relative survival curve
+#note that the variable year is given in days since 01.01.1960 and that 
+#age must be multiplied by 365 in order to be expressed in days.
 rs.surv(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
       year=year),ratetable=slopop,data=rdata)
 }

@@ -12,8 +12,8 @@
 
 \title{Fit an Additive model for Relative Survival}
 \description{
-The function fits an additive model to the data. The methods implemented are the maximum likelihood method,
-a glm model with a \code{binomial} error and a glm model with a \code{poisson} error. 
+The function fits an additive model to the data. The methods implemented are the maximum likelihood method, the semiparametric
+method, a glm model with a \code{binomial} error and a glm model with a \code{poisson} error. 
 }
 \usage{
 rsadd(formula, data=parent.frame(), ratetable = survexp.us,
@@ -26,7 +26,11 @@ the terms on the right. The terms consist of predictor variables separated by
 the \code{+} operator, along with a \code{ratetable} term. The \code{ratetable} term
 matches each subject to his/her expected cohort. If the variables are organized and named
 in the same way as in the population tables, the \code{ratetable} term can be omitted.
-The response must be a survival object as returned by the \code{Surv} function. The time must be in days.
+The response must be a survival object as returned by the \code{Surv} function.
+
+NOTE: The time must be in days, and the same
+is required for the ratetable variables (the variables used in the population tables), for example age and year (year must be 
+given in the \code{date} format, i.e. in number of days since 01.01.1960). 
 }
 \item{data}{
 a data.frame in which to interpret the variables named in
@@ -38,9 +42,9 @@ a table of event rates, organized as a \code{ratetable} object, such as \code{su
 \item{int}{
 either a single value denoting the number of follow-up years or a vector
 specifying the intervals (in years) in which the hazard is constant (the times that are
-bigger than \code{max(int)} are censored. If missing, the intervals are set to be one year 
-long and include the maximum observed follow-up time. The EM method does not need the intervals,
-only the maximum time can be specified.
+bigger than \code{max(int)} are censored. If missing, only one interval (from time 0 to maximum observation time) is assumed.
+ The EM method does not need the intervals,
+only the maximum time can be specified (all times are censored after this time point).
 }
 \item{na.action}{a missing-data filter function, applied to the model.frame,
           after any subset argument has been used.  Default is
@@ -63,13 +67,25 @@ deaths, \code{2} (default) for unknown. Can only be used with the \code{EM} meth
 }
 
 \details{
+NOTE: All times used in the formula argument must be specified in days. This is true for the follow-up time as well as for
+any variables needed \code{ratetable} object, like \code{age} and \code{year}. On the contrary, the \code{int} argument requires
+interval specification in years.
+
+The maximum likelihood method and both glm methods assume a fully parametric model with a piecewise constant baseline
+excess hazard function. The intervals on which the baseline is assumed constant should be passed via argument \code{int}. The
+EM method is semiparametric, i.e. no assumptions are made for the baseline hazard and therefore no intervals need to be specified.
+
 The methods using glm are methods for grouped data. The groups are formed according to the covariate values.
 This should be taken into account when fitting a model. The  glm method returns life tables for groups specified by the covariates in \code{groups}.
 
-The EM method output includes the smoothed baseline excess hazard \code{lambda0}, the cumulative baseline excess hazard \code{Lambda0} and  \code{times} at which they are estimated. The individual probabilites of dying due to the excess risk are returned as \code{Nie}.
-The default \code{bwin=-1} value lets the function find an appropriate value for the smoothing band width. While this ensures
-an unbiased estimate, the procedure time is much longer. As the value found by the function is independent of the 
-covariates in the model, the value can be read from the output (\code{bwinfac}) and used for refitting different models to the same data to save time.
+The EM method output includes the smoothed baseline excess hazard \code{lambda0}, the cumulative baseline excess hazard 
+\code{Lambda0} and  \code{times} at which they are estimated. The individual probabilites of dying due to the excess risk
+are returned as \code{Nie}. 
+The EM method fitting procedure requires some local smoothing of the baseline excess hazard. The default \code{bwin=-1}
+ value lets the function find an appropriate value for the 
+smoothing band width. While this ensures an unbiased estimate, the procedure time is much longer. As the value found by 
+the function is independent of the covariates in the model, the value can be read from the output (\code{bwinfac}) and 
+used for refitting different models to the same data to save time.
 }
 
 \value{
@@ -87,6 +103,9 @@ An object of class \code{rsadd} is a list containing at least the following comp
 \examples{
 data(slopop)
 data(rdata)
+#fit an additive model
+#note that the variable year is given in days since 01.01.1960 and that
+#age must be multiplied by 365 in order to be expressed in days.
 fit <- rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
 	   sex=sex,year=year), ratetable=slopop,data=rdata,int=5)
 
@@ -101,7 +120,16 @@ plot(lowess(fit$times,fit$lambda0,f=.2),type="l")
 
 
 \references{
-Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
+\item{package}{Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.}
+
+
+\item{relative survival}{Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
+\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.}
+
+
+\item{EM algorithm}{
+ Pohar Perme M., Henderson R., Stare, J. "An approach to estimation in relative survival regression." \emph{Biostatistics}, 2008. 
+}
 }
 
 

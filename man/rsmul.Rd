@@ -17,7 +17,11 @@ the \code{+} operator, along with a \code{ratetable} term. The \code{ratetable} 
 matches each subject to his/her expected cohort. If the variables are organized and named
 in the same way as in the population tables, the \code{ratetable} term can be omitted.
  The response must be a survival object as
-returned by the \code{Surv} function. The time must be in days.
+returned by the \code{Surv} function.
+
+ NOTE: The time must be in days, and the same
+is required for the ratetable variables (the variables used in the population tables), for example age and year (year must be 
+given in the \code{date} format, i.e. in number of days since 01.01.1960). 
 }
 \item{data}{
 a data.frame in which to interpret the variables named in
@@ -27,7 +31,7 @@ the \code{formula}.
 a table of event rates, such as \code{survexp.us}. 
 }
 \item{int}{
-the number of follow-up years used for calculating survival(the rest is censored). If missing, it is set the 
+the number of follow-up years used for calculating survival(the data are censored after this time-point). If missing, it is set the 
 the maximum observed follow-up time.
 }
 \item{na.action}{a missing-data filter function, applied to the model.frame,
@@ -49,18 +53,40 @@ be more computationally intensive.}
 \value{
 an object of class \code{coxph}.
 }
-\references{
-Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
 
+\details{
+NOTE: All times used in the formula argument must be specified in days. This is true for the follow-up time as well as for
+any variables needed \code{ratetable} object, like \code{age} and \code{year}. On the contrary, the \code{int} argument requires
+interval specification in years.
+}
+
+\references{
+\item{method}{
 Andersen, P.K., Borch-Johnsen, K., Deckert, T., Green, A.,
 Hougaard, P., Keiding, N. and Kreiner, S. "A Cox regression
 model for relative mortality and its application to diabetes
 mellitus survival data.", \emph{Biometrics,} 921-932, 1985.
 }
 
+
+\item{package}{
+Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
+}
+
+
+\item{relative survival}{
+Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
+\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.
+}
+
+}
+
 \examples{
 data(slopop)
 data(rdata)
+#fit a multiplicative model
+#note that the variable year is given in days since 01.01.1960 and that 
+#age must be multiplied by 365 in order to be expressed in days.
 fit <- rsmul(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
       sex=sex,year=year),ratetable=slopop,data=rdata)
 

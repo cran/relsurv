@@ -39,8 +39,13 @@ nzpop <- transrate.hld(c("NZL_1980-82_Non-maori.txt","NZL_1985-87_Non-maori.txt"
 }
 
 \references{
-Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
+\item{package}{Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.}
+
+\item{relative survival}{Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
+\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.}
 }
+
+
 
 \seealso{\code{\link{ratetable}}, \code{\link{transrate.hmd}}, \code{\link{joinrate}}, \code{\link{transrate}}.}
 \keyword{survival}

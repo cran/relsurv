@@ -23,6 +23,16 @@ the same length, a warning message is displayed.  Each rate table must have 3 di
 
 }
 \value{An object of class \code{ratetable}.}
+
+\references{
+\item{package}{Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.}
+
+\item{relative survival}{Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
+\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.}
+}
+
+
+
 \examples{
 data(ratetables)
 newpop <- joinrate(list(Arizona=survexp.az,Florida=survexp.fl,

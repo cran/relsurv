@@ -396,7 +396,7 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
     }
     else {
         if (missing(int)) 
-            int <- ceiling(max(rform$Y/365.24))
+            int <- c(0,ceiling(max(rform$Y/365.24)))
         if (length(int) == 1) {
             if (int <= 0) 
                 stop("The value of 'int' must be positive ")
@@ -492,10 +492,31 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
     if (is.ratetable(ratetable)) {
         israte <- TRUE
         rtemp <- match.ratetable(m[, rate], ratetable)
+        rtorig <- attributes(ratetable)
+        nrt <- length(rtorig$dimid)
         R <- rtemp$R
         if (!is.null(rtemp$call)) {
             ratetable <- eval(parse(text = rtemp$call))
         }
+        #checking if the ratetable variables are given in days
+        wh.age <- which(attributes(ratetable)$dimid=="age")
+        wh.year <- which(attributes(ratetable)$dimid=="year")
+        if(length(wh.age)>0){
+        	if(max(rtemp$R[,wh.age])<150& median(diff(attributes(ratetable)$cutpoints[[wh.age]]))>12)
+        	warning("Age in the ratetable part of the formula must be expressed in days! \n (Your max age is less than 150 days) \n")
+        }
+        if(length(wh.year)>0){
+        	if(min(rtemp$R[,wh.year])>1850 & max(rtemp$R[,wh.year])<2020&class(attributes(ratetable)$cutpoints[[wh.year]])=="date")
+        	warning("The calendar year must be expressed in days since 1.1.1960! \n (Your variable seems to be expressed in years) \n")
+        }
+        #checking if one of the continuous variables is fixed:
+        if(nrt!=ncol(R)){
+        	nonex <- which(is.na(match(rtorig$dimid,attributes(ratetable)$dimid)))
+        	for(it in nonex){
+        		if(rtorig$factor[it]==0)warning(paste("Variable ",rtorig$dimid[it]," is held fixed even though it changes in time in the population tables. \n (You may wish to set a value for each individual and not just one value for all)",sep=""))
+        	}
+        }
+        
     }
     else stop("Invalid ratetable argument")
     if (rate == 2) {
@@ -509,7 +530,7 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
         X <- as.data.frame(model.matrix(formula, data = data))[, 
             -1, drop = FALSE]
         mm <- ncol(X)
-        X <- X[,1:(mm-ncol(R)),drop=FALSE]
+        X <- X[,1:(mm-nrt),drop=FALSE]
         mm <- ncol(X)
         #mn <- names(X)
         #X <- data.frame(do.call("cbind",m))
@@ -647,8 +668,15 @@ lik.fit <- function (data, m, intn, init, control, offset)
     b <- matrix(init, p, 1)
     b0 <- b
     fit <- mlfit(b, p, x, offset, d, h, ds, y, maxiter, control$epsilon)
-    if (maxiter > 1 & fit$nit >= maxiter) 
-        warning("Ran out of iterations and did not converge")
+    if (maxiter > 1 & fit$nit >= maxiter) {
+	values <- apply(data[data$stat==1,varpos],2,sum)
+	problem <- which.min(values)
+	outmes <- "Ran out of iterations and did not converge" 
+	if(values[problem]==0)tzero <- ""
+	else tzero <- "only "
+	if(values[problem]<5)outmes <- paste(outmes, "\n This may be due to the fact that there are ",tzero, values[problem], " events on interval",strsplit(names(values)[problem],"fu")[[1]][2],"\n You can use the 'int' argument to change the follow-up intervals in which the baseline excess hazard is assumed constant",sep="")
+	warning(outmes)
+    }
     b <- as.vector(fit$b)
     names(b) <- varnames
     fit <- list(coefficients = b, var = -solve(fit$sd), iter = fit$nit, 

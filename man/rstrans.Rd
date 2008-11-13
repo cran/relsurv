@@ -6,7 +6,7 @@
 The function transforms each person's time to his/her probability
 of dying at that time according to the ratetable. It then fits the
 Cox proportional hazards model with the transformed times as a 
-response. A possible side effect are the transformed times.  
+response. It can also be used for calculatin the transformed times (no covariates are needed in the formula for that purpose).  
 }
 \usage{
 rstrans(formula, data, ratetable, int,na.action,init,control,...)
@@ -19,8 +19,11 @@ the terms on the right. The terms consist of predictor variables separated by
 the \code{+} operator, along with a \code{ratetable} term. The \code{ratetable} term
 matches each subject to his/her expected cohort.If the variables are organized and named
 in the same way as in the population tables, the \code{ratetable} term can be omitted.
-  The response must be a survival object as
-returned by the \code{Surv} function. The time must be in days.  
+ The response must be a survival object as returned by the \code{Surv} function.
+ 
+NOTE: The time must be in days, and the same is required for the ratetable 
+variables (the variables used in the population tables), for example age and year (year must be 
+given in the \code{date} format, i.e. in number of days since 01.01.1960). 
 }
 \item{data}{
 a data.frame in which to interpret the variables named
@@ -49,23 +52,43 @@ the maximum observed follow-up time.
 \value{
  an object of class \code{coxph}. See \code{coxph.object} and \code{coxph.detail} for details.  
 \item{y}{
- an object of class \code{Surv} containing the transformed times.
+ an object of class \code{Surv} containing the transformed times (these times do not depend on covariates). 
 }
 }
 
+
+\details{
+NOTE: All times used in the formula argument must be specified in days. This is true for the follow-up time as well as for
+any variables needed \code{ratetable} object, like \code{age} and \code{year}. On the contrary, the \code{int} argument requires
+interval specification in years.
+}
 
 
 \references{
+\item{method}{
 Stare J., Henderson R., Pohar M. "An individual measure for relative survival." \emph{Journal
-of the Royal Statistical Society: Series C} , 54 115-126, 2005.
+of the Royal Statistical Society: Series C} , 54 115-126, 2005.}
 
+
+\item{package}{
 Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
+}
+
+
+\item{relative survival}{
+Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
+\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.
+}
 }
 
 
 \examples{
 data(slopop)
 data(rdata)
+
+#fit a Cox model using the transformed times
+#note that the variable year is given in days since 01.01.1960 and that 
+#age must be multiplied by 365 in order to be expressed in days.
 fit <- rstrans(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365,
         sex=sex,year=year),ratetable=slopop,data=rdata)
 

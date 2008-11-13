@@ -44,6 +44,19 @@ the set of variables for which plots are desired.  By
 }
 
 
+\references{
+\item{Goodness of fit}{
+ Stare J.,Pohar Perme M., Henderson R. "Goodness of fit of relative survival models." \emph{Statistics in Medicine}, 24: 3911-3925, 2005. 
+}
+
+\item{package}{Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.}
+
+\item{relative survival}{Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
+\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.}
+}
+
+
+
 
 \examples{
 data(slopop)

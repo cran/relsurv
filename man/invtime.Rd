@@ -38,6 +38,15 @@ the upper bound of interval where the result is expected. See \code{lower}
 \item{Y}{the transformed time}  
 }
 
+\references{
+\item{package}{Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.}
+
+\item{relative survival}{Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
+\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.}
+}
+
+
+
 \examples{
 data(slopop)
 invtime(y = 0.1, age = 23011, sex = "male", year = 9497, ratetable = slopop)
