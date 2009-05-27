@@ -25,18 +25,15 @@ the same length, a warning message is displayed.  Each rate table must have 3 di
 \value{An object of class \code{ratetable}.}
 
 \references{
-\item{package}{Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.}
+Package: Pohar M., Stare J. (2006) "Relative survival analysis in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272-278.
 
-\item{relative survival}{Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
-\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.}
+Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival analysis relatively easy." Computers in biology and medicine, \bold{37}: 1741-1749.  
 }
 
 
 
 \examples{
-data(ratetables)
-newpop <- joinrate(list(Arizona=survexp.az,Florida=survexp.fl,
-	  Minnesota=survexp.mn),dim.name="state")
+#newpop <- joinrate(list(Arizona=survexp.az,Florida=survexp.fl,Minnesota=survexp.mn),dim.name="state")
 }
 \seealso{\code{\link{ratetable}}, \code{\link{transrate.hld}}, \code{\link{transrate.hmd}}, \code{\link{transrate}}.}
 \keyword{survival}

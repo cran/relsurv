@@ -65,20 +65,13 @@ interval specification in years.
 
 
 \references{
-\item{method}{
-Stare J., Henderson R., Pohar M. "An individual measure for relative survival." \emph{Journal
-of the Royal Statistical Society: Series C} , 54 115-126, 2005.}
+Method: Stare J., Henderson R., Pohar M. (2005) "An individual measure for relative survival." Journal
+of the Royal Statistical Society: Series C, \bold{54} 115--126.
 
+Package. Pohar M., Stare J. (2006) "Relative survival analysis in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
 
-\item{package}{
-Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
-}
-
-
-\item{relative survival}{
-Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
-\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.
-}
+Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival analysis relatively easy."
+Computers in biology and medicine, \bold{37}: 1741--1749.
 }
 
 

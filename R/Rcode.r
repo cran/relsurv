@@ -1243,7 +1243,7 @@ rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE)
     options(warn = 0)
     nvar <- ncol(sresid)
     survfit <- getFromNamespace("survfit", "survival")
-    temp <- survfit(fit$y, type = "kaplan-meier")
+    temp <- survfit(fit$y~1, type = "kaplan-meier")
     n.risk <- temp$n.risk
     n.time <- temp$time
     if (temp$type == "right") {
@@ -1437,7 +1437,7 @@ rs.zph <- function (fit, sc, transform = "identity", var.type = "sum")
         r2 <- matrix(r2, ncol = di1)
         whr2 <-  apply(r2<100,1,function(x)!any(x==FALSE))
         usable <- as.logical(usable*whr2)
-        r2 <- r2[usable,]
+        r2 <- r2[usable,,drop=FALSE]
         u <- u[,,usable]
         dimnames(r2) <- list(times[usable], varnames)
         temp <- list(x = ttimes[usable], y = r2 + outer(rep(1, 
