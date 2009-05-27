@@ -120,16 +120,14 @@ plot(lowess(fit$times,fit$lambda0,f=.2),type="l")
 
 
 \references{
-\item{package}{Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.}
+Package. Pohar M., Stare J. (2006) "Relative survival analysis in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+
+Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival analysis relatively easy."
+Computers in biology and medicine, \bold{37}: 1741--1749.
 
 
-\item{relative survival}{Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
-\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.}
+EM algorithm: Pohar Perme M., Henderson R., Stare, J. (2009) "An approach to estimation in relative survival regression." Biostatistics, \bold{10}: 136--146.
 
-
-\item{EM algorithm}{
- Pohar Perme M., Henderson R., Stare, J. "An approach to estimation in relative survival regression." \emph{Biostatistics}, 2008. 
-}
 }
 
 

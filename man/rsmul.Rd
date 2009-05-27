@@ -61,24 +61,17 @@ interval specification in years.
 }
 
 \references{
-\item{method}{
-Andersen, P.K., Borch-Johnsen, K., Deckert, T., Green, A.,
-Hougaard, P., Keiding, N. and Kreiner, S. "A Cox regression
+Method: Andersen, P.K., Borch-Johnsen, K., Deckert, T., Green, A.,
+Hougaard, P., Keiding, N. and Kreiner, S. (1985) "A Cox regression
 model for relative mortality and its application to diabetes
-mellitus survival data.", \emph{Biometrics,} 921-932, 1985.
-}
+mellitus survival data.", Biometrics, \bold{41}: 921--932.
 
 
-\item{package}{
-Pohar M., Stare J. "Relative survival analysis in R." \emph{Computer Methods and Programs in Biomedicine,} 81: 272-278, 2006.
-}
 
+Package. Pohar M., Stare J. (2006) "Relative survival analysis in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
 
-\item{relative survival}{
-Pohar, M., Stare, J. "Making relative survival analysis relatively easy."
-\emph{Computers in biology and medicine}, 37: 1741-1749, 2007.
-}
-
+Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival analysis relatively easy."
+Computers in biology and medicine, \bold{37}: 1741--1749.
 }
 
 \examples{
