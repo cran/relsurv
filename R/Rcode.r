@@ -390,7 +390,7 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
         int, centered, cause)
     if (method == "EM") {
         if (!missing(int)) {
-            if (length(int) > 1 | any(int) <= 0) 
+            if (length(int) > 1 | any(int <= 0)) 
                 stop("Invalid value of 'int'")
         }
     }
@@ -492,6 +492,7 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
     if (is.ratetable(ratetable)) {
         israte <- TRUE
         rtemp <- match.ratetable(m[, rate], ratetable)
+        if(is.null(attributes(ratetable)$factor))attributes(ratetable)$factor <- attributes(ratetable)$type==1
         rtorig <- attributes(ratetable)
         nrt <- length(rtorig$dimid)
         R <- rtemp$R
@@ -513,7 +514,7 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
         if(nrt!=ncol(R)){
         	nonex <- which(is.na(match(rtorig$dimid,attributes(ratetable)$dimid)))
         	for(it in nonex){
-        		if(rtorig$factor[it]==0)warning(paste("Variable ",rtorig$dimid[it]," is held fixed even though it changes in time in the population tables. \n (You may wish to set a value for each individual and not just one value for all)",sep=""))
+        		if(rtorig$type[it]!=1)warning(paste("Variable ",rtorig$dimid[it]," is held fixed even though it changes in time in the population tables. \n (You may wish to set a value for each individual and not just one value for all)",sep=""))
         	}
         }
         
@@ -1787,7 +1788,7 @@ transrate <- function (men, women, yearlim, int.length = 1)
     attributes(temp) <- list(dim = c(dimi[1], 2, dimi[2]), dimnames = list(as.character(0:(dimi[1] - 
         1)), c("male", "female"), as.character(yearlim[1] + int.length * 
         (0:(dimi[2] - 1)))), dimid = c("age", "sex", "year"), 
-        factor = c(0, 1, 0), cutpoints = list((0:(dimi[1] - 1)) * 
+        factor = c(0, 1, 0),type=c(2,1,3), cutpoints = list((0:(dimi[1] - 1)) * 
             (365.24), NULL, cp), class = "ratetable")
     attributes(temp)$summary <- function (R) 
 	{
@@ -1874,7 +1875,7 @@ transrate.hld <- function(file, cut.year,race){
 			dim=dims,		
 			dimnames=list(as.character(0:amax),as.character(y1),c("male","female")),	
 			dimid=c("age","year","sex"),
-			factor=c(0,0,1),
+			factor=c(0,0,1),type=c(2,3,1),
 			cutpoints=list((0:amax)*(365.24),cp,NULL),
 			class="ratetable"
 		)
@@ -1898,7 +1899,7 @@ transrate.hld <- function(file, cut.year,race){
 			dim=c(dims,it),		
 			dimnames=list(as.character(0:amax),as.character(y1),c("male","female"),race.val),	
 			dimid=c("age","year","sex","race"),
-			factor=c(0,0,1,1),
+			factor=c(0,0,1,1),type=c(2,3,1,1),
 			cutpoints=list((0:amax)*(365.24),cp,NULL,NULL),
 			class="ratetable"
 		)
@@ -1947,7 +1948,7 @@ transrate.hmd <- function(male,female){
 		dim=dims,
 		dimnames=list(as.character(0:nr),as.character(y1),c("male","female")),	
 		dimid=c("age","year","sex"),
-		factor=c(0,0,1),
+		factor=c(0,0,1),type=c(2,3,1),
 		cutpoints=list((0:nr)*(365.24),cp,NULL),
 		class="ratetable"
 	)
@@ -1984,6 +1985,7 @@ joinrate <- function(tables,dim.name="country"){
 			atts$dimnames <- atts$dimnames[mc]
 			atts$cutpoints <- atts$cutpoints[mc]
 			atts$factor <- atts$factor[mc]
+			atts$type <- atts$type[mc]
 			atts$dim <- atts$dim[mc]
 			attributes(tables[[it]]) <- atts
 		}
@@ -2052,6 +2054,7 @@ joinrate <- function(tables,dim.name="country"){
 	newat$dimid <- c(newat$dimid,dim.name)[mc]
 	newat$cutpoints <- list(newat$cutpoints[[1]],newat$cutpoints[[2]],newat$cutpoints[[3]],NULL)[mc]
 	newat$factor <- c(newat$factor,1)[mc]
+	newat$type <- c(newat$type,1)[mc]
 	newat$dimnames <- list(newat$dimnames[[1]],newat$dimnames[[2]],newat$dimnames[[3]],names(tables))[mc]
 	attributes(out) <- newat
 	out
@@ -2357,10 +2360,10 @@ rs.surv <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulin
  	 data$time1 <- Y[,1]
          wh <- which(status==1)
          data$time1[wh] <- fin.date - year[wh]
+         data$status <- status	
          data <- data[data$time1>0,]
          data <- data[!is.na(data$time1),]
-    	 data$status <- status	
-    	  xx <- function(x) formula(x)
+    	 xx <- function(x) formula(x)
   	condi <- FALSE
 	 survex <- "Surv(time1,status)"
 	  formula.exp <- xx(paste(survex,paste(names(m)[-1],collapse="+"),sep="~"))
