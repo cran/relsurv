@@ -1793,7 +1793,7 @@ transrate <- function (men, women, yearlim, int.length = 1)
     attributes(temp)$summary <- function (R) 
 	{
 		x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
-		1])/355.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
+		1])/365.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
 		x2 <- as.character(as.date(c(min(R[, 3]), max(R[, 3]))))
 		paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
 		x[3], " female:", x[4], "\n", " date of entry from", 
@@ -1906,7 +1906,7 @@ transrate.hld <- function(file, cut.year,race){
 		attributes(out)$summary <- function (R) 
 		{
 			x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
-			1])/355.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
+			1])/365.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
 			x2 <- as.character(as.date(c(min(R[, 3]), max(R[, 3]))))
 			paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
 			x[3], " female:", x[4], "\n", " date of entry from", 
@@ -1955,7 +1955,7 @@ transrate.hmd <- function(male,female){
 	attributes(out)$summary <- function (R) 
 	{
 		x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
-		1])/355.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
+		1])/365.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
 		x2 <- as.character(as.date(c(min(R[, 3]), max(R[, 3]))))
 		paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
 		x[3], " female:", x[4], "\n", " date of entry from", 
@@ -2391,8 +2391,11 @@ rs.surv <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulin
     exp.hak <- survexp(formula.exp,data,conditional=condi,cohort=TRUE,ratetable=ratetable,times=times)
     
     rel.hak <- deli()
-    o1$serr <- (o1$upper - o1$surv)
-    serr <- deli(x=o1$serr,y=exp.hak$surv)
+    
+    se.fac <- sqrt(qchisq(obs.hak$conf.int,1))
+   
+    #serr <- deli(x=o1$serr,y=exp.hak$surv)
+
     
     ktime <- NULL
     for(it in unique(sort(k))){
@@ -2405,11 +2408,22 @@ rs.surv <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulin
     out$time <- ktime
     out$n.risk <- o1$n.risk
     out$n.event <- o1$n.event
-    out$lower <- as.vector(rel.hak - serr)
-    out$upper <- as.vector(rel.hak + serr)
-    if(obs.hak$conf.type=="plain") out$std.err <- as.vector(serr)/pchisq(obs.hak$conf.int^2,1)
-    else if (obs.hak$conf.type=="log")    out$std.err <- -log(as.vector(serr)/pchisq(obs.hak$conf.int^2,1))
-    else out$std.err <- log(-log(as.vector(serr)/pchisq(obs.hak$conf.int^2,1)))
+    out$std.err <- o1$std.err
+
+
+    if(obs.hak$conf.type=="plain"){
+    out$lower <- as.vector(rel.hak - out$std.err*se.fac*rel.hak)
+    out$upper <- as.vector(rel.hak + out$std.err*se.fac*rel.hak)
+    }
+    if(obs.hak$conf.type=="log"){
+    out$lower <- exp(as.vector(log(rel.hak) - out$std.err*se.fac))
+    out$upper <- exp(as.vector(log(rel.hak) + out$std.err*se.fac))
+    }
+    if(obs.hak$conf.type=="log-log"){
+        out$lower <- exp(-exp(as.vector(log(-log(rel.hak)) - out$std.err*se.fac/log(rel.hak))))
+        out$upper <- exp(-exp(as.vector(log(-log(rel.hak)) + out$std.err*se.fac/log(rel.hak))))
+    }
+    
     out$ntimes.strata <- table(k)
     out$strata <- out$ntimes.strata
     names(out$strata) <- names(obs.hak$strata)
