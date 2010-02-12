@@ -2284,13 +2284,13 @@ rs.surv <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulin
             temp <- UseMethod("rs.surv")
 
     if (mode(call[[2]]) == "call" & call[[2]][[1]] == as.name("Surv")) {
-                formula <- eval(parse(text = paste(deparse(call[[2]]), 
+                formula <- eval(parse(text = paste(deparse(call[[2]],width.cutoff = 500L), 
                     1, sep = "~")))
                 environment(formula) <- parent.frame()
     }
 
     else if (mode(call[[2]]) == "call" & any(regexpr("ratetable",call[[2]][[3]])>0)){
-                formula <- eval(parse(text = paste(deparse(call[[2]][[2]]),"~1+",deparse(call[[2]][[3]]) 
+                formula <- eval(parse(text = paste(deparse(call[[2]][[2]],width.cutoff = 500L),"~1+",deparse(call[[2]][[3]],width.cutoff = 500L) 
                     , sep = "")))
                 environment(formula) <- parent.frame()
     }
