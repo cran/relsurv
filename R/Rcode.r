@@ -126,9 +126,10 @@ if(any(start!=0)){
 
 #tale del je zelo sumljiv - kako se racuna likelihood za ties???
 difft <- c(data$Y[data$stat==1][1],diff(td))
-difft <- difft[difft!=0]
+difft <- difftu <- difft[difft!=0]
 difft <- rep(difft,rutd)
 a0 <- a*difft
+
       
 
 if(sum(Nie==.5)!=0)maxit0 <- maxiter
@@ -139,10 +140,10 @@ for(i in 1:maxit0){
 	nietemp <- rep(1:nutd,rutd)
 	Nies <- as.vector(by(Nie,nietemp,sum))  #shorter Nie - only at times utd
 	
-	lam0 <- Nies/s0
+	lam0u <- lam0 <- Nies/s0				
 	#the smooting of lam0        
         if(bwin[1]!=0)lam0s <- krn%*%lam0
-        else lam0s <- lam0/difft
+        else lam0s <- lam0/difftu
         
         #extended to all event times 
         lam0s <- rep(lam0s,rutd)
@@ -150,7 +151,9 @@ for(i in 1:maxit0){
                 
         #compute Nie, only for those with unknown hazard
     	Nie[cause==2] <- as.vector(lam0s*eb/(a+lam0s*eb))[cause==2]
+    	
 }
+
 if(maxit0!=maxiter & i==maxit0) i <- maxiter
 #likelihood calculation - manjka ti se likelihood za nicelni model!!!
 #the cumulative hazard     
@@ -208,7 +211,8 @@ for(i in 1:maxiter){
         #s0 only at times utd
         s0 <- s0[udtimes]
         
-	lam0 <- Nies/s0
+	lam0u <- lam0 <- Nies/s0				
+	
 	
 	#the cumulative hazard     
         Lam0  <- cumsum(lam0)
@@ -219,7 +223,7 @@ for(i in 1:maxiter){
         Lam0 <- rep(Lam0,rtd)
         #for time dependent covariates: replace by the difference
         if(any(start!=0))Lam0[start!=0] <- Lam0[start!=0] - Lam0[wstart[start!=0]]
-       
+       	
         #the smooting of lam0        
         if(bwin[1]!=0)lam0s <- krn%*%lam0
         else lam0s <- lam0/difft
@@ -233,6 +237,7 @@ for(i in 1:maxiter){
         
                         
         #likelihood calculation - manjka ti se likelihood za nicelni model!!!
+       
        	lam0 <- rep(lam0,rutd)
      	
               
@@ -287,6 +292,7 @@ fit$bwin <- bwin
 fit$iter <- i
 class(fit) <- c("rsadd",class(fit))
 fit$loglik <- c(likely0,likely)
+fit$lam0.ns <- lam0u					
 fit
 }
 
@@ -332,7 +338,7 @@ em <- function (rform, init, control, bwin)
 	else  data1 <- data
 	nfk <- length(attributes(rform$ratetable)$dimid)
 	names(data)[4:(3+nfk)] <- attributes(rform$ratetable)$dimid
-	expe <- rs.surv(Surv(Y,stat)~1,data,ratetable=rform$ratetable,method="conditional")
+	expe <- rs.survo(Surv(Y,stat)~1,data,ratetable=rform$ratetable,method="conditional")
 	esurv <- -log(expe$surv[expe$n.event!=0])
 	if(esurv[length(esurv)]==Inf)esurv[length(esurv)] <-  esurv[length(esurv)-1]
 	x <- seq(.1,3,length=5)
@@ -912,12 +918,13 @@ glmxp <- function (rform, data, interval, method, control)
                 n, "/", g, " groups of patients", sep = "")
         }
         else warnme <- ""
+        
         if (length(interval) == 2 & rform$m == 0) 
             stop("No groups can be formed")
         if (length(interval) == 1 | length(table(grm1$fu)) == 
             1) 
             grm1$fu <- as.integer(grm1$fu)
-        if (is.null(rform$X)) 
+        if (!length(rform$X)) 
             local.ht <- glm(cbind(nd, ld - nd) ~ -1 + fu + offset(log(k)), 
                 data = grm1, family = ht)
         else {
@@ -955,7 +962,7 @@ glmxp <- function (rform, data, interval, method, control)
         if (length(interval) == 1 | length(table(grm1$fu)) == 
             1) 
             grm1$fu <- as.integer(grm1$fu)
-        if (is.null(rform$X)) 
+        if (!length(rform$X)) 
             local.ht <- glm(nd ~ -1 + fu, data = grm1, family = pot, 
                 offset = lny)
         else {
@@ -2276,8 +2283,252 @@ print.summary.rsadd <- function (x, digits = max(3, getOption("digits") - 3), sy
     invisible(x)
 }
 
+epa <- function(fit,bwin,times,n.bwin=16,left=FALSE){
+	#bwin ... width of the window, relative to the default (1)
+	#fit ... EM fit
+	#times... times at which the smoothed plot is calculated
+	#n.bwin ... number of different windows
+	#left ... only predictable smoothing
+	utd <- fit$times
+	if(missing(times))times <- seq(1,max(utd),length=100)
+	if(max(times)>max(utd)){
+	warning("Cannot extrapolate beyond max event time")
+	times <- pmax(times,max(utd))
+	}
+	nutd <- length(utd)
+	nt4 <- c(1,ceiling(nutd*(1:n.bwin)/n.bwin))
+	if(missing(bwin))bwin <- rep(length(fit$times)/100,n.bwin)
+	else bwin <- rep(bwin*length(fit$times)/100,n.bwin)
+	for(it in 1:n.bwin){
+		bwin[it] <- bwin[it]*max(diff(utd[nt4[it]:nt4[it+1]]))
+	}
+	while(utd[nt4[2]]<bwin[1]){		# ce je bwin velik, skrajsamo nt4
+	       nt4 <- nt4[-2]
+	       if(length(nt4)==1)break
+	}
+	#the smoothing matrix
+	if(left) krn <- kernerleftch(utd,bwin,nt4)
+	else krn <- kern(times,utd,bwin,nt4)
+	lams <- pmax(krn%*%fit$lam0.ns,0)
+	list(lambda=lams,times=times)				#	, weights=c(fit$times[1],diff(fit$times)))
+}
 
-rs.surv <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulinen",...) 
+Kern <- function (t, tv, b, tD, nt4) 
+{
+    Rb <- max(tv)					#Right border	
+    kmat <- NULL
+    tvs <- tv
+    tv <- tv[-1]
+    kt <- function(q,t)12*(t+1)/(1+q)^4*( (1-2*q)*t + (3*q^2-2*q+1)/2  )
+    totcajti <- NULL
+    for (it in 1:(length(nt4) - 1)) {
+     	cajti <- t[t>tvs[nt4[it]] & t<=tvs[nt4[it + 1]]]
+    	if(length(cajti)){
+	    q <- min( cajti/b[it],1,(Rb-cajti)/b[it])
+   	    if(q<1 & length(cajti)>1){
+   	    	jc <- 1
+   	    	while(jc <=length(cajti)){
+   	    		qd <- pmin( cajti[jc:length(cajti)]/b[it],1,(Rb-cajti[jc:length(cajti)])/b[it])
+			q <- qd[1]
+			if(q==1){
+			casi <- cajti[jc:length(cajti)][qd==1]
+			q <- 1
+			jc <- sum(qd==1)+jc
+			}
+			else{
+			casi <- cajti[jc]
+			jc <- jc+1
+			}
+			kmat1 <- outer(casi, tv, "-")/b[it]		#z - to je ok
+	                if(q<1){
+	                if(casi>b[it]) kmt1 <- -kmat1
+	                vr <- kt(q,kmat1)*(kmat1>=-1 & kmat1 <= q)
+	                }
+   	     		else vr <-  pmax((1 - kmat1^2) * .75,0)
+   	 		kmat <- rbind(kmat, vr/b[it])
+   	 		totcajti <- c(totcajti,casi)
+   	 	}
+	   }
+ 	   else{
+    	       kmat1 <- outer(cajti, tv, "-")/b[it]		#z - to je ok
+	       q <- min( cajti/b[it],1)
+   	       if(q<1)vr <- kt(q,kmat1)*(kmat1>=-1 & kmat1 <= q)
+   	       else vr <-  pmax((1 - kmat1^2) * .75,0)
+   	       kmat <- rbind(kmat, vr/b[it])
+   	       totcajti <- c(totcajti,cajti)
+   	   }#else
+   	}#if
+   	 
+    }#for
+    kmat
+}
+ 
+kern <- function (times,td, b, nt4) 
+{
+    n <- length(td)
+    ttemp <- td[td >= b[1]]
+    ntemp <- length(ttemp)
+    if (ntemp == n) 
+        nt4 <- c(0, nt4[-1])
+    td <- c(0,td)
+    nt4 <- c(1,nt4+1)
+    b <- c(b[1],b)
+    krn <- Kern(times, td, b, max(td), nt4)
+    krn
+}
+
+rs.surv <- function (formula=formula(data), data = parent.frame(), ratetable = survexp.us,na.action,fin.date,method="weighted.ederer",conf.type="log",conf.int=0.95) 
+{	
+    call <- match.call()
+    rform <- rformulate(formula, data, ratetable, na.action)
+    
+    data <- rform$data
+    
+    
+    #for the Hakulinen method - the potential censoring times - only infinite values implemented for now
+    if(method=="hakulinen"){
+    R <- rform$R
+    coll <- match("year",attributes(ratetable)$dimid)
+    year <- R[,coll]	
+    if(missing(fin.date)) fin.date <- max(data$Y+year)			#set the final date to the last observed date
+    data$Y2 <- data$Y							
+    if(length(fin.date==1))data$Y2[data$stat==1] <- fin.date - year[data$stat==1]	 #Y2=potential follow-up time   	  
+    else if(length(fin.date==nrow(data))) data$Y2[data$stat==1] <- fin.date[data$stat==1] - year[data$stat==1]	    	  	    	  
+    else stop("fin.date must be either one value of a vector of the same length as the data")
+    data$stat2 <- rep(0,nrow(data))					#everyone is censored at potential follow-up time
+    }
+    
+    inx.d <- order(data$Y,(1-data$stat))				#the indicator for ordering in time
+    data <- data[inx.d,]
+    p <- rform$m		#number of covariates defining the strata
+    ti <- sort(unique(data$Y))	#unique follow-up times
+    if(method=="hakulinen") ti <- sort(unique(pmin(c(ti,data$Y2),max(ti))))
+    Ki <- matrix(NA,nrow=nrow(data),ncol=length(ti))
+    dNi <- matrix(0,nrow=nrow(data),ncol=length(ti))
+    dYi <- matrix(0,nrow=nrow(data),ncol=length(ti))
+    dYi.hak <- matrix(0,nrow=nrow(data),ncol=length(ti))
+    #cajt <- NULL
+    nfk <- length(attributes(rform$ratetable)$dimid)
+    #cajt <- proc.time()[3]
+    for(jt in 1:length(ti)){
+    Ki[,jt] <- srvxp.fit(data[, 4:(nfk + 3)], rep(ti[jt],nrow(data)), rform$ratetable)
+    dNi[which(data$Y==ti[jt]),jt] <- data$stat[which(data$Y==ti[jt])]
+    dYi[which(data$Y==ti[jt]),jt] <- 1 - data$stat[which(data$Y==ti[jt])]
+    if(method=="hakulinen") dYi.hak[which(data$Y2==ti[jt]),jt] <- 1
+    }
+    #cajt <- c(cajt,proc.time()[3])
+    #datalong <- cbind(rep(data[,4],length(ti)),rep(data[,5],length(ti)),rep(data[,6],length(ti)))
+    #Ki2 <- srvxp.fit(datalong, rep(ti,each=nrow(data)), rform$ratetable)
+    #Ki3 <- matrix(Ki2,nrow=nrow(data))
+    #cajt <- c(cajt,proc.time()[3])
+    
+    #dKi <- -log(Ki) + log(cbind(rep(1,nrow(data)),Ki[,-ncol(Ki)]))		#d\Lambda_{Pi}
+    # dKi2 <- cbind(-log(Ki[,1]),t(apply(-log(Ki),1,diff)))
+    
+    if(p>0)data$Xs <- strata(rform$X[inx.d,])						#the stratification group
+    else data$Xs <- rep(1,nrow(data))
+  
+    se.fac <- sqrt(qchisq(conf.int,1))						#finds the factor needed for the confidence intervals, e.g. 1.96
+    out <- NULL
+    out$n <- table(data$Xs)
+
+    out$time <- out$n.risk <- out$n.event <- out$n.censor  <- out$surv<- out$std.err <- out$strata <-  NULL
+    method <-  match.arg(method,c("weighted.ederer","ederer2","hakulinen"))
+   
+   
+    for(kt in 1:length(out$n)){
+       
+    	inx <- which(data$Xs==names(out$n)[kt])				#the subjects in this stratum
+    	dYis <- dYi[inx,]
+    	dNis <- dNi[inx,]
+    	Kis <- Ki[inx,]
+    	#dKis <- dKi[inx,]
+    	dYis.hak <- dYi.hak[inx,]
+    	datas <- data[inx,]
+    	yinx <- which(apply(dYis+dNis+dYis.hak,2,sum)!=0)			#ti that are relevant for this stratum
+    	dYis <- dYis[,yinx]
+    	dNis <- dNis[,yinx]
+    	Kis <-  Kis[,yinx]
+    	tis <- ti[yinx]
+    	#dKis <-  dKis[,yinx]
+    	dYis.hak <- dYis.hak[,yinx]
+        Nis <- t(apply(dNis,1,cumsum))						#jumps to 1 in case of event
+        Yis <- t(apply(dYis,1,cumsum))						#jumps to 1 in case of censoring
+        Yis.hak <- t(apply(dYis.hak,1,cumsum))					#jumps to 1 in case of potential censoring
+        #Yis.hak <-  matrix(1,nrow=nrow(Yis),ncol=ncol(Yis))- Yis 		#jumps to 0 in case of cesnoring
+        Yis <-  matrix(1,nrow=nrow(Yis),ncol=ncol(Yis))- Nis - Yis 		#jumps to 0 in case of event or censoring
+        Yis <- cbind(rep(1,nrow(Yis)),Yis[,-ncol(Yis)])				#starts with 1, right continuous
+    	Yis.hak <- matrix(1,nrow=nrow(Yis),ncol=ncol(Yis))- Yis.hak		#jumps to 0 in case of potential follow-up time
+    	Yis.hak <-  cbind(rep(1,nrow(Yis.hak)),Yis.hak[,-ncol(Yis.hak)])	#starts with 1	
+    	#delete the columns with 0 at risk (needed for Hakulinen method)
+    	yinx <- which(apply(Yis,2,sum)>0)				
+    	dYis <- dYis[,yinx]
+    	dNis <- dNis[,yinx]
+    	Kis <-  Kis[,yinx]
+    	tis <- tis[yinx]
+    	Yis <- Yis[,yinx]
+	Nis <- Nis[,yinx]    	
+    	Yis.hak <- Yis.hak[,yinx]
+    	   	
+    	dKis <- -log(Kis) + log(cbind(rep(1,nrow(Kis)),Kis[,-ncol(Kis)]))	#d\Lambda_{Pi}: -log(S_i(t_i))+ log(S_i(t_{i-1}))
+    	out$time <- c(out$time,tis)					
+    	out$n.risk <- c(out$n.risk,apply(Yis,2,sum))
+    	out$n.event <- c(out$n.event,apply(dNis,2,sum))
+    	out$n.censor <- c(out$n.censor,apply(dYis,2,sum))
+    	    	
+     	if(method=="ederer2"){
+    		out$surv <- c(out$surv,exp(-cumsum(apply((dNis-Yis*dKis),2,sum)/apply(Yis,2,sum))))
+    		out$std.err <- c(out$std.err,sqrt(cumsum(apply(dNis,2,sum)/(apply(Yis,2,sum))^2)))
+    	}
+    	else if(method=="weighted.ederer"){
+    		out$surv <- c(out$surv,exp(-cumsum(apply(dNis/Kis,2,sum)/apply(Yis/Kis,2,sum) - apply(Yis/Kis*dKis,2,sum)/apply(Yis/Kis,2,sum))))
+	    	out$std.err <- c(out$std.err,sqrt(cumsum(apply(dNis/Kis,2,sum)/(apply(Yis/Kis,2,sum))^2)) )
+    	}
+       	else if(method=="hakulinen"){ #
+	       	#d <- -log(apply((Yis.hak*Ki),2,sum)/apply(Yis.hak,2,sum))
+	    	#dd <- c(d[1],diff(d))
+	    	#e <- apply(Yis.hak * Kis*exp(-dKis), 2, sum)/apply(Yis.hak*Kis, 2, sum)
+		#e <- cumprod(e)
+		f <- apply(Yis.hak * Kis*dKis, 2, sum)/apply(Yis.hak*Kis, 2, sum)
+		#out$surv <- c(out$surv,exp(-cumsum(apply((dNis),2,sum)/apply(Yis,2,sum)))/e)
+		out$surv <- c(out$surv,exp(-cumsum( apply(dNis,2,sum)/apply(Yis,2,sum) - f  )))
+		#out$surv <- c(out$surv,exp(-cumsum(apply((dNis),2,sum)/apply(Yis,2,sum)-dd)))       		
+       		#out$surv <- c(out$surv,exp(-cumsum(apply((dNis),2,sum)/apply(Yis,2,sum)-apply((Yis.hak*dKis),2,sum)/apply(Yis.hak,2,sum))))
+	    	out$std.err <- c(out$std.err,sqrt(cumsum(apply(dNis,2,sum)/(apply(Yis,2,sum))^2)))
+	    	
+	}
+    	out$strata <- c(out$strata,length(tis))
+    	
+    }
+    
+    if(conf.type=="plain"){
+	    out$lower <- as.vector(out$surv - out$std.err*se.fac*out$surv)
+	    out$upper <- as.vector(out$surv + out$std.err*se.fac*out$surv)
+    }
+    else if(conf.type=="log"){
+   	    out$lower <- exp(as.vector(log(out$surv) - out$std.err*se.fac))
+  	    out$upper <- exp(as.vector(log(out$surv) + out$std.err*se.fac))
+    }
+    else if(conf.type=="log-log"){
+   	    out$lower <- exp(-exp(as.vector(log(-log(out$surv)) - out$std.err*se.fac/log(out$surv))))
+  	    out$upper <- exp(-exp(as.vector(log(-log(out$surv)) + out$std.err*se.fac/log(out$surv))))
+    }    
+    names(out$strata) <- names(out$n)
+    if(p==0)out$strata <- NULL					#hide it if no strata (important for the behaviour of plot.survfit)
+    out$n <- as.vector(out$n)
+    out$conf.type <- conf.type
+    out$conf.int <- conf.int
+    out$method <-  method
+    out$call <- call
+    out$type <- "right"
+    class(out) <- c("survfit","rs.surv") 
+    out
+}
+
+
+
+
+rs.survo <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulinen",...) 
 {	
     call <- match.call()
      if (!inherits(formula, "formula")) 
@@ -2373,7 +2624,6 @@ rs.surv <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulin
    	condi <- TRUE
    	formula.exp <- formula
     }
-    
     deli <- function(x=o1$surv,kji=k,y=exp.hak$surv){
     	xnew <- x
     	for(it in unique(sort(k))){
@@ -2389,7 +2639,7 @@ rs.surv <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulin
     }
     
     exp.hak <- survexp(formula.exp,data,conditional=condi,cohort=TRUE,ratetable=ratetable,times=times)
-    
+   
     rel.hak <- deli()
     
     se.fac <- sqrt(qchisq(obs.hak$conf.int,1))
@@ -2427,6 +2677,8 @@ rs.surv <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulin
     out$ntimes.strata <- table(k)
     out$strata <- out$ntimes.strata
     names(out$strata) <- names(obs.hak$strata)
+    out$popul <- exp.hak$surv
        
     out
 }
+
