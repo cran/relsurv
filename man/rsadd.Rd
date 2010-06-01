@@ -115,7 +115,8 @@ rs.br(fit)
 #use the EM method and plot the smoothed baseline excess hazard
 fit <- rsadd(Surv(time,cens)~sex+age+ratetable(age=age*365,
 	   sex=sex,year=year), ratetable=slopop,data=rdata,int=5,method="EM")
-plot(lowess(fit$times,fit$lambda0,f=.2),type="l")
+sm <- epa(fit)
+plot(sm$times,sm$lambda)
 }
 
 

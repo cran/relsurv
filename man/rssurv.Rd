@@ -1,5 +1,6 @@
 \name{rs.surv}
 \alias{rs.surv}
+\alias{rs.survo}
 \alias{rs.surv.rsadd}
 
 
@@ -7,11 +8,12 @@
 
 \description{
      Computes an estimate of the relative survival curve using the
-     Kaplan-Meier method for the observed and the Hakulinen method for
-     the expected survival.
+     Ederer II method, weighted Ederer method or the Hakulinen method
 }
 \usage{
-     rs.surv(formula, data,ratetable=survexp.us,fin.date,method="hakulinen",...) }
+     rs.surv(formula, data,ratetable=survexp.us,na.action,fin.date,
+	     method="weighted.ederer",conf.type="log",conf.int=0.95) 
+}
 \arguments{
 \item{formula}{
 a formula object, with the response as a \code{Surv} object on the
@@ -35,15 +37,20 @@ a data.frame in which to interpret the variables named in the
 a table of event rates, organized as a \code{ratetable} object,
           such as \code{survexp.us}.  
 }
-\item{fin.date}{ The date of the study ending, used for calculating the
+\item{na.action}{a missing-data filter function, applied to the model.frame,
+          after any subset argument has been used.  Default is
+          \code{options()$na.action}.} 
+
+
+\item{fin.date}{the date of the study ending, used for calculating the
           potential follow-up times in the Hakulinen method. If
           missing, it is calculated as \code{max(year+time)}. 
 }
-\item{method}{The method for calculating the expected survival. The options are \code{hakulinen}(default) and \code{conditional}, see \code{survexp} for details.}
-\item{...}{
-other arguments will be passed to the \code{survfit} function that
-          calculates the observed survival.
+\item{method}{the method for calculating the relative survival. The options are \code{weighted.ederer}(default), \code{ederer} and \code{hakulinen}.}
+\item{conf.type}{one of \code{plain}, \code{log} (the default), or \code{log-log}. The first option causes the standard intervals curve +- k *se(curve), where k is determined from conf.int. The log option calculates intervals based on the cumulative hazard or log(survival). The last option bases intervals on the log hazard or log(-log(survival)). 
 }
+\item{conf.int}{the level for a two-sided confidence interval on the survival curve(s). Default is 0.95.}
+
 }
 
 \details{
@@ -54,6 +61,9 @@ interval specification in years.
 The potential censoring times needed for the calculation of the expected survival by the Hakulinen method
 are calculated automatically. The times of censoring are left as they are, the times of events are replaced with 
 \code{fin.date - year}.
+
+The calculation of the weighted Ederer estimate is more time consuming since more data are needed from the population tables. 
+The old version of the function, now named \code{rs.survo} can be used as a faster version for the Hakulinen and Ederer II estimate.
 }
 
 \value{
