@@ -310,11 +310,11 @@ em <- function (rform, init, control, bwin)
     nfk <- length(fk)
     nev <- length(data$Y[data$stat == 1])
     data$a <- rep(NA, n)
-    xx <- srvxp.fit(data[, 4:(nfk + 3)], data$Y - data$start, rform$ratetable)
+    xx <- srvxp.fit(data[, 4:(nfk + 3),drop=FALSE], data$Y - data$start, rform$ratetable)
     data$ds <- -log(xx)
     data1 <- data
     data1[, 4:(nfk + 3)] <- data[, 4:(nfk + 3)] + data$Y %*% t(fk)
-    xx <- srvxp.fit(data1[data1$stat == 1, 4:(nfk + 3)], rep(1, 
+    xx <- srvxp.fit(data1[data1$stat == 1, 4:(nfk + 3),drop=FALSE], rep(1, 
         nev), rform$ratetable)
     data$a[data$stat == 1] <- -log(xx)
     
@@ -383,17 +383,16 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
     call <- match.call()
     if (missing(control)) 
         control <- glm.control(...)
-    #if (missing(cause)) 
-    #    cause <- rep(FALSE, nrow(data))
-    #if (!is.logical(cause)) 
-    #    stop("Variable 'cause' must be logical")
-    if (missing(cause)) 
-           cause <- rep(2, nrow(data))
+   
+    if(!missing(cause)){								#NEW: ce cause ne manjka, ga preverim in dodam kot spremenljivko
     if (length(cause) != nrow(data)) 
             stop("Length of cause does not match data dimensions")
         data$cause <- cause
     rform <- rformulate(formula, data, ratetable, na.action, 
         int, centered, cause)
+    }
+    else rform <- rformulate(formula, data, ratetable, na.action, 		#NEW: ce ni cause
+        int, centered)
     if (method == "EM") {
         if (!missing(int)) {
             if (length(int) > 1 | any(int <= 0)) 
@@ -437,6 +436,9 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
         fit$terms <- rform$Terms
         if(centered)fit$mvalue <- rform$mvalue
     }
+    if (method == "max.lik") {
+        fit$terms <- rform$Terms
+    }    
     if (rform$m > 0) 
         fit$linear.predictors <- as.matrix(rform$X) %*% fit$coef[1:ncol(rform$X)]
     fit
@@ -448,9 +450,16 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
     call <- match.call()
     m <- match.call(expand = FALSE)
     m$ratetable <- m$int <- m$centered <- NULL
+    if(!missing(cause)){						#NEW: ce cause obstaja
     Terms <- if (missing(data)) 
         terms(formula, "ratetable", "cause")
     else terms(formula, "ratetable", "cause", data = data)
+    }
+    else{								#NEW: ce cause ne obstaja 
+    Terms <- if (missing(data)) 
+            terms(formula, "ratetable")
+        else terms(formula, "ratetable", data = data)
+    }
     rate <- attr(Terms, "specials")$ratetable
     if (length(rate) > 1) 
         stop("Can have only 1 ratetable() call in a formula")
@@ -531,13 +540,14 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
         mm <- 0
     }
     else {
-        #if (length(rate == 1)) {
-        #    formula[[3]] <- formula[[3]][[2]]
-        #}
-        X <- as.data.frame(model.matrix(formula, data = data))[, 
+        if (length(rate == 1)) {
+            formula1 <- formula				#NEW: create object formula1
+            formula1[[3]] <- formula1[[3]][[2]]		#NEW: delete the ratetable part
+        }
+        X <- as.data.frame(model.matrix(formula1, data = data))[, 
             -1, drop = FALSE]
-        mm <- ncol(X)
-        X <- X[,1:(mm-nrt),drop=FALSE]
+        #mm <- ncol(X)
+        #X <- X[,1:(mm-nrt),drop=FALSE]			#NEW: tega vec ne rabim
         mm <- ncol(X)
         #mn <- names(X)
         #X <- data.frame(do.call("cbind",m))
@@ -564,6 +574,7 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
     }
     keep <- Y > start
     cause <- model.extract(m, "cause")
+    if(is.null(cause)) cause <- rep(2,nrow(m))					#NEW: ce cause manjka
     #status[cause==0] <- 0
     if (!missing(int)) {
         int <- max(int)
@@ -615,11 +626,11 @@ maxlik <- function (rform, interval, subset, init, control)
         t(fk)
     data$lambda <- rep(0, nrow(data))
     nsk <- nrow(data[data$stat == 1, ])
-    xx <- srvxp.fit(data[data$stat == 1, 4:(nfk + 3)] + (data[data$stat == 
+    xx <- srvxp.fit(data[data$stat == 1, 4:(nfk + 3),drop=FALSE] + (data[data$stat == 
         1, ]$Y - data[data$stat == 1, ]$start) %*% t(fk), rep(1, 
         nsk), rform$ratetable)
     data$lambda[data$stat == 1] <- -log(xx) * 365.24
-    xx <- srvxp.fit(data[, 4:(nfk + 3)], data$Y - data$start, 
+    xx <- srvxp.fit(data[, 4:(nfk + 3),drop=FALSE], data$Y - data$start, 
         rform$ratetable)
     data$epi <- NULL
     data$ds <- -log(xx)
@@ -650,6 +661,8 @@ maxlik <- function (rform, interval, subset, init, control)
     else fit <- fit0
     fit$int <- interval
     class(fit) <- "rsadd"
+    fit$times <- fit$int*365.24						#dodano za potrebe rs.surv.rsadd
+    fit$Lambda0 <- cumsum(c(0, exp(fit$coef[(m+1):p])*diff(fit$int)  ))
     fit
 }
 
@@ -676,12 +689,15 @@ lik.fit <- function (data, m, intn, init, control, offset)
     b0 <- b
     fit <- mlfit(b, p, x, offset, d, h, ds, y, maxiter, control$epsilon)
     if (maxiter > 1 & fit$nit >= maxiter) {
-	values <- apply(data[data$stat==1,varpos],2,sum)
+	values <- apply(data[data$stat==1,varpos,drop=FALSE],2,sum)			#NEW: deluje tudi, ce je ratetable eno-dimenzionalen
 	problem <- which.min(values)
 	outmes <- "Ran out of iterations and did not converge" 
 	if(values[problem]==0)tzero <- ""
 	else tzero <- "only "
-	if(values[problem]<5)outmes <- paste(outmes, "\n This may be due to the fact that there are ",tzero, values[problem], " events on interval",strsplit(names(values)[problem],"fu")[[1]][2],"\n You can use the 'int' argument to change the follow-up intervals in which the baseline excess hazard is assumed constant",sep="")
+	if(values[problem]<5){
+	if(!is.na(strsplit(names(values)[problem],"fu")[[1]][2]))outmes <- paste(outmes, "\n This may be due to the fact that there are ",tzero, values[problem], " events on interval",strsplit(names(values)[problem],"fu")[[1]][2],"\n You can use the 'int' argument to change the follow-up intervals in which the baseline excess hazard is assumed constant",sep="")
+	else outmes <- paste(outmes, "\n This may be due to the fact that there are ",tzero, values[problem], " events for covariate value ",names(values)[problem],sep="")
+	}
 	warning(outmes)
     }
     b <- as.vector(fit$b)
@@ -787,7 +803,7 @@ glmxp <- function (rform, data, interval, method, control)
         n <- dim(X)[1]
         w <- sum((X$event == 0) & (X$fin == 1) & (X$y != 1))
         nd <- sum((X$event == 1) & (X$fin == 1))
-        ps <- srvxp.fit(X[, 4:(nfk + 3)], rep(t.int, n), rform$ratetable)
+        ps <- srvxp.fit(X[, 4:(nfk + 3),drop=FALSE], rep(t.int, n), rform$ratetable)
         ld <- n - w/2
         lny <- log(sum(X$y))
         k <- t.int/365.24
@@ -1666,7 +1682,7 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = s
         U[, 4:(nfk + 3)] <- U[, 4:(nfk + 3)] + 365.24 * (U$epi) %*% 
             t(fk)
         nsk <- dim(U)[1]
-        xx <- srvxp.fit(U[, 4:(nfk + 3)], rep(365.24, nsk), rform$ratetable)
+        xx <- srvxp.fit(U[, 4:(nfk + 3),drop=FALSE], rep(365.24, nsk), rform$ratetable)
         lambda <- -log(xx)/365.24
     }
     else if (method == "mul1") {
@@ -1709,7 +1725,7 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = s
         U[, 4:(nfk + 3)] <- U[, 4:(nfk + 3)] + (U$start) %*% 
             t(fk)
         nsk <- dim(U)[1]
-        xx <- srvxp.fit(U[, 4:(nfk + 3)], rep(1, nsk), rform$ratetable)
+        xx <- srvxp.fit(U[, 4:(nfk + 3),drop=FALSE], rep(1, nsk), rform$ratetable)
         lambda <- -log(xx)/1
     }
     else stop("'method' must be one of 'mul' or 'mul1'")
@@ -2377,158 +2393,161 @@ kern <- function (times,td, b, nt4)
     krn
 }
 
-rs.surv <- function (formula=formula(data), data = parent.frame(), ratetable = survexp.us,na.action,fin.date,method="weighted.ederer",conf.type="log",conf.int=0.95) 
-{	
+rs.surv <- 
+function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
+    na.action, fin.date, method = "pohar-perme", conf.type = "log", 
+    conf.int = 0.95) 
+{
     call <- match.call()
     rform <- rformulate(formula, data, ratetable, na.action)
-    
     data <- rform$data
-    
-    
-    #for the Hakulinen method - the potential censoring times - only infinite values implemented for now
-    if(method=="hakulinen"){
-    R <- rform$R
-    coll <- match("year",attributes(ratetable)$dimid)
-    year <- R[,coll]	
-    if(missing(fin.date)) fin.date <- max(data$Y+year)			#set the final date to the last observed date
-    data$Y2 <- data$Y							
-    if(length(fin.date==1))data$Y2[data$stat==1] <- fin.date - year[data$stat==1]	 #Y2=potential follow-up time   	  
-    else if(length(fin.date==nrow(data))) data$Y2[data$stat==1] <- fin.date[data$stat==1] - year[data$stat==1]	    	  	    	  
-    else stop("fin.date must be either one value of a vector of the same length as the data")
-    data$stat2 <- rep(0,nrow(data))					#everyone is censored at potential follow-up time
+    if (method == "hakulinen") {
+        R <- rform$R
+        coll <- match("year", attributes(ratetable)$dimid)
+        year <- R[, coll]
+        if (missing(fin.date)) 
+            fin.date <- max(data$Y + year)
+        data$Y2 <- data$Y
+        if (length(fin.date == 1)) 
+            data$Y2[data$stat == 1] <- fin.date - year[data$stat == 
+                1]
+        else if (length(fin.date == nrow(data))) 
+            data$Y2[data$stat == 1] <- fin.date[data$stat == 
+                1] - year[data$stat == 1]
+        else stop("fin.date must be either one value of a vector of the same length as the data")
+        data$stat2 <- rep(0, nrow(data))
     }
-    
-    inx.d <- order(data$Y,(1-data$stat))				#the indicator for ordering in time
-    data <- data[inx.d,]
-    p <- rform$m		#number of covariates defining the strata
-    ti <- sort(unique(data$Y))	#unique follow-up times
-    if(method=="hakulinen") ti <- sort(unique(pmin(c(ti,data$Y2),max(ti))))
-    Ki <- matrix(NA,nrow=nrow(data),ncol=length(ti))
-    dNi <- matrix(0,nrow=nrow(data),ncol=length(ti))
-    dYi <- matrix(0,nrow=nrow(data),ncol=length(ti))
-    dYi.hak <- matrix(0,nrow=nrow(data),ncol=length(ti))
-    #cajt <- NULL
+    inx.d <- order(data$Y, (1 - data$stat))
+    data <- data[inx.d, ]
+    p <- rform$m
+    ti <- sort(unique(data$Y))
+    if (method == "hakulinen") 
+        ti <- sort(unique(pmin(c(ti, data$Y2), max(ti))))
+    Ki <- matrix(NA, nrow = nrow(data), ncol = length(ti))
+    dNi <- matrix(0, nrow = nrow(data), ncol = length(ti))
+    dYi <- matrix(0, nrow = nrow(data), ncol = length(ti))
+    dYi.hak <- matrix(0, nrow = nrow(data), ncol = length(ti))
     nfk <- length(attributes(rform$ratetable)$dimid)
-    #cajt <- proc.time()[3]
-    for(jt in 1:length(ti)){
-    Ki[,jt] <- srvxp.fit(data[, 4:(nfk + 3)], rep(ti[jt],nrow(data)), rform$ratetable)
-    dNi[which(data$Y==ti[jt]),jt] <- data$stat[which(data$Y==ti[jt])]
-    dYi[which(data$Y==ti[jt]),jt] <- 1 - data$stat[which(data$Y==ti[jt])]
-    if(method=="hakulinen") dYi.hak[which(data$Y2==ti[jt]),jt] <- 1
+    for (jt in 1:length(ti)) {
+        Ki[, jt] <- srvxp.fit(data[, 4:(nfk + 3)], rep(ti[jt], 
+            nrow(data)), rform$ratetable)
+        dNi[which(data$Y == ti[jt]), jt] <- data$stat[which(data$Y == 
+            ti[jt])]
+        dYi[which(data$Y == ti[jt]), jt] <- 1 - data$stat[which(data$Y == 
+            ti[jt])]
+        if (method == "hakulinen") 
+            dYi.hak[which(data$Y2 == ti[jt]), jt] <- 1
     }
-    #cajt <- c(cajt,proc.time()[3])
-    #datalong <- cbind(rep(data[,4],length(ti)),rep(data[,5],length(ti)),rep(data[,6],length(ti)))
-    #Ki2 <- srvxp.fit(datalong, rep(ti,each=nrow(data)), rform$ratetable)
-    #Ki3 <- matrix(Ki2,nrow=nrow(data))
-    #cajt <- c(cajt,proc.time()[3])
-    
-    #dKi <- -log(Ki) + log(cbind(rep(1,nrow(data)),Ki[,-ncol(Ki)]))		#d\Lambda_{Pi}
-    # dKi2 <- cbind(-log(Ki[,1]),t(apply(-log(Ki),1,diff)))
-    
-    if(p>0)data$Xs <- strata(rform$X[inx.d,])						#the stratification group
-    else data$Xs <- rep(1,nrow(data))
-  
-    se.fac <- sqrt(qchisq(conf.int,1))						#finds the factor needed for the confidence intervals, e.g. 1.96
+    if (p > 0) 
+        data$Xs <- strata(rform$X[inx.d, ,drop=FALSE ])
+    else data$Xs <- rep(1, nrow(data))
+    se.fac <- sqrt(qchisq(conf.int, 1))
     out <- NULL
     out$n <- table(data$Xs)
+    out$time <- out$n.risk <- out$n.event <- out$n.censor <- out$surv <- out$std.err <- out$strata <- NULL
+    method <- match.arg(method, c("pohar-perme", "ederer2", 
+        "hakulinen","ederer1"))
+    for (kt in 1:length(out$n)) {
+        inx <- which(data$Xs == names(out$n)[kt])
+        dYis <- dYi[inx, ]
+        dNis <- dNi[inx, ]
+        Kis <- Ki[inx, ]
+        dYis.hak <- dYi.hak[inx, ]
+        datas <- data[inx, ]
+        yinx <- which(apply(dYis + dNis + dYis.hak, 2, sum) != 
+            0)
+        dYis <- dYis[, yinx]
+        dNis <- dNis[, yinx]
+        Kis <- Kis[, yinx]
+        tis <- ti[yinx]
+        dYis.hak <- dYis.hak[, yinx]
+        Nis <- t(apply(dNis, 1, cumsum))
+        Yis <- t(apply(dYis, 1, cumsum))
+        Yis.hak <- t(apply(dYis.hak, 1, cumsum))
+        Yis <- matrix(1, nrow = nrow(Yis), ncol = ncol(Yis)) - 
+            Nis - Yis
+        Yis <- cbind(rep(1, nrow(Yis)), Yis[, -ncol(Yis)])
+        Yis.hak <- matrix(1, nrow = nrow(Yis), ncol = ncol(Yis)) - 
+            Yis.hak
+        Yis.hak <- cbind(rep(1, nrow(Yis.hak)), Yis.hak[, -ncol(Yis.hak)])
+        yinx <- which(apply(Yis, 2, sum) > 0)
+        dYis <- dYis[, yinx]
+        dNis <- dNis[, yinx]
+        Kis <- Kis[, yinx]
+        tis <- tis[yinx]
+        Yis <- Yis[, yinx]
+        Nis <- Nis[, yinx]
+        Yis.hak <- Yis.hak[, yinx]
+        dKis <- -log(Kis) + log(cbind(rep(1, nrow(Kis)), Kis[, 
+            -ncol(Kis)]))
+        out$time <- c(out$time, tis)
+        out$n.risk <- c(out$n.risk, apply(Yis, 2, sum))
+        out$n.event <- c(out$n.event, apply(dNis, 2, sum))
+        out$n.censor <- c(out$n.censor, apply(dYis, 2, sum))
+        if (method == "ederer2") {
+            out$surv <- c(out$surv, exp(-cumsum(apply((dNis - 
+                Yis * dKis), 2, sum)/apply(Yis, 2, sum))))
+            out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis, 
+                2, sum)/(apply(Yis, 2, sum))^2)))
+        }
+        else if (method == "pohar-perme") {
+            out$surv <- c(out$surv, exp(-cumsum(apply(dNis/Kis, 
+                2, sum)/apply(Yis/Kis, 2, sum) - apply(Yis/Kis * 
+                dKis, 2, sum)/apply(Yis/Kis, 2, sum))))
+            out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis/Kis^2, 
+                2, sum)/(apply(Yis/Kis, 2, sum))^2)))
+        }
+        else if (method == "hakulinen") {
+            f <- apply(Yis.hak * Kis * dKis, 2, sum)/apply(Yis.hak * 
+                Kis, 2, sum)
+            out$surv <- c(out$surv, exp(-cumsum(apply(dNis, 2, 
+                sum)/apply(Yis, 2, sum) - f)))
+            out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis, 
+                2, sum)/(apply(Yis, 2, sum))^2)))
+        }
+        else if (method == "ederer1") {
+       out$surv <- c(out$surv, exp(-cumsum(apply(dNis,2,sum)/apply(Yis, 2, sum)))/  
+	                   apply(t(apply(dKis, 1, function(x)exp(-cumsum(x)))),2,mean))
 
-    out$time <- out$n.risk <- out$n.event <- out$n.censor  <- out$surv<- out$std.err <- out$strata <-  NULL
-    method <-  match.arg(method,c("weighted.ederer","ederer2","hakulinen"))
-   
-   
-    for(kt in 1:length(out$n)){
-       
-    	inx <- which(data$Xs==names(out$n)[kt])				#the subjects in this stratum
-    	dYis <- dYi[inx,]
-    	dNis <- dNi[inx,]
-    	Kis <- Ki[inx,]
-    	#dKis <- dKi[inx,]
-    	dYis.hak <- dYi.hak[inx,]
-    	datas <- data[inx,]
-    	yinx <- which(apply(dYis+dNis+dYis.hak,2,sum)!=0)			#ti that are relevant for this stratum
-    	dYis <- dYis[,yinx]
-    	dNis <- dNis[,yinx]
-    	Kis <-  Kis[,yinx]
-    	tis <- ti[yinx]
-    	#dKis <-  dKis[,yinx]
-    	dYis.hak <- dYis.hak[,yinx]
-        Nis <- t(apply(dNis,1,cumsum))						#jumps to 1 in case of event
-        Yis <- t(apply(dYis,1,cumsum))						#jumps to 1 in case of censoring
-        Yis.hak <- t(apply(dYis.hak,1,cumsum))					#jumps to 1 in case of potential censoring
-        #Yis.hak <-  matrix(1,nrow=nrow(Yis),ncol=ncol(Yis))- Yis 		#jumps to 0 in case of cesnoring
-        Yis <-  matrix(1,nrow=nrow(Yis),ncol=ncol(Yis))- Nis - Yis 		#jumps to 0 in case of event or censoring
-        Yis <- cbind(rep(1,nrow(Yis)),Yis[,-ncol(Yis)])				#starts with 1, right continuous
-    	Yis.hak <- matrix(1,nrow=nrow(Yis),ncol=ncol(Yis))- Yis.hak		#jumps to 0 in case of potential follow-up time
-    	Yis.hak <-  cbind(rep(1,nrow(Yis.hak)),Yis.hak[,-ncol(Yis.hak)])	#starts with 1	
-    	#delete the columns with 0 at risk (needed for Hakulinen method)
-    	yinx <- which(apply(Yis,2,sum)>0)				
-    	dYis <- dYis[,yinx]
-    	dNis <- dNis[,yinx]
-    	Kis <-  Kis[,yinx]
-    	tis <- tis[yinx]
-    	Yis <- Yis[,yinx]
-	Nis <- Nis[,yinx]    	
-    	Yis.hak <- Yis.hak[,yinx]
-    	   	
-    	dKis <- -log(Kis) + log(cbind(rep(1,nrow(Kis)),Kis[,-ncol(Kis)]))	#d\Lambda_{Pi}: -log(S_i(t_i))+ log(S_i(t_{i-1}))
-    	out$time <- c(out$time,tis)					
-    	out$n.risk <- c(out$n.risk,apply(Yis,2,sum))
-    	out$n.event <- c(out$n.event,apply(dNis,2,sum))
-    	out$n.censor <- c(out$n.censor,apply(dYis,2,sum))
-    	    	
-     	if(method=="ederer2"){
-    		out$surv <- c(out$surv,exp(-cumsum(apply((dNis-Yis*dKis),2,sum)/apply(Yis,2,sum))))
-    		out$std.err <- c(out$std.err,sqrt(cumsum(apply(dNis,2,sum)/(apply(Yis,2,sum))^2)))
-    	}
-    	else if(method=="weighted.ederer"){
-    		out$surv <- c(out$surv,exp(-cumsum(apply(dNis/Kis,2,sum)/apply(Yis/Kis,2,sum) - apply(Yis/Kis*dKis,2,sum)/apply(Yis/Kis,2,sum))))
-	    	out$std.err <- c(out$std.err,sqrt(cumsum(apply(dNis/Kis,2,sum)/(apply(Yis/Kis,2,sum))^2)) )
-    	}
-       	else if(method=="hakulinen"){ #
-	       	#d <- -log(apply((Yis.hak*Ki),2,sum)/apply(Yis.hak,2,sum))
-	    	#dd <- c(d[1],diff(d))
-	    	#e <- apply(Yis.hak * Kis*exp(-dKis), 2, sum)/apply(Yis.hak*Kis, 2, sum)
-		#e <- cumprod(e)
-		f <- apply(Yis.hak * Kis*dKis, 2, sum)/apply(Yis.hak*Kis, 2, sum)
-		#out$surv <- c(out$surv,exp(-cumsum(apply((dNis),2,sum)/apply(Yis,2,sum)))/e)
-		out$surv <- c(out$surv,exp(-cumsum( apply(dNis,2,sum)/apply(Yis,2,sum) - f  )))
-		#out$surv <- c(out$surv,exp(-cumsum(apply((dNis),2,sum)/apply(Yis,2,sum)-dd)))       		
-       		#out$surv <- c(out$surv,exp(-cumsum(apply((dNis),2,sum)/apply(Yis,2,sum)-apply((Yis.hak*dKis),2,sum)/apply(Yis.hak,2,sum))))
-	    	out$std.err <- c(out$std.err,sqrt(cumsum(apply(dNis,2,sum)/(apply(Yis,2,sum))^2)))
-	    	
-	}
-    	out$strata <- c(out$strata,length(tis))
-    	
+	               out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis, 
+                2, sum)/(apply(Yis, 2, sum))^2)))
+	        }
+             out$strata <- c(out$strata, length(tis))
     }
-    
-    if(conf.type=="plain"){
-	    out$lower <- as.vector(out$surv - out$std.err*se.fac*out$surv)
-	    out$upper <- as.vector(out$surv + out$std.err*se.fac*out$surv)
+    if (conf.type == "plain") {
+        out$lower <- as.vector(out$surv - out$std.err * se.fac * 
+            out$surv)
+        out$upper <- as.vector(out$surv + out$std.err * se.fac * 
+            out$surv)
     }
-    else if(conf.type=="log"){
-   	    out$lower <- exp(as.vector(log(out$surv) - out$std.err*se.fac))
-  	    out$upper <- exp(as.vector(log(out$surv) + out$std.err*se.fac))
+    else if (conf.type == "log") {
+        out$lower <- exp(as.vector(log(out$surv) - out$std.err * 
+            se.fac))
+        out$upper <- exp(as.vector(log(out$surv) + out$std.err * 
+            se.fac))
     }
-    else if(conf.type=="log-log"){
-   	    out$lower <- exp(-exp(as.vector(log(-log(out$surv)) - out$std.err*se.fac/log(out$surv))))
-  	    out$upper <- exp(-exp(as.vector(log(-log(out$surv)) + out$std.err*se.fac/log(out$surv))))
-    }    
+    else if (conf.type == "log-log") {
+        out$lower <- exp(-exp(as.vector(log(-log(out$surv)) - 
+            out$std.err * se.fac/log(out$surv))))
+        out$upper <- exp(-exp(as.vector(log(-log(out$surv)) + 
+            out$std.err * se.fac/log(out$surv))))
+    }
     names(out$strata) <- names(out$n)
-    if(p==0)out$strata <- NULL					#hide it if no strata (important for the behaviour of plot.survfit)
+    if (p == 0) 
+        out$strata <- NULL
     out$n <- as.vector(out$n)
     out$conf.type <- conf.type
     out$conf.int <- conf.int
-    out$method <-  method
+    out$method <- method
     out$call <- call
     out$type <- "right"
-    class(out) <- c("survfit","rs.surv") 
+    class(out) <- c("survfit", "rs.surv")
     out
 }
 
 
-
-
 rs.survo <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulinen",...) 
+#still needed in the EM function (faster than rs.surv for Ederer II)
 {	
     call <- match.call()
      if (!inherits(formula, "formula")) 

@@ -49,7 +49,7 @@ Computers in biology and medicine, \bold{37}: 1741-1749.
 
 \examples{
 data(slopop)
-invtime(y = 0.1, age = 23011, sex = "male", year = 9497, ratetable = slopop)
+invtime(y = 0.1, age = 23011, sex = 1, year = 9497, ratetable = slopop)
 }
 
 

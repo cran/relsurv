@@ -116,7 +116,7 @@ rs.br(fit)
 fit <- rsadd(Surv(time,cens)~sex+age+ratetable(age=age*365,
 	   sex=sex,year=year), ratetable=slopop,data=rdata,int=5,method="EM")
 sm <- epa(fit)
-plot(sm$times,sm$lambda)
+plot(sm$times,sm$lambda,type="l")
 }
 
 

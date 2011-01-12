@@ -1,18 +1,17 @@
 \name{rs.surv}
 \alias{rs.surv}
 \alias{rs.survo}
-\alias{rs.surv.rsadd}
 
 
 \title{Compute a Relative Survival Curve}
 
 \description{
      Computes an estimate of the relative survival curve using the
-     Ederer II method, weighted Ederer method or the Hakulinen method
+     Ederer II method, Pohar-Perme method or the Hakulinen method
 }
 \usage{
      rs.surv(formula, data,ratetable=survexp.us,na.action,fin.date,
-	     method="weighted.ederer",conf.type="log",conf.int=0.95) 
+	     method="pohar-perme",conf.type="log",conf.int=0.95) 
 }
 \arguments{
 \item{formula}{
@@ -46,7 +45,7 @@ a table of event rates, organized as a \code{ratetable} object,
           potential follow-up times in the Hakulinen method. If
           missing, it is calculated as \code{max(year+time)}. 
 }
-\item{method}{the method for calculating the relative survival. The options are \code{weighted.ederer}(default), \code{ederer} and \code{hakulinen}.}
+\item{method}{the method for calculating the relative survival. The options are \code{pohar-perme}(default), \code{ederer} and \code{hakulinen}.}
 \item{conf.type}{one of \code{plain}, \code{log} (the default), or \code{log-log}. The first option causes the standard intervals curve +- k *se(curve), where k is determined from conf.int. The log option calculates intervals based on the cumulative hazard or log(survival). The last option bases intervals on the log hazard or log(-log(survival)). 
 }
 \item{conf.int}{the level for a two-sided confidence interval on the survival curve(s). Default is 0.95.}
@@ -62,7 +61,7 @@ The potential censoring times needed for the calculation of the expected surviva
 are calculated automatically. The times of censoring are left as they are, the times of events are replaced with 
 \code{fin.date - year}.
 
-The calculation of the weighted Ederer estimate is more time consuming since more data are needed from the population tables. 
+The calculation of the Pohar-Perme estimate is more time consuming since more data are needed from the population tables. 
 The old version of the function, now named \code{rs.survo} can be used as a faster version for the Hakulinen and Ederer II estimate.
 }
 
