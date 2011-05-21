@@ -1833,7 +1833,7 @@ transrate.hld <- function(file, cut.year,race){
 		if(!any(tdata$TypeLT==1)) stop("Currently only TypeLT 1 is implemented")
 		names(tdata) <- gsub(".","",names(tdata),fixed=TRUE)
 		tdata <- tdata[,c("Country","Year1","Year2","TypeLT","Sex","Age","AgeInt","qx")]
-		tdata <- tdata[tdata$TypeLT==1&tdata$AgeInt==1,]
+		tdata <- tdata[tdata$TypeLT==1,]		#NEW - prej sem gledala tudi AgeInt, izkaze se, da ni treba. pri q(x) bi bilo vseeno tudi, ce bi gledala TypeLT=3.
 		if(!missing(race))tdata$race <- rep(race[it],nrow(tdata))
 		data <- rbind(data,tdata)
 	}
@@ -1941,14 +1941,16 @@ transrate.hld <- function(file, cut.year,race){
 
 transrate.hmd <- function(male,female){
 	nfiles <- 2
-	men <- read.table(male,sep="",header=TRUE)
+	men <- try(read.table(male,sep="",header=TRUE),silent=TRUE)
+	if(class(men)=="try-error")men <- read.table(male,sep="",header=TRUE,skip=1)
 	men <- men[,c("Year","Age","qx")]
 	y1 <- sort(unique(men$Year))
 	ndata <- nrow(men)/111
 	if(round(ndata)!=ndata)stop("Each year must contain ages from 0 to 110")
 	men <- matrix(men$qx, ncol=ndata)
 	men <- matrix(as.numeric(men),ncol=ndata)
-	women <- read.table(female,sep="",header=TRUE)
+	women <- try(read.table(female,sep="",header=TRUE),silent=TRUE)
+	if(class(women)=="try-error")women <- read.table(female,sep="",header=TRUE,skip=1)
 	women <- women[,"qx"]
 	if(length(women)!=length(men))stop("Number of rows in the table must be equal for both sexes")
 	women <- matrix(women, ncol=ndata)
@@ -2399,78 +2401,73 @@ function (formula = formula(data), data = parent.frame(), ratetable = survexp.us
     conf.int = 0.95) 
 {
     call <- match.call()
-    rform <- rformulate(formula, data, ratetable, na.action)
+    rform <- rformulate(formula, data, ratetable, na.action)			#get the data ready
     data <- rform$data
-    if (method == "hakulinen") {
-        R <- rform$R
+    if (method == "hakulinen") {						#need potential follow-up time for Hak. method	
+        R <- rform$R								
         coll <- match("year", attributes(ratetable)$dimid)
-        year <- R[, coll]
-        if (missing(fin.date)) 
-            fin.date <- max(data$Y + year)
-        data$Y2 <- data$Y
-        if (length(fin.date == 1)) 
-            data$Y2[data$stat == 1] <- fin.date - year[data$stat == 
-                1]
-        else if (length(fin.date == nrow(data))) 
-            data$Y2[data$stat == 1] <- fin.date[data$stat == 
+        year <- R[, coll]							#calendar year in the data
+        if (missing(fin.date)) 							
+            fin.date <- max(data$Y + year)					#final date for everybody set to the last day observed
+        data$Y2 <- data$Y							#Y2=potential follow-up time
+        if (length(fin.date == 1)) 						#if final date equal for everyone
+            data$Y2[data$stat == 1] <- fin.date - year[data$stat == 1]		#set Y2 for those that died (equal to censoring time for others)
+        else if (length(fin.date == nrow(data))) 				
+            data$Y2[data$stat == 1] <- fin.date[data$stat == 				
                 1] - year[data$stat == 1]
         else stop("fin.date must be either one value of a vector of the same length as the data")
-        data$stat2 <- rep(0, nrow(data))
+        data$stat2 <- rep(0, nrow(data))					#stat2=0 for everyone
     }
-    inx.d <- order(data$Y, (1 - data$stat))
-    data <- data[inx.d, ]
-    p <- rform$m
-    ti <- sort(unique(data$Y))
+    inx.d <- order(data$Y, (1 - data$stat))					#order: time of death, events before censoring
+    data <- data[inx.d, ]							#put data in this order
+    p <- rform$m								#number of covariates
+    ti <- sort(unique(data$Y))							#ti= unique times (event or censoring)
     if (method == "hakulinen") 
-        ti <- sort(unique(pmin(c(ti, data$Y2), max(ti))))
-    Ki <- matrix(NA, nrow = nrow(data), ncol = length(ti))
-    dNi <- matrix(0, nrow = nrow(data), ncol = length(ti))
-    dYi <- matrix(0, nrow = nrow(data), ncol = length(ti))
-    dYi.hak <- matrix(0, nrow = nrow(data), ncol = length(ti))
-    nfk <- length(attributes(rform$ratetable)$dimid)
-    for (jt in 1:length(ti)) {
-        Ki[, jt] <- srvxp.fit(data[, 4:(nfk + 3)], rep(ti[jt], 
+        ti <- sort(unique(pmin( c(ti, data$Y2), max(ti))))			#ti=uniqe times or potential follow-up times, up to max observed time
+    Ki <- matrix(NA, nrow = nrow(data), ncol = length(ti))			#K=population values matrix	
+    dNi <- matrix(0, nrow = nrow(data), ncol = length(ti))			#dN=number of events matrix
+    dYi <- matrix(0, nrow = nrow(data), ncol = length(ti))			#dY=at risk matrix
+    dYi.hak <- matrix(0, nrow = nrow(data), ncol = length(ti))			#dYi.hak=at risk matrix for hakulinen
+    nfk <- length(attributes(rform$ratetable)$dimid)				#number of demographic covariates
+    for (jt in 1:length(ti)) {							#for each event time
+        Ki[, jt] <- srvxp.fit(data[, 4:(nfk + 3)], rep(ti[jt], 			#survival until time ti (from 0)
             nrow(data)), rform$ratetable)
-        dNi[which(data$Y == ti[jt]), jt] <- data$stat[which(data$Y == 
+        dNi[which(data$Y == ti[jt]), jt] <- data$stat[which(data$Y == 		#put 1 into dNi for those who die at this time
             ti[jt])]
-        dYi[which(data$Y == ti[jt]), jt] <- 1 - data$stat[which(data$Y == 
-            ti[jt])]
+        dYi[which(data$Y==ti[jt]), jt] <- 1-data$stat[which(data$Y == ti[jt])]  #put 1 for those who are censored at this time
         if (method == "hakulinen") 
-            dYi.hak[which(data$Y2 == ti[jt]), jt] <- 1
+            dYi.hak[which(data$Y2 == ti[jt]), jt] <- 1				#put 1 for those who have the pot.follow-up time at this time
     }
-    if (p > 0) 
-        data$Xs <- strata(rform$X[inx.d, ,drop=FALSE ])
-    else data$Xs <- rep(1, nrow(data))
-    se.fac <- sqrt(qchisq(conf.int, 1))
+    if (p > 0) 									#if covariates
+        data$Xs <- strata(rform$X[inx.d, ,drop=FALSE ])				#make strata according to covariates
+    else data$Xs <- rep(1, nrow(data))						#if no covariates, just put 1
+    se.fac <- sqrt(qchisq(conf.int, 1))						#factor needed for confidence interval
     out <- NULL
-    out$n <- table(data$Xs)
+    out$n <- table(data$Xs)							#table of strata
     out$time <- out$n.risk <- out$n.event <- out$n.censor <- out$surv <- out$std.err <- out$strata <- NULL
     method <- match.arg(method, c("pohar-perme", "ederer2", 
         "hakulinen","ederer1"))
-    for (kt in 1:length(out$n)) {
-        inx <- which(data$Xs == names(out$n)[kt])
-        dYis <- dYi[inx, ]
+    for (kt in 1:length(out$n)) {						#for each stratum
+        inx <- which(data$Xs == names(out$n)[kt])				#individuals within this stratum
+        dYis <- dYi[inx, ]							#take only the matrix for relevant individuals	
         dNis <- dNi[inx, ]
         Kis <- Ki[inx, ]
         dYis.hak <- dYi.hak[inx, ]
         datas <- data[inx, ]
-        yinx <- which(apply(dYis + dNis + dYis.hak, 2, sum) != 
-            0)
+        yinx <- which(apply(dYis + dNis + dYis.hak, 2, sum) != 0)		#exclude the columns that do not appear in this stratum	
         dYis <- dYis[, yinx]
         dNis <- dNis[, yinx]
         Kis <- Kis[, yinx]
         tis <- ti[yinx]
         dYis.hak <- dYis.hak[, yinx]
-        Nis <- t(apply(dNis, 1, cumsum))
-        Yis <- t(apply(dYis, 1, cumsum))
-        Yis.hak <- t(apply(dYis.hak, 1, cumsum))
-        Yis <- matrix(1, nrow = nrow(Yis), ncol = ncol(Yis)) - 
-            Nis - Yis
-        Yis <- cbind(rep(1, nrow(Yis)), Yis[, -ncol(Yis)])
-        Yis.hak <- matrix(1, nrow = nrow(Yis), ncol = ncol(Yis)) - 
-            Yis.hak
+        Nis <- t(apply(dNis, 1, cumsum))					#Nis= 1 if already dead, 0 otherwise
+        Yis <- t(apply(dYis, 1, cumsum))					#Yis= 1 if already censored, 0 otherwise
+        Yis.hak <- t(apply(dYis.hak, 1, cumsum))				
+        Yis <- matrix(1, nrow = nrow(Yis), ncol = ncol(Yis)) -  Nis - Yis	#Yis: 1 if not yet dead, not censored. 0 otherwise
+        Yis <- cbind(rep(1, nrow(Yis)), Yis[, -ncol(Yis)])			#1 in first column, delete last column
+        Yis.hak <- matrix(1, nrow = nrow(Yis), ncol = ncol(Yis)) - Yis.hak	
         Yis.hak <- cbind(rep(1, nrow(Yis.hak)), Yis.hak[, -ncol(Yis.hak)])
-        yinx <- which(apply(Yis, 2, sum) > 0)
+        yinx <- which(apply(Yis, 2, sum) > 0)					#keep only times where anyone at risk
         dYis <- dYis[, yinx]
         dNis <- dNis[, yinx]
         Kis <- Kis[, yinx]
@@ -2478,63 +2475,60 @@ function (formula = formula(data), data = parent.frame(), ratetable = survexp.us
         Yis <- Yis[, yinx]
         Nis <- Nis[, yinx]
         Yis.hak <- Yis.hak[, yinx]
-        dKis <- -log(Kis) + log(cbind(rep(1, nrow(Kis)), Kis[, 
-            -ncol(Kis)]))
-        out$time <- c(out$time, tis)
-        out$n.risk <- c(out$n.risk, apply(Yis, 2, sum))
-        out$n.event <- c(out$n.event, apply(dNis, 2, sum))
-        out$n.censor <- c(out$n.censor, apply(dYis, 2, sum))
-        if (method == "ederer2") {
-            out$surv <- c(out$surv, exp(-cumsum(apply((dNis - 
-                Yis * dKis), 2, sum)/apply(Yis, 2, sum))))
-            out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis, 
+        dKis <- -log(Kis) + log(cbind(rep(1, nrow(Kis)), Kis[,-ncol(Kis)]))	#cum hazard: difference of -log survival
+     										#add values of this strata to the output   										
+        out$time <- c(out$time, tis)						#add times
+        out$n.risk <- c(out$n.risk, apply(Yis, 2, sum))				#add number at risk for each time
+        out$n.event <- c(out$n.event, apply(dNis, 2, sum))			#add number of events for each time
+        out$n.censor <- c(out$n.censor, apply(dYis, 2, sum))			#add number of censored for each time
+        if (method == "ederer2") {						#ederer 2
+            out$surv <- c(out$surv, exp(-cumsum(apply((dNis - 			#at each time (column): sum(dNi)/sum(Yis) - sum(Yis*dKis)/sum(Yis)
+                Yis * dKis), 2, sum)/apply(Yis, 2, sum))))			#cumsum through times
+            out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis, 		#std. error
                 2, sum)/(apply(Yis, 2, sum))^2)))
         }
-        else if (method == "pohar-perme") {
-            out$surv <- c(out$surv, exp(-cumsum(apply(dNis/Kis, 
-                2, sum)/apply(Yis/Kis, 2, sum) - apply(Yis/Kis * 
+        else if (method == "pohar-perme") {					
+            out$surv <- c(out$surv, exp(-cumsum(apply(dNis/Kis, 		#at each time: same as Ederer, but weighted with Sp
+                2, sum)/apply(Yis/Kis, 2, sum) - apply(Yis/Kis * 		#need both Sp and cum hazard
                 dKis, 2, sum)/apply(Yis/Kis, 2, sum))))
             out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis/Kis^2, 
                 2, sum)/(apply(Yis/Kis, 2, sum))^2)))
         }
         else if (method == "hakulinen") {
-            f <- apply(Yis.hak * Kis * dKis, 2, sum)/apply(Yis.hak * 
+            f <- apply(Yis.hak * Kis * dKis, 2, sum)/apply(Yis.hak * 		#population part: of those with Yis.hak
                 Kis, 2, sum)
-            out$surv <- c(out$surv, exp(-cumsum(apply(dNis, 2, 
+            out$surv <- c(out$surv, exp(-cumsum(apply(dNis, 2, 			#observed minus population
                 sum)/apply(Yis, 2, sum) - f)))
             out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis, 
                 2, sum)/(apply(Yis, 2, sum))^2)))
         }
         else if (method == "ederer1") {
-       out$surv <- c(out$surv, exp(-cumsum(apply(dNis,2,sum)/apply(Yis, 2, sum)))/  
+	       out$surv <- c(out$surv, exp(-cumsum(apply(dNis,2,sum)/apply(Yis, 2, sum)))/  #obs. surv / pop. surv of everyone
 	                   apply(t(apply(dKis, 1, function(x)exp(-cumsum(x)))),2,mean))
-
-	               out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis, 
-                2, sum)/(apply(Yis, 2, sum))^2)))
-	        }
-             out$strata <- c(out$strata, length(tis))
+               out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis,2, sum)/(apply(Yis, 2, sum))^2)))
+	}
+        out$strata <- c(out$strata, length(tis))				#number of times in this strata
     }
-    if (conf.type == "plain") {
-        out$lower <- as.vector(out$surv - out$std.err * se.fac * 
+    if (conf.type == "plain") {						
+        out$lower <- as.vector(out$surv - out$std.err * se.fac * 		#surv + fac*se
             out$surv)
         out$upper <- as.vector(out$surv + out$std.err * se.fac * 
             out$surv)
     }
-    else if (conf.type == "log") {
-        out$lower <- exp(as.vector(log(out$surv) - out$std.err * 
+    else if (conf.type == "log") {						#on log scale and back
+        out$lower <- exp(as.vector(log(out$surv) - out$std.err * 		
             se.fac))
         out$upper <- exp(as.vector(log(out$surv) + out$std.err * 
             se.fac))
     }
-    else if (conf.type == "log-log") {
+    else if (conf.type == "log-log") {						#on log-log scale and back
         out$lower <- exp(-exp(as.vector(log(-log(out$surv)) - 
             out$std.err * se.fac/log(out$surv))))
         out$upper <- exp(-exp(as.vector(log(-log(out$surv)) + 
             out$std.err * se.fac/log(out$surv))))
     }
     names(out$strata) <- names(out$n)
-    if (p == 0) 
-        out$strata <- NULL
+    if (p == 0) out$strata <- NULL						#if no covariates
     out$n <- as.vector(out$n)
     out$conf.type <- conf.type
     out$conf.int <- conf.int
