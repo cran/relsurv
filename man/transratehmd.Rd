@@ -17,11 +17,14 @@ transrate.hmd(male,female)
 	a .txt file, containing the data on females.   }
 }
 \details{ 
-This function works with tables organised in the format provided by the Human Mortality 
-Database. The period lifetables, organized by date of death, must be downloaded separately for men and
-women for each country and the top line deleted. The function only works for tables that have yearly
-cutpoints for age as well as calendar year (1x1). The only two columns needed are calendar year (Year) 
-and probability of death (qx). Death probabilities must be calculated up to age 110 (in yearly intervals).
+This function works automatically with tables organised in the format provided by the Human Mortality 
+Database. Download Life Tables for Males and Females separately from the column named 1x1 (period life tables,
+ organized by date of death, yearly cutpoints for age as well as calendar year).
+
+
+If you wish to provide the data in the required format by yourself, note that the only two columns needed
+are calendar year (Year) and probability of death (qx). Death probabilities must be calculated up to
+age 110 (in yearly intervals).
 }
 \value{An object of class \code{ratetable}.}
 

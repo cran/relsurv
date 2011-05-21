@@ -33,6 +33,7 @@ function (formula, newdata)
     temp$surv <- t(exp(-Lambdae))
     temp$n.event <- rep(1,nt)
     temp$n.risk <- n+1 - cumsum(temp$n.event)
+    temp$time <- formula$times
     class(temp) <- c("rs.surv.rsadd", "rs.surv","survfit")
     temp
 }
