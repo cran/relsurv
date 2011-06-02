@@ -1834,6 +1834,7 @@ transrate.hld <- function(file, cut.year,race){
 		names(tdata) <- gsub(".","",names(tdata),fixed=TRUE)
 		tdata <- tdata[,c("Country","Year1","Year2","TypeLT","Sex","Age","AgeInt","qx")]
 		tdata <- tdata[tdata$TypeLT==1,]		#NEW - prej sem gledala tudi AgeInt, izkaze se, da ni treba. pri q(x) bi bilo vseeno tudi, ce bi gledala TypeLT=3.
+		tdata <- tdata[!is.na(tdata$AgeInt),]		#NEW - vrzem ven zadnji interval, ki gre v neskoncnost in vsi umrejo (inf hazard)
 		if(!missing(race))tdata$race <- rep(race[it],nrow(tdata))
 		data <- rbind(data,tdata)
 	}
@@ -1903,6 +1904,7 @@ transrate.hld <- function(file, cut.year,race){
 			class="ratetable"
 		)
 		
+		
 	}
 	else{
 		race.val <- unique(race)
@@ -1926,16 +1928,16 @@ transrate.hld <- function(file, cut.year,race){
 			cutpoints=list((0:amax)*(365.24),cp,NULL,NULL),
 			class="ratetable"
 		)
-		attributes(out)$summary <- function (R) 
+	}
+	attributes(out)$summary <- function (R) 
 		{
 			x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
-			1])/365.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
-			x2 <- as.character(as.date(c(min(R[, 3]), max(R[, 3]))))
+			1])/365.24, 1)), sum(R[, 3] == 1), sum(R[, 3] == 2))
+			x2 <- as.character(as.date(c(min(R[, 2]), max(R[, 2]))))
 			paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
 			x[3], " female:", x[4], "\n", " date of entry from", 
 			x2[1], "to", x2[2], "\n")
-		}
-	}
+		}	
 	out
 }
 
@@ -1980,8 +1982,8 @@ transrate.hmd <- function(male,female){
 	attributes(out)$summary <- function (R) 
 	{
 		x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
-		1])/365.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
-		x2 <- as.character(as.date(c(min(R[, 3]), max(R[, 3]))))
+		1])/365.24, 1)), sum(R[, 3] == 1), sum(R[, 3] == 2))
+		x2 <- as.character(as.date(c(min(R[, 2]), max(R[, 2]))))
 		paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
 		x[3], " female:", x[4], "\n", " date of entry from", 
 		x2[1], "to", x2[2], "\n")
