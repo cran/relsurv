@@ -1,6 +1,6 @@
 \name{rs.surv}
 \alias{rs.surv}
-\alias{rs.survo}
+
 
 
 \title{Compute a Relative Survival Curve}
@@ -51,7 +51,6 @@ log option calculates intervals based on the cumulative hazard or log(survival).
 \item{conf.int}{the level for a two-sided confidence interval on the survival curve(s). Default is 0.95.}
 \item{type}{defines how survival estimates are to be calculated given the hazards.  The default (\code{kaplan-meier})
 calculates the product integral, whereas the option \code{fleming-harrington} exponentiates the negative cumulative hazard. Analogous to the usage in \code{survfit}.
-, \code{ederer} and \code{hakulinen}.
 }
 
 }

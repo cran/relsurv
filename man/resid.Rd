@@ -1,6 +1,6 @@
 \name{residuals.rsadd}
 \alias{residuals.rsadd}
-\alias{resid.com}
+
 
 
 \title{Calculate Residuals for a "rsadd" Fit}

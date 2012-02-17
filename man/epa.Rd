@@ -1,8 +1,5 @@
 \name{epa}
 \alias{epa}
-\alias{kern}
-\alias{Kern}
-
 
 \title{Excess hazard function smoothing}
 \description{

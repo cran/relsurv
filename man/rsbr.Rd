@@ -64,7 +64,7 @@ data(rdata)
 fit <- rsadd(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
 	     year=year),ratetable=slopop,data=rdata,int=5)
 rsbr <- rs.br(fit)
-print(rsbr)
+rsbr
 plot(rsbr)
 }
 
