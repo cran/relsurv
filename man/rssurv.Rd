@@ -11,7 +11,7 @@
 }
 \usage{
      rs.surv(formula, data,ratetable=survexp.us,na.action,fin.date,
-	     method="pohar-perme",conf.type="log",conf.int=0.95) 
+	     method="pohar-perme",conf.type="log",conf.int=0.95,type="kaplan-meier") 
 }
 \arguments{
 \item{formula}{
@@ -46,9 +46,13 @@ a table of event rates, organized as a \code{ratetable} object,
           missing, it is calculated as \code{max(year+time)}. 
 }
 \item{method}{the method for calculating the relative survival. The options are \code{pohar-perme}(default), \code{ederer} and \code{hakulinen}.}
-\item{conf.type}{one of \code{plain}, \code{log} (the default), or \code{log-log}. The first option causes the standard intervals curve +- k *se(curve), where k is determined from conf.int. The log option calculates intervals based on the cumulative hazard or log(survival). The last option bases intervals on the log hazard or log(-log(survival)). 
-}
+\item{conf.type}{one of \code{plain}, \code{log} (the default), or \code{log-log}. The first option causes the standard intervals curve +- k *se(curve), where k is determined from conf.int. The
+log option calculates intervals based on the cumulative hazard or log(survival). The last option bases intervals on the log hazard or log(-log(survival)). }
 \item{conf.int}{the level for a two-sided confidence interval on the survival curve(s). Default is 0.95.}
+\item{type}{defines how survival estimates are to be calculated given the hazards.  The default (\code{kaplan-meier})
+calculates the product integral, whereas the option \code{fleming-harrington} exponentiates the negative cumulative hazard. Analogous to the usage in \code{survfit}.
+, \code{ederer} and \code{hakulinen}.
+}
 
 }
 
