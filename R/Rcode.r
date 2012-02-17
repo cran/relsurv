@@ -1411,8 +1411,7 @@ rs.zph <- function (fit, sc, transform = "identity", var.type = "sum")
         ttimes <- switch(transform, identity = times, rank = rank(times), 
             log = log(times), km = {
                 fity <- Surv(time, stat)
-                temp <- survival:::survfitKM(factor(rep(1, nrow(fity))), 
-                  fity, se.fit = FALSE)
+                temp <- survfit(fity~1)
                 t1 <- temp$surv[temp$n.event > 0]
                 t2 <- temp$n.event[temp$n.event > 0]
                 km <- rep(c(1, t1), c(t2, 0))
@@ -2353,40 +2352,63 @@ kern <- function (times,td, b, nt4)
     krn
 }
 
-exp.prep <- function (x, y,ratetable,status,times) {			#function that prepares the data for C function call
+exp.prep <- function (x, y,ratetable,status,times,fast=FALSE) {			#function that prepares the data for C function call
 
 #x= matrix of demographic covariates - each individual has one line
 #y= follow-up time for each individual (same length as nrow(x)!)
 #ratetable= rate table used for calculation
-#status= status for each individual (same length as nrow(x)!), not needed if we only need Spi
-#times= times at which we wish to evaluate the quantities, not needed if we only need Spi
+#status= status for each individual (same length as nrow(x)!), not needed if we only need Spi, status needed for rs.surv
+#times= times at which we wish to evaluate the quantities, not needed if we only need Spi, times needed for rs.surv
+#fast=for mpp method only
 
     x <- as.matrix(x)
     if (ncol(x) != length(dim(ratetable)))
         stop("x matrix does not match the rate table")
     atts <- attributes(ratetable)
-    rfac <- atts$factor
-    if (length(rfac) != ncol(x)) 
-        stop("Wrong length for rfac")
-  
+    
     cuts <- atts$cutpoints
-    us.special <- (rfac > 1)
+    
+     if (is.null(atts$type)) {
+        rfac <- atts$factor
+        us.special <- (rfac > 1)
+    }
+    else {
+        rfac <- 1 * (atts$type == 1)
+        us.special <- (atts$type == 4)
+    }
+    if (length(rfac) != ncol(x)) 
+            stop("Wrong length for rfac")
+
+
     if (any(us.special)) {
         if (sum(us.special) > 1) 
             stop("Two columns marked for special handling as a US rate table")
-        cols <- 1 + match(c("age", "year"), attr(ratetable, "dimid"))
+        cols <- match(c("age", "year"), atts$dimid)
         if (any(is.na(cols))) 
             stop("Ratetable does not have expected shape")
-        temp <- date.mdy(as.date(x[, cols[2]]) - x[, cols[1]])
-        x[, cols[2]] <- x[, cols[2]] - mdy.date(temp$month, temp$day, 
-            1960)
-        temp <- (1:length(rfac))[us.special]
-        nyear <- length(cuts[[temp]])
-        nint <- rfac[temp]
-        cuts[[temp]] <- round(approx(nint * (1:nyear), cuts[[temp]], 
-            nint:(nint * nyear))$y - 1e-04)
-    }  
-  
+        if (exists("as.Date")) {
+            bdate <- as.Date("1960/1/1") + (x[, cols[2]] - x[, 
+                cols[1]])
+            byear <- format(bdate, "%Y")
+            offset <- as.numeric(bdate - as.Date(paste(byear, 
+                "01/01", sep = "/")))
+        }
+        else if (exists("date.mdy")) {
+            bdate <- as.date(x[, cols[2]] - x[, cols[1]])
+            byear <- date.mdy(bdate)$year
+            offset <- bdate - mdy.date(1, 1, byear)
+        }
+        else stop("Can't find an appropriate date class\n")
+        x[, cols[2]] <- x[, cols[2]] - offset
+        if (any(rfac > 1)) {
+            temp <- which(us.special)
+            nyear <- length(cuts[[temp]])
+            nint <- rfac[temp]
+            cuts[[temp]] <- round(approx(nint * (1:nyear), cuts[[temp]], 
+                nint:(nint * nyear))$y - 1e-04)
+        }
+    }
+
     if(!missing(status)){		#the function was called from rs.surv		
  	  if(length(status)!=nrow(x))    stop("Wrong length for status")
  
@@ -2396,7 +2418,11 @@ exp.prep <- function (x, y,ratetable,status,times) {			#function that prepares t
 	        stop("Negative time point requested")
 	    ntime <- length(times)
     
-	    temp <- .Call("netwei",  as.integer(rfac), 
+    	if(fast)    temp <- .Call("netfast",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
+	        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
+	         x, y, as.integer(status), times,PACKAGE="relsurv")    
+    	
+    	else    temp <- .Call("netwei",  as.integer(rfac), 
 	        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
 	         x, y, as.integer(status), times,PACKAGE="relsurv")    
     }
@@ -2416,7 +2442,7 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
      na.action, fin.date, method = "pohar-perme", conf.type = "log", 
      conf.int = 0.95,type="kaplan-meier") 
     
-    #formula: for example Surv(time,cens)~1 #not implemented for subgroups - DO IT!
+    #formula: for example Surv(time,cens)~sex
     #data: the observed data set
     #ratetable: the population mortality tables
     #conf.type: confidence interval calculation (plain, log or log-log)
@@ -2460,9 +2486,10 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
         inx <- which(data$Xs == names(out$n)[kt])				#individuals within this stratum
 
    	tis <- sort(unique(rform$Y[inx]))					#unique times
-   	if(method==3) tis <- sort(unique(pmin(max(tis),c(tis,Y2[inx]))))				#add potential times in case of Hakulinen
+   	if(method==3)tis <- sort(unique(pmin(max(tis),c(tis,Y2[inx]))))				#add potential times in case of Hakulinen
    
-   	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis)	#calculate the values for each interval of time
+   	
+   	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis,fast=(method<3))	#calculate the values for each interval of time
    	
    	out$time <- c(out$time, tis)						#add times
         out$n.risk <- c(out$n.risk, temp$yi)					#add number at risk for each time

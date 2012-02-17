@@ -1,7 +1,7 @@
-5f9af5d6f0eb7660d95f78728c05b168 *DESCRIPTION
+5bed4c36002d2a8429b9e3ae0bca3b3d *DESCRIPTION
 bc88100ebc4a072951ce505580c3c322 *INDEX
 8647579a97cf4e1fcf3b3b81a7901de2 *NAMESPACE
-6a5a2e12d6e016a6b1c83475a4281296 *R/Rcode.r
+bab2fc98b7e3b85f9ae932bcd73f3cba *R/Rcode.r
 ceca1cde417d54a95d3e057ffda85405 *R/rssurvrsadd.r
 a46af41b8ae9dedf8d0268216d591bd5 *R/survfitrsadd.r
 3820354bc630edaa5d29f0225798b4da *R/zzz.R
@@ -17,9 +17,9 @@ abd2193dcd75cd1e2143ccf44be63eeb *man/rsadd.Rd
 a0cccb0b4b2f3968716219019acbc4e2 *man/rsbr.Rd
 0166f88b0e283d1fb823fa517cf3aa7d *man/rsmul.Rd
 878352c51ce69fd04d87eaccf0f17767 *man/rssurv.Rd
-c33a5be8cf073ad26a0179f90ce65872 *man/rssurvrsadd.Rd
+fea310bbd98063c3060f78ce713c058a *man/rssurvrsadd.Rd
 82ac0e6adc30c5bcd8d828bae2e0b504 *man/rstrans.Rd
-a52dfc79d53c562f7a352af632da313d *man/rszph.Rd
+3e367a0adfb44fb1b3ce0e7c47af6b3d *man/rszph.Rd
 be655c8edf2364de4cc91c03c6e61487 *man/slopop.Rd
 634aaf4201ec4811d6ae32b85b8d387f *man/survfitrsadd.rd
 43de679849893f7f8847efb130cd7af5 *man/survsplit.Rd
@@ -28,6 +28,7 @@ ce2365d59b077324be90c798f79379de *man/transratehld.Rd
 ade1cfda41d4ceb8f5ec749753a9ef78 *man/transratehmd.Rd
 6853ad4d02cc6b1ff9e2e786f7dad4b5 *src/dmatrix.c
 35fe86cf308d11c704de3aaf3e58a629 *src/exps.c
+1f3b9b8f32acb002579b5fba257c712f *src/netfast.c
 9b499f0547e4b7cd9f518d345b35e94c *src/netwei.c
 2d85cafe474de3c4d9cb2df04eafb8bb *src/pystep.c
-4c28cbeffcc5013a9cc56a0379423eee *src/survprotomoj.h
+0e31a539005ae8f039051ab33579c277 *src/survprotomoj.h
