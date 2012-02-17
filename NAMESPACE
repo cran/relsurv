@@ -1,0 +1,14 @@
+#useDynLib(relsurv)
+import(survival, date,splines)
+export("epa","invtime","joinrate",
+	"rformulate","rs.br","rs.surv",
+	"rs.zph","rsadd","rsmul","rstrans",
+	"srvxp.fit","residuals.rsadd",
+	"survsplit","transrate","transrate.hld",
+	"rs.surv.rsadd","survfit.rsadd")
+S3method(residuals, rsadd)
+S3method(plot, rs.br)
+S3method(plot, rs.zph)
+S3method(print, rsadd)
+S3method(summary, rsadd)
+S3method(print, summary.rsadd)
