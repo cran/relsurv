@@ -1,14 +1,5 @@
 \name{rsadd}
 \alias{rsadd}
-\alias{print.rsadd}
-\alias{summary.rsadd}
-\alias{print.summary.rsadd}
-\alias{maxlik}
-\alias{glmxp}
-\alias{lik.fit}
-\alias{em}
-\alias{rsfitterem}
-
 
 \title{Fit an Additive model for Relative Survival}
 \description{

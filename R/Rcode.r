@@ -310,12 +310,11 @@ em <- function (rform, init, control, bwin)
     nfk <- length(fk)
     nev <- length(data$Y[data$stat == 1])
     data$a <- rep(NA, n)
-    xx <- srvxp.fit(data[, 4:(nfk + 3),drop=FALSE], data$Y - data$start, rform$ratetable)
+    xx <- exp.prep(data[, 4:(nfk + 3),drop=FALSE], data$Y - data$start, rform$ratetable)
     data$ds <- -log(xx)
     data1 <- data
     data1[, 4:(nfk + 3)] <- data[, 4:(nfk + 3)] + data$Y %*% t(fk)
-    xx <- srvxp.fit(data1[data1$stat == 1, 4:(nfk + 3),drop=FALSE], rep(1, 
-        nev), rform$ratetable)
+    xx <- exp.prep(data1[data1$stat == 1, 4:(nfk + 3),drop=FALSE], 1, rform$ratetable)
     data$a[data$stat == 1] <- -log(xx)
     
     if (p > 0) {
@@ -338,7 +337,7 @@ em <- function (rform, init, control, bwin)
 	else  data1 <- data
 	nfk <- length(attributes(rform$ratetable)$dimid)
 	names(data)[4:(3+nfk)] <- attributes(rform$ratetable)$dimid
-	expe <- rs.survo(Surv(Y,stat)~1,data,ratetable=rform$ratetable,method="conditional")
+	expe <- rs.surv(Surv(Y,stat)~1,data,ratetable=rform$ratetable,method="ederer2")
 	esurv <- -log(expe$surv[expe$n.event!=0])
 	if(esurv[length(esurv)]==Inf)esurv[length(esurv)] <-  esurv[length(esurv)-1]
 	x <- seq(.1,3,length=5)
@@ -544,8 +543,8 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
             formula1 <- formula				#NEW: create object formula1
             formula1[[3]] <- formula1[[3]][[2]]		#NEW: delete the ratetable part
         }
-        X <- as.data.frame(model.matrix(formula1, data = data))[, 
-            -1, drop = FALSE]
+        X <- as.data.frame(model.matrix(formula1, data = data))[,-1, drop = FALSE]
+        if(nrow(X)!=n)warning("You have missing values in demographic variables \n")
         #mm <- ncol(X)
         #X <- X[,1:(mm-nrt),drop=FALSE]			#NEW: tega vec ne rabim
         mm <- ncol(X)
@@ -626,12 +625,10 @@ maxlik <- function (rform, interval, subset, init, control)
         t(fk)
     data$lambda <- rep(0, nrow(data))
     nsk <- nrow(data[data$stat == 1, ])
-    xx <- srvxp.fit(data[data$stat == 1, 4:(nfk + 3),drop=FALSE] + (data[data$stat == 
-        1, ]$Y - data[data$stat == 1, ]$start) %*% t(fk), rep(1, 
-        nsk), rform$ratetable)
+    xx <- exp.prep(data[data$stat == 1, 4:(nfk + 3),drop=FALSE] + (data[data$stat == 
+        1, ]$Y - data[data$stat == 1, ]$start) %*% t(fk), 1,  rform$ratetable)
     data$lambda[data$stat == 1] <- -log(xx) * 365.24
-    xx <- srvxp.fit(data[, 4:(nfk + 3),drop=FALSE], data$Y - data$start, 
-        rform$ratetable)
+    xx <- exp.prep(data[, 4:(nfk + 3),drop=FALSE], data$Y - data$start, rform$ratetable)
     data$epi <- NULL
     data$ds <- -log(xx)
     data$Y <- data$Y/365.24
@@ -803,7 +800,7 @@ glmxp <- function (rform, data, interval, method, control)
         n <- dim(X)[1]
         w <- sum((X$event == 0) & (X$fin == 1) & (X$y != 1))
         nd <- sum((X$event == 1) & (X$fin == 1))
-        ps <- srvxp.fit(X[, 4:(nfk + 3),drop=FALSE], rep(t.int, n), rform$ratetable)
+        ps <- exp.prep(X[, 4:(nfk + 3),drop=FALSE], t.int, rform$ratetable)
         ld <- n - w/2
         lny <- log(sum(X$y))
         k <- t.int/365.24
@@ -1017,8 +1014,7 @@ residuals.rsadd <- function (object, type = "schoenfeld", ...)
     interval <- object$int
     int <- ceiling(max(interval))
     R <- data[, 4:(nfk + 3)]
-    lp <- matrix(-log(srvxp.fit(as.matrix(R), rep(365.24, n), 
-        object$ratetable))/scale, ncol = 1)
+    lp <- matrix(-log(exp.prep(as.matrix(R), 365.24, object$ratetable))/scale, ncol = 1)
     fu <- NULL
     if (object$method == "EM") {
         death.time <- stop[event == 1]
@@ -1081,7 +1077,7 @@ residuals.rsadd <- function (object, type = "schoenfeld", ...)
         for (j in 2:int) {
             R <- R + matrix(fk * 365.24, ncol = ncol(R), byrow = TRUE, 
                 nrow = n)
-            xx <- srvxp.fit(R, rep(365.24, n), object$ratetable)
+            xx <- exp.prep(R, 365.24, object$ratetable)
             lp <- cbind(lp, -log(xx)/scale)
         }
     }
@@ -1682,7 +1678,7 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = s
         U[, 4:(nfk + 3)] <- U[, 4:(nfk + 3)] + 365.24 * (U$epi) %*% 
             t(fk)
         nsk <- dim(U)[1]
-        xx <- srvxp.fit(U[, 4:(nfk + 3),drop=FALSE], rep(365.24, nsk), rform$ratetable)
+        xx <- exp.prep(U[, 4:(nfk + 3),drop=FALSE], 365.24, rform$ratetable)
         lambda <- -log(xx)/365.24
     }
     else if (method == "mul1") {
@@ -1725,7 +1721,7 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = s
         U[, 4:(nfk + 3)] <- U[, 4:(nfk + 3)] + (U$start) %*% 
             t(fk)
         nsk <- dim(U)[1]
-        xx <- srvxp.fit(U[, 4:(nfk + 3),drop=FALSE], rep(1, nsk), rform$ratetable)
+        xx <- exp.prep(U[, 4:(nfk + 3),drop=FALSE], 1, rform$ratetable)
         lambda <- -log(xx)/1
     }
     else stop("'method' must be one of 'mul' or 'mul1'")
@@ -1762,10 +1758,10 @@ rstrans <- function (formula = formula(data), data = parent.frame(), ratetable =
     fk <- (attributes(rform$ratetable)$factor != 1)
     nfk <- length(fk)
     if (rform$type == "counting") {
-        start <- 1 - srvxp.fit(rform$R, rform$start, rform$ratetable)
+        start <- 1 - exp.prep(rform$R, rform$start, rform$ratetable)
     }
     else start <- rep(0, rform$n)
-    stop <- 1 - srvxp.fit(rform$R, rform$Y, rform$ratetable)
+    stop <- 1 - exp.prep(rform$R, rform$Y, rform$ratetable)
      if(any(stop==0&rform$Y!=0))stop[stop==0&rform$Y!=0] <- .Machine$double.eps
      if(length(int)!=1)int <- max(int)
     data <- rform$data
@@ -2088,44 +2084,6 @@ joinrate <- function(tables,dim.name="country"){
 }
  
 
-srvxp.fit <- function (x, y, ratetable) 
-{
-    x <- as.matrix(x)
-    if (ncol(x) != length(dim(ratetable)))
-        stop("x matrix does not match the rate table")
-    atts <- attributes(ratetable)
-    rfac <- atts$factor
-    if (length(rfac) != ncol(x)) 
-        stop("Wrong length for rfac")
-    group <- 1:nrow(x)    
-    ngrp <- nrow(x)			
-    times <- max(y)
-    death <- TRUE
-    if (times < 0) 
-        stop("Negative time point requested")
-    ntime <- 1
-    cuts <- atts$cutpoints
-    us.special <- (rfac > 1)
-    if (any(us.special)) {
-        if (sum(us.special) > 1) 
-            stop("Two columns marked for special handling as a US rate table")
-        cols <- 1 + match(c("age", "year"), attr(ratetable, "dimid"))
-        if (any(is.na(cols))) 
-            stop("Ratetable does not have expected shape")
-        temp <- date.mdy(as.date(x[, cols[2]]) - x[, cols[1]])
-        x[, cols[2]] <- x[, cols[2]] - mdy.date(temp$month, temp$day, 
-            1960)
-        temp <- (1:length(rfac))[us.special]
-        nyear <- length(cuts[[temp]])
-        nint <- rfac[temp]
-        cuts[[temp]] <- round(approx(nint * (1:nyear), cuts[[temp]], 
-            nint:(nint * nyear))$y - 1e-04)
-    }
-    temp <- .Call("pyears3b", as.integer(death), as.integer(rfac), 
-        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
-        as.integer(group), x, y, times, as.integer(ngrp),PACKAGE="survival")    
-    temp$surv
-}
 
  mlfit <- function (b, p, x, offset, d, h, ds, y, maxiter, tol) 
 {
@@ -2395,129 +2353,148 @@ kern <- function (times,td, b, nt4)
     krn
 }
 
-rs.surv <- 
-function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
-    na.action, fin.date, method = "pohar-perme", conf.type = "log", 
-    conf.int = 0.95,type="kaplan-meier") 
+exp.prep <- function (x, y,ratetable,status,times) {			#function that prepares the data for C function call
+
+#x= matrix of demographic covariates - each individual has one line
+#y= follow-up time for each individual (same length as nrow(x)!)
+#ratetable= rate table used for calculation
+#status= status for each individual (same length as nrow(x)!), not needed if we only need Spi
+#times= times at which we wish to evaluate the quantities, not needed if we only need Spi
+
+    x <- as.matrix(x)
+    if (ncol(x) != length(dim(ratetable)))
+        stop("x matrix does not match the rate table")
+    atts <- attributes(ratetable)
+    rfac <- atts$factor
+    if (length(rfac) != ncol(x)) 
+        stop("Wrong length for rfac")
+  
+    cuts <- atts$cutpoints
+    us.special <- (rfac > 1)
+    if (any(us.special)) {
+        if (sum(us.special) > 1) 
+            stop("Two columns marked for special handling as a US rate table")
+        cols <- 1 + match(c("age", "year"), attr(ratetable, "dimid"))
+        if (any(is.na(cols))) 
+            stop("Ratetable does not have expected shape")
+        temp <- date.mdy(as.date(x[, cols[2]]) - x[, cols[1]])
+        x[, cols[2]] <- x[, cols[2]] - mdy.date(temp$month, temp$day, 
+            1960)
+        temp <- (1:length(rfac))[us.special]
+        nyear <- length(cuts[[temp]])
+        nint <- rfac[temp]
+        cuts[[temp]] <- round(approx(nint * (1:nyear), cuts[[temp]], 
+            nint:(nint * nyear))$y - 1e-04)
+    }  
+  
+    if(!missing(status)){		#the function was called from rs.surv		
+ 	  if(length(status)!=nrow(x))    stop("Wrong length for status")
+ 
+ 	if(missing(times))    times <- sort(unique(y))
+  
+	    if (any(times < 0)) 
+	        stop("Negative time point requested")
+	    ntime <- length(times)
+    
+	    temp <- .Call("netwei",  as.integer(rfac), 
+	        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
+	         x, y, as.integer(status), times,PACKAGE="relsurv")    
+    }
+    else{				#only expected survival at time y is needed for each individual
+    	    if(length(y)==1)y <- rep(y,nrow(x))
+    	    if(length(y)!=nrow(x)) stop("Wrong length for status")
+	    temp <- .Call("expc",  as.integer(rfac), 
+	        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
+	         x, y,PACKAGE="relsurv")    
+	    temp  <- temp$surv
+    }
+    temp
+}
+
+
+rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
+     na.action, fin.date, method = "pohar-perme", conf.type = "log", 
+     conf.int = 0.95,type="kaplan-meier") 
+    
+    #formula: for example Surv(time,cens)~1 #not implemented for subgroups - DO IT!
+    #data: the observed data set
+    #ratetable: the population mortality tables
+    #conf.type: confidence interval calculation (plain, log or log-log)
+    #conf.int: confidence interval 
 {
+
     call <- match.call()
     rform <- rformulate(formula, data, ratetable, na.action)			#get the data ready
-    data <- rform$data
-    type <- match.arg(type, c("kaplan-meier", "fleming-harrington"))
+    data <- rform$data								#the data set
+    type <- match.arg(type, c("kaplan-meier", "fleming-harrington"))		#method of hazard -> survival scale transformation
     type <- match(type, c("kaplan-meier", "fleming-harrington"))
-    method <- match.arg(method,c("pohar-perme", "ederer2", "hakulinen","ederer1"))
+    method <- match.arg(method,c("pohar-perme", "ederer2", "hakulinen","ederer1"))	#method of relative surv. curve estimation
     method <- match(method,c("pohar-perme", "ederer2", "hakulinen","ederer1"))
-    conf.type <- match.arg(conf.type,c("plain","log","log-log"))
+    conf.type <- match.arg(conf.type,c("plain","log","log-log"))		#conf. interval type
 
     if (method == 3) {						#need potential follow-up time for Hak. method	
-        R <- rform$R								
-        coll <- match("year", attributes(ratetable)$dimid)
-        year <- R[, coll]							#calendar year in the data
-        if (missing(fin.date)) 							
-            fin.date <- max(data$Y + year)					#final date for everybody set to the last day observed
-        data$Y2 <- data$Y							#Y2=potential follow-up time
-        if (length(fin.date == 1)) 						#if final date equal for everyone
-            data$Y2[data$stat == 1] <- fin.date - year[data$stat == 1]		#set Y2 for those that died (equal to censoring time for others)
-        else if (length(fin.date == nrow(data))) 				
-            data$Y2[data$stat == 1] <- fin.date[data$stat == 				
-                1] - year[data$stat == 1]
-        else stop("fin.date must be either one value of a vector of the same length as the data")
-        data$stat2 <- rep(0, nrow(data))					#stat2=0 for everyone
-    }
-    inx.d <- order(data$Y, (1 - data$stat))					#order: time of death, events before censoring
-    data <- data[inx.d, ]							#put data in this order
-    p <- rform$m								#number of covariates
-    ti <- sort(unique(data$Y))							#ti= unique times (event or censoring)
-    if (method == 3) 
-        ti <- sort(unique(pmin( c(ti, data$Y2), max(ti))))			#ti=uniqe times or potential follow-up times, up to max observed time
-    Ki <- matrix(NA, nrow = nrow(data), ncol = length(ti))			#K=population values matrix	
-    dNi <- matrix(0, nrow = nrow(data), ncol = length(ti))			#dN=number of events matrix
-    dYi <- matrix(0, nrow = nrow(data), ncol = length(ti))			#dY=at risk matrix
-    dYi.hak <- matrix(0, nrow = nrow(data), ncol = length(ti))			#dYi.hak=at risk matrix for 3
-    nfk <- length(attributes(rform$ratetable)$dimid)				#number of demographic covariates
-    for (jt in 1:length(ti)) {							#for each event time
-        Ki[, jt] <- srvxp.fit(data[, 4:(nfk + 3)], rep(ti[jt], 			#survival until time ti (from 0)
-            nrow(data)), rform$ratetable)
-        dNi[which(data$Y == ti[jt]), jt] <- data$stat[which(data$Y == 		#put 1 into dNi for those who die at this time
-            ti[jt])]
-        dYi[which(data$Y==ti[jt]), jt] <- 1-data$stat[which(data$Y == ti[jt])]  #put 1 for those who are censored at this time
-        if (method == "3") 
-            dYi.hak[which(data$Y2 == ti[jt]), jt] <- 1				#put 1 for those who have the pot.follow-up time at this time
-    }
+            R <- rform$R								
+            coll <- match("year", attributes(ratetable)$dimid)
+            year <- R[, coll]							#calendar year in the data
+            if (missing(fin.date)) 							
+                fin.date <- max(rform$Y + year)					#final date for everybody set to the last day observed
+            Y2 <- rform$Y							#change into potential follow-up time
+            if (length(fin.date == 1)) 						#if final date equal for everyone
+                Y2[rform$status == 1] <- fin.date - year[rform$status == 1]#set pot.time for those that died (equal to censoring time for others)
+            else if (length(fin.date == nrow(rform$R))) 				
+                Y2[rform$status == 1] <- fin.date[rform$status == 				
+                    1] - year[rform$status == 1]
+            else stop("fin.date must be either one value of a vector of the same length as the data")
+            status2 <- rep(0, nrow(rform$X))						#stat2=0 for everyone
+       }
+     p <- rform$m								#number of covariates
     if (p > 0) 									#if covariates
-        data$Xs <- strata(rform$X[inx.d, ,drop=FALSE ])				#make strata according to covariates
+        data$Xs <- strata(rform$X[, ,drop=FALSE ])				#make strata according to covariates
     else data$Xs <- rep(1, nrow(data))						#if no covariates, just put 1
+
     se.fac <- sqrt(qchisq(conf.int, 1))						#factor needed for confidence interval
     out <- NULL
     out$n <- table(data$Xs)							#table of strata
     out$time <- out$n.risk <- out$n.event <- out$n.censor <- out$surv <- out$std.err <- out$strata <- NULL
     for (kt in 1:length(out$n)) {						#for each stratum
         inx <- which(data$Xs == names(out$n)[kt])				#individuals within this stratum
-        dYis <- dYi[inx, ]							#take only the matrix for relevant individuals	
-        dNis <- dNi[inx, ]
-        Kis <- Ki[inx, ]
-        dYis.hak <- dYi.hak[inx, ]
-        datas <- data[inx, ]
-        yinx <- which(apply(dYis + dNis + dYis.hak, 2, sum) != 0)		#exclude the columns that do not appear in this stratum	
-        dYis <- dYis[, yinx]
-        dNis <- dNis[, yinx]
-        Kis <- Kis[, yinx]
-        tis <- ti[yinx]
-        dYis.hak <- dYis.hak[, yinx]
-        Nis <- t(apply(dNis, 1, cumsum))					#Nis= 1 if already dead, 0 otherwise
-        Yis <- t(apply(dYis, 1, cumsum))					#Yis= 1 if already censored, 0 otherwise
-        Yis.hak <- t(apply(dYis.hak, 1, cumsum))				
-        Yis <- matrix(1, nrow = nrow(Yis), ncol = ncol(Yis)) -  Nis - Yis	#Yis: 1 if not yet dead, not censored. 0 otherwise
-        Yis <- cbind(rep(1, nrow(Yis)), Yis[, -ncol(Yis)])			#1 in first column, delete last column
-        Yis.hak <- matrix(1, nrow = nrow(Yis), ncol = ncol(Yis)) - Yis.hak	
-        Yis.hak <- cbind(rep(1, nrow(Yis.hak)), Yis.hak[, -ncol(Yis.hak)])
-        yinx <- which(apply(Yis, 2, sum) > 0)					#keep only times where anyone at risk
-        dYis <- dYis[, yinx]
-        dNis <- dNis[, yinx]
-        Kis <- Kis[, yinx]
-        tis <- tis[yinx]
-        Yis <- Yis[, yinx]
-        Nis <- Nis[, yinx]
-        Yis.hak <- Yis.hak[, yinx]
-        dKis <- -log(Kis) + log(cbind(rep(1, nrow(Kis)), Kis[,-ncol(Kis)]))	#cum hazard: difference of -log survival
-     										#add values of this strata to the output   										
-        out$time <- c(out$time, tis)						#add times
-        out$n.risk <- c(out$n.risk, apply(Yis, 2, sum))				#add number at risk for each time
-        out$n.event <- c(out$n.event, apply(dNis, 2, sum))			#add number of events for each time
-        out$n.censor <- c(out$n.censor, apply(dYis, 2, sum))			#add number of censored for each time
-        if (method == 2) {						#ederer 2
-            haz <- apply((dNis - Yis * dKis), 2, sum)/apply(Yis, 2, sum)	#at each time (column): sum(dNi)/sum(Yis) - sum(Yis*dKis)/sum(Yis)
-            out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis, 		#std. error
-                2, sum)/(apply(Yis, 2, sum))^2)))
-        }
-        else if (method == 1) {					
-            haz <- apply(dNis/Kis, 		#at each time: same as Ederer, but weighted with Sp
-                2, sum)/apply(Yis/Kis, 2, sum) - apply(Yis/Kis * 		#need both Sp and cum hazard
-                dKis, 2, sum)/apply(Yis/Kis, 2, sum)
-            out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis/Kis^2, 
-                2, sum)/(apply(Yis/Kis, 2, sum))^2)))
-        }
-        else if (method == 3) {
-            f <- apply(Yis.hak * Kis * dKis, 2, sum)/apply(Yis.hak * 		#population part: of those with Yis.hak
-                Kis, 2, sum)
-            haz <-  apply(dNis, 2,sum)/apply(Yis, 2, sum) - f 			#observed minus population
-            out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis, 
-                2, sum)/(apply(Yis, 2, sum))^2)))
-        }
-        else if (method == 4) {
-        	if(type==1) out$surv <- c(out$surv, cumprod(1-(apply(dNis,2,sum)/apply(Yis, 2, sum)))/  #obs. surv / pop. surv of everyone
-	                   apply(t(apply(dKis, 1, function(x)exp(-cumsum(x)))),2,mean))
-	                   #apply(t(apply(dKis, 1, function(x)cumprod(1-x))),2,mean))
-	      	else   	out$surv <- c(out$surv, exp(-cumsum(apply(dNis,2,sum)/apply(Yis, 2, sum)))/  #obs. surv / pop. surv of everyone
-	                   apply(t(apply(dKis, 1, function(x)exp(-cumsum(x)))),2,mean))
-               out$std.err <- c(out$std.err, sqrt(cumsum(apply(dNis,2, sum)/(apply(Yis, 2, sum))^2)))
+
+   	tis <- sort(unique(rform$Y[inx]))					#unique times
+   	if(method==3) tis <- sort(unique(pmin(max(tis),c(tis,Y2[inx]))))				#add potential times in case of Hakulinen
+   
+   	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis)	#calculate the values for each interval of time
+   	
+   	out$time <- c(out$time, tis)						#add times
+        out$n.risk <- c(out$n.risk, temp$yi)					#add number at risk for each time
+        out$n.event <- c(out$n.event, temp$dni)					#add number of events for each time
+        out$n.censor <- c(out$n.censor,  c(-diff(temp$yi),temp$yi[length(temp$yi)]) - temp$dni) 	#add number of censored for each time
+
+	if(method==1){ 								#pohar perme method
+		haz <- temp$dnisi/temp$yisi - temp$yidlisi/temp$yisi			#cumulative hazard increment on each interval
+		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dnisisq/(temp$yisi)^2)))  #standard error on each interval
 	}
- 	if(method!=4){
-  		if(type==2)out$surv <- c(out$surv, exp(-cumsum(haz)))
- 		else out$surv <- c(out$surv, cumprod(1-haz))
- 	}
-            
-        out$strata <- c(out$strata, length(tis))				#number of times in this strata
+	else if(method==2){							#ederer2 method
+		haz <- temp$dni/temp$yi - temp$yidli/temp$yi			#cumulative hazard increment on each interval
+		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
+	}
+	else if(method==3){							#Hakulinen method
+		temp2 <- exp.prep(rform$R[inx,,drop=FALSE],Y2[inx],ratetable,status2[inx],times=tis)	#calculate the values for each interval of time
+		popsur <- exp(-cumsum(temp2$yisidli/temp2$yisis))			#population survival
+		haz <- temp$dni/temp$yi						#observed hazard on each interval
+		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
+	}
+	else if(method==4){							#Ederer I
+		popsur <- temp$sis/length(inx)					#population survival
+		haz <- temp$dni/temp$yi						#observed hazard on each interval
+		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
+	}
+	if(type==2)survtemp <- exp(-cumsum(haz))
+	else survtemp <-  cumprod(1-haz)
+	if(method>2){
+		survtemp <- survtemp/popsur
+  	}
+  	out$surv <- c(out$surv,survtemp)
+  	out$strata <- c(out$strata, length(tis))				#number of times in this strata
     }
     if (conf.type == "plain") {						
         out$lower <- as.vector(out$surv - out$std.err * se.fac * 		#surv + fac*se
@@ -2546,162 +2523,6 @@ function (formula = formula(data), data = parent.frame(), ratetable = survexp.us
     out$call <- call
     out$type <- "right"
     class(out) <- c("survfit", "rs.surv")
-    out
-}
-
-
-rs.survo <- function (formula, data,ratetable=survexp.us,fin.date,method="hakulinen",...) 
-#still needed in the EM function (faster than rs.surv for Ederer II)
-{	
-    call <- match.call()
-     if (!inherits(formula, "formula")) 
-            temp <- UseMethod("rs.surv")
-
-    if (mode(call[[2]]) == "call" & call[[2]][[1]] == as.name("Surv")) {
-                formula <- eval(parse(text = paste(deparse(call[[2]],width.cutoff = 500L), 
-                    1, sep = "~")))
-                environment(formula) <- parent.frame()
-    }
-
-    else if (mode(call[[2]]) == "call" & any(regexpr("ratetable",call[[2]][[3]])>0)){
-                formula <- eval(parse(text = paste(deparse(call[[2]][[2]],width.cutoff = 500L),"~1+",deparse(call[[2]][[3]],width.cutoff = 500L) 
-                    , sep = "")))
-                environment(formula) <- parent.frame()
-    }
-
-    Terms <- if (missing(data)) terms(formula, "ratetable")
-    else terms(formula, "ratetable", data = data)
-      
-    
-    rate <- attr(Terms, "specials")$ratetable
-
-    if (length(rate) > 1) 
-        stop("Can have only 1 ratetable() call in a formula")
-    if (length(rate) == 0) {
-        xx <- function(x) formula(x)
-        if (is.ratetable(ratetable)) 
-            varlist <- attr(ratetable, "dimid")
-        else stop("Invalid rate table")
-        ftemp <- deparse(formula)
-        ftemp <- paste(ftemp,collapse="")
-        formula <- xx(paste(ftemp, "+ ratetable(", paste(varlist, 
-            "=", varlist, collapse = ","), ")"))
-        Terms <- if (missing(data)) 
-            terms(formula, "ratetable")
-        else terms(formula, "ratetable", data = data)
-        rate <- attr(Terms, "specials")$ratetable
-    }
-     m <- match.call(expand.dots = FALSE)
-     m$ratetable <- m$fin.date <- m$method  <- m$... <- NULL
-  
-
-    m$formula <- Terms
-    m[[1]] <- as.name("model.frame")
-    m <- eval(m, parent.frame())
-    n <- nrow(m)
-    Y <- model.extract(m, "response")
-    status <- Y[,2]
-     
-    rtemp <- match.ratetable(m[, rate], ratetable)
-    R <- rtemp$R
-    coll <- match("year",attributes(ratetable)$dimid)
-    year <- R[,coll]	
-	
-    if(missing(fin.date)) fin.date <- max(year+Y[,1])
-   
-    
-    formula.obs <- formula
-    
-    if (!is.null(rate)) formula.obs[[3]] <- formula.obs[[3]][[2]]
-   
-    obs.hak <- survfit(formula.obs,data,...)	
-    times <- obs.hak$time
-    times <- unique(sort(times))
-    nc <- 1
-    o1 <- summary(obs.hak, time=times)
-    if(!is.null(obs.hak$strata))   nc<-length(obs.hak$strata.all)
-    
-    k <- rep(1,length(o1$time))
-    ind <- o1$time < c(0,o1$time[-length(o1$time)])
-    kend <- length(k)
-    
-    for (i in which(ind)){
-    	k[i:kend] <- k[i:kend]+1
-    }
-    method <-  match.arg(method,c("hakulinen","conditional"))
-
-    if(method=="hakulinen"){
- 	 data$time1 <- Y[,1]
-         wh <- which(status==1)
-         data$time1[wh] <- fin.date - year[wh]
-         data$status <- status	
-         data <- data[data$time1>0,]
-         data <- data[!is.na(data$time1),]
-    	 xx <- function(x) formula(x)
-  	condi <- FALSE
-	 survex <- "Surv(time1,status)"
-	  formula.exp <- xx(paste(survex,paste(names(m)[-1],collapse="+"),sep="~"))
-
-    }
-    else{
-   	condi <- TRUE
-   	formula.exp <- formula
-    }
-    deli <- function(x=o1$surv,kji=k,y=exp.hak$surv){
-    	xnew <- x
-    	for(it in unique(sort(k))){
-    		d <- sum(kji==it)
-    		nom <- x[kji==it]
-    		if(length(unique(k))>1)	denom <- y[1:d,it]
-    		else denom <- y[1:d]
-    		nom[denom==0] <- 0
-    		denom[denom==0] <- 1
-    		xnew[kji==it] <- nom/denom
-       	}
-       	xnew
-    }
-    
-    exp.hak <- survexp(formula.exp,data,conditional=condi,cohort=TRUE,ratetable=ratetable,times=times)
-   
-    rel.hak <- deli()
-    
-    se.fac <- sqrt(qchisq(obs.hak$conf.int,1))
-   
-    #serr <- deli(x=o1$serr,y=exp.hak$surv)
-
-    
-    ktime <- NULL
-    for(it in unique(sort(k))){
-    	d <- sum(k==it)
-    	ktime <- c(ktime,times[1:d])
-    }
-    
-    out <- obs.hak
-    out$surv <- as.vector(rel.hak)
-    out$time <- ktime
-    out$n.risk <- o1$n.risk
-    out$n.event <- o1$n.event
-    out$std.err <- o1$std.err
-
-
-    if(obs.hak$conf.type=="plain"){
-    out$lower <- as.vector(rel.hak - out$std.err*se.fac*rel.hak)
-    out$upper <- as.vector(rel.hak + out$std.err*se.fac*rel.hak)
-    }
-    if(obs.hak$conf.type=="log"){
-    out$lower <- exp(as.vector(log(rel.hak) - out$std.err*se.fac))
-    out$upper <- exp(as.vector(log(rel.hak) + out$std.err*se.fac))
-    }
-    if(obs.hak$conf.type=="log-log"){
-        out$lower <- exp(-exp(as.vector(log(-log(rel.hak)) - out$std.err*se.fac/log(rel.hak))))
-        out$upper <- exp(-exp(as.vector(log(-log(rel.hak)) + out$std.err*se.fac/log(rel.hak))))
-    }
-    
-    out$ntimes.strata <- table(k)
-    out$strata <- out$ntimes.strata
-    names(out$strata) <- names(obs.hak$strata)
-    out$popul <- exp.hak$surv
-       
     out
 }
 
