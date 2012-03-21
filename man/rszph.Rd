@@ -61,6 +61,7 @@ data(rdata)
 fit <- rsadd(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
 	     year=year),ratetable=slopop,data=rdata,int=5)
 rszph <- rs.zph(fit)
+plot(rszph)
 }
 
 \seealso{\code{\link{rsadd}}, \code{rsmul}, \code{rstrans}, \code{\link{resid}}, \code{\link{cox.zph}}.}

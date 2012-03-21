@@ -22,6 +22,8 @@ a predicted curve for each individual in this data frame shall be calculated
 }
 }
 
+\details{Does not work with factor variables - you have to form dummy variables before calling the rsadd function.}
+
 \value{
  a \code{survfit} object; see the help on \code{survfit.object} for details.
  The \code{survfit} methods are used for \code{print},

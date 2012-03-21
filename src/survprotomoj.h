@@ -20,6 +20,10 @@ SEXP netwei(   SEXP   efac2,   SEXP edims2,
 	      SEXP   ecut2,     SEXP   expect2,
 	      SEXP   x2, 	SEXP   y2,  SEXP status2,    SEXP times2) ;
 
+SEXP netfast(   SEXP   efac2,   SEXP edims2,
+	      SEXP   ecut2,     SEXP   expect2,
+	      SEXP   x2, 	SEXP   y2,  SEXP status2,    SEXP times2) ;
+
 
 double pystep(int nc,        int  *index,  int  *index2,   double *wt,
 	      double *data,  Sint *fac,    Sint *dims,     double **cuts,
