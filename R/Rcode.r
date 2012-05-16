@@ -587,7 +587,7 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
     Y <- Y[keep]
     start <- start[keep]
     status <- status[keep]
-    R <- R[keep, ]
+    R <- R[keep, ,drop=FALSE]
     offset <- offset[keep]
     Y.surv <- Y.surv[keep, , drop = FALSE]
     cause <- cause[keep]
@@ -1151,7 +1151,7 @@ resid.com <- function (start, stop, event, z, beta, lp, lambda0, fup, n, rem,
     kzb <- s1ties[, -(1:rem), drop = FALSE]
     sc <- z[event == 1, , drop = FALSE] - zb
     row.names(sc) <- stop[event == 1]
-    out.temp <- function(x) outer(x, x, fun = "*")
+    out.temp <- function(x) outer(x, x, FUN = "*")
     krez <- rez <- array(matrix(NA, ncol = rem, nrow = rem), 
         dim = c(rem, rem, sum(event == 1)))
     for (a in 1:rem) {
@@ -1192,7 +1192,7 @@ resid.com <- function (start, stop, event, z, beta, lp, lambda0, fup, n, rem,
         dim = c(a, a, length(zb[, 1])))
     varr <- rez - juhu1
     kjuhu <- apply(cbind(zb, kzb), 1, function(x) outer(x[1:rem], 
-        x[-(1:rem)], fun = "*"))
+        x[-(1:rem)], FUN = "*"))
     if (is.null(dim(kjuhu))) 
         kjuhu1 <- array(data = matrix(kjuhu, ncol = rem), dim = c(rem, 
             rem, length(zb[, 1])))
@@ -2465,9 +2465,9 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
             if (missing(fin.date)) 							
                 fin.date <- max(rform$Y + year)					#final date for everybody set to the last day observed
             Y2 <- rform$Y							#change into potential follow-up time
-            if (length(fin.date == 1)) 						#if final date equal for everyone
+            if (length(fin.date) == 1) 						#if final date equal for everyone
                 Y2[rform$status == 1] <- fin.date - year[rform$status == 1]#set pot.time for those that died (equal to censoring time for others)
-            else if (length(fin.date == nrow(rform$R))) 				
+            else if (length(fin.date) == nrow(rform$R)) 				
                 Y2[rform$status == 1] <- fin.date[rform$status == 				
                     1] - year[rform$status == 1]
             else stop("fin.date must be either one value of a vector of the same length as the data")
