@@ -2352,7 +2352,7 @@ kern <- function (times,td, b, nt4)
     krn
 }
 
-exp.prep <- function (x, y,ratetable,status,times,fast=FALSE) {			#function that prepares the data for C function call
+exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys) {			#function that prepares the data for C function call
 
 #x= matrix of demographic covariates - each individual has one line
 #y= follow-up time for each individual (same length as nrow(x)!)
@@ -2417,10 +2417,11 @@ exp.prep <- function (x, y,ratetable,status,times,fast=FALSE) {			#function that
 	    if (any(times < 0)) 
 	        stop("Negative time point requested")
 	    ntime <- length(times)
+	    if(missing(ys)) ys <- rep(0,length(y))
     
-    	if(fast)    temp <- .Call("netfast",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
+    	if(fast)    temp <- .Call("netfastp",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
 	        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
-	         x, y, as.integer(status), times,PACKAGE="relsurv")    
+	         x, y, ys,as.integer(status), times,PACKAGE="relsurv")    
     	
     	else    temp <- .Call("netwei",  as.integer(rfac), 
 	        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
@@ -2506,6 +2507,147 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
 	}
 	else if(method==3){							#Hakulinen method
 		temp2 <- exp.prep(rform$R[inx,,drop=FALSE],Y2[inx],ratetable,status2[inx],times=tis)	#calculate the values for each interval of time
+		popsur <- exp(-cumsum(temp2$yisidli/temp2$yisis))			#population survival
+		haz <- temp$dni/temp$yi						#observed hazard on each interval
+		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
+	}
+	else if(method==4){							#Ederer I
+		popsur <- temp$sis/length(inx)					#population survival
+		haz <- temp$dni/temp$yi						#observed hazard on each interval
+		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
+	}
+	if(type==2)survtemp <- exp(-cumsum(haz))
+	else survtemp <-  cumprod(1-haz)
+	if(method>2){
+		survtemp <- survtemp/popsur
+  	}
+  	out$surv <- c(out$surv,survtemp)
+  	out$strata <- c(out$strata, length(tis))				#number of times in this strata
+    }
+    if (conf.type == "plain") {						
+        out$lower <- as.vector(out$surv - out$std.err * se.fac * 		#surv + fac*se
+            out$surv)
+        out$upper <- as.vector(out$surv + out$std.err * se.fac * 
+            out$surv)
+    }
+    else if (conf.type == "log") {						#on log scale and back
+        out$lower <- exp(as.vector(log(out$surv) - out$std.err * 		
+            se.fac))
+        out$upper <- exp(as.vector(log(out$surv) + out$std.err * 
+            se.fac))
+    }
+    else if (conf.type == "log-log") {						#on log-log scale and back
+        out$lower <- exp(-exp(as.vector(log(-log(out$surv)) - 
+            out$std.err * se.fac/log(out$surv))))
+        out$upper <- exp(-exp(as.vector(log(-log(out$surv)) + 
+            out$std.err * se.fac/log(out$surv))))
+    }
+    names(out$strata) <- names(out$n)
+    if (p == 0) out$strata <- NULL						#if no covariates
+    out$n <- as.vector(out$n)
+    out$conf.type <- conf.type
+    out$conf.int <- conf.int
+    out$method <- method
+    out$call <- call
+    out$type <- "right"
+    class(out) <- c("survfit", "rs.surv")
+    out
+}
+
+
+rs.period <- function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
+     na.action, fin.date, method = "pohar-perme", conf.type = "log", 
+     conf.int = 0.95,type="kaplan-meier",winst,winfin,diag.date) 
+    
+    #formula: for example Surv(time,cens)~sex
+    #data: the observed data set
+    #ratetable: the population mortality tables
+    #conf.type: confidence interval calculation (plain, log or log-log)
+    #conf.int: confidence interval 
+    #winst: start of the period window (inclusive)
+    #winfin: end of the period window (inclusive)
+    
+{
+
+    call <- match.call()
+    rform <- rformulate(formula, data, ratetable, na.action)			#get the data ready
+    data <- rform$data								#the data set
+    type <- match.arg(type, c("kaplan-meier", "fleming-harrington"))		#method of hazard -> survival scale transformation
+    type <- match(type, c("kaplan-meier", "fleming-harrington"))
+    method <- match.arg(method,c("pohar-perme", "ederer2", "hakulinen","ederer1"))	#method of relative surv. curve estimation
+    method <- match(method,c("pohar-perme", "ederer2", "hakulinen","ederer1"))
+    conf.type <- match.arg(conf.type,c("plain","log","log-log"))		#conf. interval type
+
+    #machinations needed for period survival:
+    R <- rform$R								
+    coll <- match("year", attributes(ratetable)$dimid)
+    year <- R[, coll]							#calendar year in the data
+    
+    ys <- as.numeric(winst - year)
+    yf <- as.numeric(winfin - year)
+    
+    relv <- which(ys <= rform$Y)						#relevant individuals -> live up to the period window
+    centhem <- which(yf < rform$Y)						#censor these - their event happens outside of the period window   
+
+    rform$status[centhem] <- 0
+    rform$Y[centhem] <- yf[centhem]
+    
+    rform$Y <- rform$Y[relv]
+    rform$X <- rform$X[relv,,drop=F]
+    rform$R <- rform$R[relv,,drop=F]
+    rform$status <- rform$status[relv]
+    data <- data[relv,,drop=F]
+    ys <- ys[relv]
+    yf <- yf[relv]
+    year <- year[relv]
+    
+    if (method == 3) {								#need potential follow-up time for Hak. method	
+            if (missing(fin.date)) 							
+                fin.date <- max(rform$Y + year)					#final date for everybody set to the last day observed
+            Y2 <- rform$Y							#change into potential follow-up time
+            if (length(fin.date) == 1) 						#if final date equal for everyone
+                Y2[rform$status == 1] <- fin.date - year[rform$status == 1]#set pot.time for those that died (equal to censoring time for others)
+            else if (length(fin.date[relv]) == nrow(rform$R)) 	{			
+                fin.date <- fin.date[relv]
+                Y2[rform$status == 1] <- fin.date[rform$status == 				
+                    1] - year[rform$status == 1]
+                   }
+            else stop("fin.date must be either one value of a vector of the same length as the data")
+            status2 <- rep(0, nrow(rform$X))						#stat2=0 for everyone
+       }
+     p <- rform$m								#number of covariates
+    if (p > 0) 									#if covariates
+        data$Xs <- strata(rform$X[, ,drop=FALSE ])				#make strata according to covariates
+    else data$Xs <- rep(1, nrow(data))						#if no covariates, just put 1
+
+    se.fac <- sqrt(qchisq(conf.int, 1))						#factor needed for confidence interval
+    out <- NULL
+    out$n <- table(data$Xs)							#table of strata
+    out$time <- out$n.risk <- out$n.event <- out$n.censor <- out$surv <- out$std.err <- out$strata <- NULL
+    for (kt in 1:length(out$n)) {						#for each stratum
+        inx <- which(data$Xs == names(out$n)[kt])				#individuals within this stratum
+
+   	tis <- sort(unique(rform$Y[inx]))					#unique times
+   	if(method==3)tis <- sort(unique(pmin(max(tis),c(tis,Y2[inx]))))				#add potential times in case of Hakulinen
+   
+   	
+   	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis,fast=(method<3),ys=ys)	#calculate the values for each interval of time
+   	
+   	out$time <- c(out$time, tis)						#add times
+        out$n.risk <- c(out$n.risk, temp$yi)					#add number at risk for each time
+        out$n.event <- c(out$n.event, temp$dni)					#add number of events for each time
+        out$n.censor <- c(out$n.censor,  c(-diff(temp$yi),temp$yi[length(temp$yi)]) - temp$dni) 	#add number of censored for each time
+
+	if(method==1){ 								#pohar perme method
+		haz <- temp$dnisi/temp$yisi - temp$yidlisi/temp$yisi			#cumulative hazard increment on each interval
+		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dnisisq/(temp$yisi)^2)))  #standard error on each interval
+	}
+	else if(method==2){							#ederer2 method
+		haz <- temp$dni/temp$yi - temp$yidli/temp$yi			#cumulative hazard increment on each interval
+		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
+	}
+	else if(method==3){							#Hakulinen method
+		temp2 <- exp.prep(rform$R[inx,,drop=FALSE],Y2[inx],ratetable,status2[inx],times=tis,ys=ys)	#calculate the values for each interval of time
 		popsur <- exp(-cumsum(temp2$yisidli/temp2$yisis))			#population survival
 		haz <- temp$dni/temp$yi						#observed hazard on each interval
 		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval

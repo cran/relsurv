@@ -1,7 +1,7 @@
-d1e5ac0d4aebcdc1bc9759cc1164e142 *DESCRIPTION
+1839fcb053c16ba4bb7af8bf4d2a8d08 *DESCRIPTION
 bc88100ebc4a072951ce505580c3c322 *INDEX
 8647579a97cf4e1fcf3b3b81a7901de2 *NAMESPACE
-4643ecd5759dd6c682493ba84e5f6c90 *R/Rcode.r
+4cf774261a32ac010ab14e3d97b28dd4 *R/Rcode.r
 ceca1cde417d54a95d3e057ffda85405 *R/rssurvrsadd.r
 a46af41b8ae9dedf8d0268216d591bd5 *R/survfitrsadd.r
 3820354bc630edaa5d29f0225798b4da *R/zzz.R
@@ -28,7 +28,7 @@ ce2365d59b077324be90c798f79379de *man/transratehld.Rd
 ade1cfda41d4ceb8f5ec749753a9ef78 *man/transratehmd.Rd
 6853ad4d02cc6b1ff9e2e786f7dad4b5 *src/dmatrix.c
 35fe86cf308d11c704de3aaf3e58a629 *src/exps.c
-1f3b9b8f32acb002579b5fba257c712f *src/netfast.c
+f1508f17270fdc2fef10788b7ca034be *src/netfastp.c
 9b499f0547e4b7cd9f518d345b35e94c *src/netwei.c
 2d85cafe474de3c4d9cb2df04eafb8bb *src/pystep.c
-0e31a539005ae8f039051ab33579c277 *src/survprotomoj.h
+c9930e768dfc80ad7f8758b6adf0f984 *src/survprotomoj.h
