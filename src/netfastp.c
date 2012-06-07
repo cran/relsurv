@@ -36,9 +36,9 @@
 **  to the contents of the object "charlie"; the latter is
 **  used in the computations
 */
-SEXP netfast(   SEXP   efac2,   SEXP edims2,
+SEXP netfastp(   SEXP   efac2,   SEXP edims2,
 	      SEXP   ecut2,     SEXP   expect2,
-	      SEXP   x2, 	SEXP   y2, SEXP status2,     SEXP times2) {
+	      SEXP   x2, 	SEXP   y2,SEXP ys2, SEXP status2,     SEXP times2) {
     int i,j,k;
     int     n,
 	    edim,
@@ -56,7 +56,7 @@ SEXP netfast(   SEXP   efac2,   SEXP edims2,
     double  wt;
 
     int	    *efac, *edims, *status;
-    double  *expect, *y, *times;
+    double  *expect, *y,*ys, *times;
     SEXP      rlist, rlistnames;
 
 	/*my declarations*/
@@ -78,6 +78,7 @@ SEXP netfast(   SEXP   efac2,   SEXP edims2,
     n     = LENGTH(y2);									/*number of individuals */
     x     = dmatrix(REAL(x2), n, edim);
     y     = REAL(y2);									/*follow-up times*/
+    ys	  = REAL(ys2);
     status = INTEGER(status2);								/* status */
     times = REAL(times2);
     ntime = LENGTH(times2);								/*length of times for reportint */
@@ -143,7 +144,7 @@ SEXP netfast(   SEXP   efac2,   SEXP edims2,
 
     /* compute  for each individual*/
     for (i=0; i<n; i++) {
-	if(y[i]>= times[j]){
+	if(y[i]>= times[j]){				// if still at risk
 	/*
 	** initialize
 	*/
@@ -176,16 +177,18 @@ SEXP netfast(   SEXP   efac2,   SEXP edims2,
 
 		}
 		si[i] = si[i]* exp(-hazard);
-		yisi[j]+=1/si[i];
-   		yidlisi[j]+=hazard/si[i];
-		yidli[j]+=hazard;
-		yi[j]+=1;
-  			if(y[i]==times[j]){
+		if(ys[i]<=times[j]){		// if start of observation before this time
+			yisi[j]+=1/si[i];
+			yidlisi[j]+=hazard/si[i];
+			yidli[j]+=hazard;
+			yi[j]+=1;
+			if(y[i]==times[j]){
 				dnisi[j]+=status[i]/si[i];
 				dni[j]+=status[i];
 				dnisisq[j]+=status[i]/(si[i]*si[i]);
-			}
-	   	  } // if still alive
+			}	// if this person died at this time
+		  } // if start of observation before this time
+	   	  } // if still at risk
 	    }// loop through individuals
 	    time  += thiscell;
 	}// loop through times
