@@ -400,7 +400,7 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
     }
     else {
         if (missing(int)) 
-            int <- c(0,ceiling(max(rform$Y/365.24)))
+            int <- c(0,ceiling(max(rform$Y/365.241)))
         if (length(int) == 1) {
             if (int <= 0) 
                 stop("The value of 'int' must be positive ")
@@ -431,7 +431,7 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
     if (method == "EM") {
         if (!missing(int)) 
             fit$int <- int
-        else fit$int <- ceiling(max(rform$Y[rform$status == 1])/365.24)
+        else fit$int <- ceiling(max(rform$Y[rform$status == 1])/365.241)
         fit$terms <- rform$Terms
         if(centered)fit$mvalue <- rform$mvalue
     }
@@ -577,9 +577,9 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
     #status[cause==0] <- 0
     if (!missing(int)) {
         int <- max(int)
-        status[Y > int * 365.24] <- 0
-        Y <- pmin(Y, int * 365.24)
-        keep <- keep & (start < int * 365.24)
+        status[Y > int * 365.241] <- 0
+        Y <- pmin(Y, int * 365.241)
+        keep <- keep & (start < int * 365.241)
     }
     if (any(start > Y) | any(Y < 0)) 
         stop("Negative follow-up times")
@@ -608,13 +608,13 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action,
 maxlik <- function (rform, interval, subset, init, control) 
 {
     data <- rform$data
-    max.time <- max(data$Y)/365.24
+    max.time <- max(data$Y)/365.241
     if (max.time < max(interval)) 
         interval <- interval[1:(sum(max.time > interval) + 1)]
     fk <- (attributes(rform$ratetable)$factor != 1)
     nfk <- length(fk)
     data <- cbind(data, offset = rform$offset)
-    data <- survsplit(data, cut = interval[-1] * 365.24, end = "Y", 
+    data <- survsplit(data, cut = interval[-1] * 365.241, end = "Y", 
         event = "stat", start = "start", episode = "epi", interval = interval)
     del <- which(data$start==data$Y)   
     if(length(del))    data <- data[-del,]
@@ -627,12 +627,12 @@ maxlik <- function (rform, interval, subset, init, control)
     nsk <- nrow(data[data$stat == 1, ])
     xx <- exp.prep(data[data$stat == 1, 4:(nfk + 3),drop=FALSE] + (data[data$stat == 
         1, ]$Y - data[data$stat == 1, ]$start) %*% t(fk), 1,  rform$ratetable)
-    data$lambda[data$stat == 1] <- -log(xx) * 365.24
+    data$lambda[data$stat == 1] <- -log(xx) * 365.241
     xx <- exp.prep(data[, 4:(nfk + 3),drop=FALSE], data$Y - data$start, rform$ratetable)
     data$epi <- NULL
     data$ds <- -log(xx)
-    data$Y <- data$Y/365.24
-    data$start <- data$start/365.24
+    data$Y <- data$Y/365.241
+    data$start <- data$start/365.241
     data <- data[, -(4:(3 + nfk))]
     intn <- length(interval[-1])
     m <- rform$m
@@ -658,7 +658,7 @@ maxlik <- function (rform, interval, subset, init, control)
     else fit <- fit0
     fit$int <- interval
     class(fit) <- "rsadd"
-    fit$times <- fit$int*365.24						#dodano za potrebe rs.surv.rsadd
+    fit$times <- fit$int*365.241						#dodano za potrebe rs.surv.rsadd
     fit$Lambda0 <- cumsum(c(0, exp(fit$coef[(m+1):p])*diff(fit$int)  ))
     fit
 }
@@ -803,7 +803,7 @@ glmxp <- function (rform, data, interval, method, control)
         ps <- exp.prep(X[, 4:(nfk + 3),drop=FALSE], t.int, rform$ratetable)
         ld <- n - w/2
         lny <- log(sum(X$y))
-        k <- t.int/365.24
+        k <- t.int/365.241
         dstar <- sum(-log(ps)/k * X$y)
         ps <- mean(ps)
         if (rform$m == 0) 
@@ -830,7 +830,7 @@ glmxp <- function (rform, data, interval, method, control)
     if (is.list(int)) 
         int <- c(0, cumsum(do.call("c", int)))
     else int <- c(0, cumsum(int))
-    int <- int * 365.24
+    int <- int * 365.241
     nint <- length(int)
     X <- cbind(rform$data, grupa = g)
     fk <- (attributes(rform$ratetable)$factor != 1)
@@ -854,7 +854,7 @@ glmxp <- function (rform, data, interval, method, control)
         list(a = meje[1], b = meje[2])))
     X$fu <- rep(ford, rform$n - nz)
     t.int <- int[2] - int[1]
-    X$y <- (pmin(X$Y, int[2]) - X$start)/365.24
+    X$y <- (pmin(X$Y, int[2]) - X$start)/365.241
     X$origstart <- X$start
     X$xind <- rep(1, nrow(X))
     gr1 <- by(X, X$grupa, vg)
@@ -873,7 +873,7 @@ glmxp <- function (rform, data, interval, method, control)
             }
             X$fin <- X$Y <= int[i]
             X$event <- X$fin * X$stat
-            l <- sum(int[i - 1] >= meje * 365.24)
+            l <- sum(int[i - 1] >= meje * 365.241)
             if(l==1)
 		ftemp <- eval(substitute(paste("[", a, ",", b, "]", sep = ""),
 			 list(a = meje[l], b = meje[l + 1])))
@@ -891,7 +891,7 @@ glmxp <- function (rform, data, interval, method, control)
                   matrix(fk * t.int, ncol = nfk, byrow = TRUE, 
                     nrow = sum(index))
             X$xind <- rep(1, nrow(X))
-            X$y <- (pmin(X$Y, int[i]) - X$start)/365.24
+            X$y <- (pmin(X$Y, int[i]) - X$start)/365.241
             gr1 <- by(X, X$grupa, vg)
             grm1 <- rbind(grm1, do.call("rbind", gr1))
             X <- X[X$fin == 0, ]
@@ -902,7 +902,7 @@ glmxp <- function (rform, data, interval, method, control)
             X <- X[X$start != X$Y, ]
             Z <- Z[Z$start >= int[i + 1], ]
         }
-        l <- sum(int[i - temp] > meje * 365.24)
+        l <- sum(int[i - temp] > meje * 365.241)
         interval <- meje[1:(l + 1)]
     }
     else interval <- meje[1:2]
@@ -914,16 +914,16 @@ glmxp <- function (rform, data, interval, method, control)
         ht$linkinv <- function(eta) 1 - exp(-exp(eta)) * ps
         ht$mu.eta <- function(eta) exp(eta) * exp(-exp(eta)) * 
             ps
-        ps <- grm1$ps
-        assign(".ps", grm1$ps, envir = .GlobalEnv)
-        ht$initialize <- expression({
-            n <- y[, 1] + y[, 2]
-            y <- ifelse(n == 0, 0, y[, 1]/n)
-            weights <- weights * n
-            mustart <- (n * y + 0.01)/(n + 0.02)
-            mustart[(1 - mustart)/.ps >= 1] <- .ps[(1 - mustart)/.ps >= 
-                1] * 0.9
-        })
+        .ps <- ps <- grm1$ps
+        #assign(".ps", grm1$ps, envir = .GlobalEnv)
+       # ht$initialize <- expression({
+       #     n <- y[, 1] + y[, 2]
+       #     y <- ifelse(n == 0, 0, y[, 1]/n)
+       #     weights <- weights * n
+       #     mustart <- (n * y + 0.01)/(n + 0.02)
+       #     mustart[(1 - mustart)/data$ps >= 1] <- data$ps[(1 - mustart)/data$ps >= 
+       #         1] * 0.9
+       # })
         if (any(grm1$ld - grm1$nd > grm1$ps * grm1$ld)) {
             n <- sum(grm1$ld - grm1$nd > grm1$ps * grm1$ld)
             g <- dim(grm1)[1]
@@ -937,13 +937,21 @@ glmxp <- function (rform, data, interval, method, control)
         if (length(interval) == 1 | length(table(grm1$fu)) == 
             1) 
             grm1$fu <- as.integer(grm1$fu)
+           
+        y <- ifelse(grm1$ld == 0, 0, grm1$nd/grm1$ld)
+            #weights <- weights * grm1$ld
+            mustart <- (grm1$ld * y + 0.01)/(grm1$ld + 0.02)
+	            mustart[(1 - mustart)/grm1$ps >= 1] <- grm1$ps[(1 - mustart)/grm1$ps >= 
+                1] * 0.9
+         
         if (!length(rform$X)) 
             local.ht <- glm(cbind(nd, ld - nd) ~ -1 + fu + offset(log(k)), 
-                data = grm1, family = ht)
+                data = grm1, family = ht,mustart=mustart)
         else {
             xmat <- as.matrix(grm1[, 7:(ncol(grm1) - 1)])
+           
             local.ht <- glm(cbind(nd, ld - nd) ~ -1 + xmat + 
-                fu + offset(log(k)), data = grm1, family = ht)
+                fu + offset(log(k)), data = grm1, family = ht,mustart=mustart)
         }
         names(local.ht[[1]]) <- c(names(rform$X), paste("fu", 
             levels(grm1$fu)))
@@ -953,13 +961,13 @@ glmxp <- function (rform, data, interval, method, control)
         pot$link <- "glm relative survival model with Poisson error"
         pot$linkfun <- function(mu) log(mu - dstar)
         pot$linkinv <- function(eta) dstar + exp(eta)
-        assign(".dstar", grm1$dstar, envir = .GlobalEnv)
+        #assign(".dstar", grm1$dstar, envir = .GlobalEnv)
         if (any(grm1$nd - grm1$dstar < 0)) {
             pot$initialize <- expression({
                 if (any(y < 0)) stop(paste("Negative values not allowed for", 
                   "the Poisson family"))
                 n <- rep.int(1, nobs)
-                mustart <- pmax(y, .dstar) + 0.1
+                #mustart <- pmax(y, .dstar) + 0.1
             })
         }
         if (any(grm1$nd - grm1$dstar < 0)) {
@@ -975,13 +983,15 @@ glmxp <- function (rform, data, interval, method, control)
         if (length(interval) == 1 | length(table(grm1$fu)) == 
             1) 
             grm1$fu <- as.integer(grm1$fu)
+        
+        mustart <- pmax(grm1$nd, grm1$dstar) + 0.1
         if (!length(rform$X)) 
             local.ht <- glm(nd ~ -1 + fu, data = grm1, family = pot, 
-                offset = grm1$lny)
+                offset = grm1$lny,mustart=mustart)
         else {
             xmat <- as.matrix(grm1[, 7:(ncol(grm1) - 1)])
             local.ht <- glm(nd ~ -1 + xmat + fu, data = grm1, 
-                family = pot, offset = grm1$lny)
+                family = pot, offset = grm1$lny,mustart=mustart)
         }
         names(local.ht[[1]]) <- c(names(rform$X), paste("fu", 
             levels(grm1$fu)))
@@ -1008,19 +1018,19 @@ residuals.rsadd <- function (object, type = "schoenfeld", ...)
     n <- nrow(data)
     scale <- 1
     if (object$method == "EM") 
-        scale <- 365.24
+        scale <- 365.241
     m <- ncol(data)
     rem <- m - nfk - 3
     interval <- object$int
     int <- ceiling(max(interval))
     R <- data[, 4:(nfk + 3)]
-    lp <- matrix(-log(exp.prep(as.matrix(R), 365.24, object$ratetable))/scale, ncol = 1)
+    lp <- matrix(-log(exp.prep(as.matrix(R), 365.241, object$ratetable))/scale, ncol = 1)
     fu <- NULL
     if (object$method == "EM") {
         death.time <- stop[event == 1]
         for (it in 1:int) {
-            fu <- as.data.frame(cbind(fu, as.numeric(death.time/365.24 < 
-                it & (death.time/365.24) >= (it - 1))))
+            fu <- as.data.frame(cbind(fu, as.numeric(death.time/365.241 < 
+                it & (death.time/365.241) >= (it - 1))))
         }
         if(length(death.time)!=length(unique(death.time))){
         	utimes <- which(c(1,diff(death.time))!=0)
@@ -1049,8 +1059,8 @@ residuals.rsadd <- function (object, type = "schoenfeld", ...)
             lo <- interval[i]
             hi <- min(interval[i + 1], floor(interval[i]) + 1)
             for (j in 1:width) {
-                fu <- as.data.frame(cbind(fu, as.numeric(stop/365.24 < 
-                  hi & stop/365.24 >= lo)))
+                fu <- as.data.frame(cbind(fu, as.numeric(stop/365.241 < 
+                  hi & stop/365.241 >= lo)))
                 names(fu)[ncol(fu)] <- paste("fu", lo, "-", hi, 
                   sep = "")
                 if (j == width) {
@@ -1075,9 +1085,9 @@ residuals.rsadd <- function (object, type = "schoenfeld", ...)
     }
     if (int >= 2) {
         for (j in 2:int) {
-            R <- R + matrix(fk * 365.24, ncol = ncol(R), byrow = TRUE, 
+            R <- R + matrix(fk * 365.241, ncol = ncol(R), byrow = TRUE, 
                 nrow = n)
-            xx <- exp.prep(R, 365.24, object$ratetable)
+            xx <- exp.prep(R, 365.241, object$ratetable)
             lp <- cbind(lp, -log(xx)/scale)
         }
     }
@@ -1612,17 +1622,17 @@ invtime <- function (y = 0.1, age = 23011, sex = "male", year = 9497, scale = 1,
         if (!missing(upper)) 
             stop("Argument \"lower\" is missing, with no default", 
                 call. = FALSE)
-        nyears <- round((110 - age/365.24))
+        nyears <- round((110 - age/365.241))
         tab <- data.frame(age = rep(age, nyears), sex = I(rep(sex, 
             nyears)), year = rep(year, nyears))
-        vred <- 1 - survexp(c(0, 1:(nyears - 1)) * 365.24 ~ ratetable(age = age, 
+        vred <- 1 - survexp(c(0, 1:(nyears - 1)) * 365.241 ~ ratetable(age = age, 
             sex = sex, year = year), ratetable = ratetable, data = tab, 
             cohort = FALSE)
         place <- sum(vred <= y)
         if (place == 0) 
             lower <- 0
-        else lower <- floor((place - 1) * 365.24 - place)
-        upper <- ceiling(place * 365.24 + place)
+        else lower <- floor((place - 1) * 365.241 - place)
+        upper <- ceiling(place * 365.241 + place)
     }
     else {
         if (missing(upper)) 
@@ -1650,7 +1660,7 @@ invtime <- function (y = 0.1, age = 23011, sex = "male", year = 9497, scale = 1,
         warning(paste("The event happened on or after day", upper), 
             call. = FALSE)
     t <- (place + lower - 1)/scale
-    age <- round(age/365.24, 0.01)
+    age <- round(age/365.241, 0.01)
     return(list(age, sex, year, Y = y, T = t))
 }
 
@@ -1665,20 +1675,20 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = s
         int)
     U <- rform$data
     if (missing(int)) 
-	    int <- ceiling(max(rform$Y/365.24))
+	    int <- ceiling(max(rform$Y/365.241))
     if(length(int)!=1)int <- max(int)
     fk <- (attributes(rform$ratetable)$factor != 1)
     nfk <- length(fk)
     if (method == "mul") {
-        U <- survsplit(U, cut = (1:int) * 365.24, end = "Y", 
+        U <- survsplit(U, cut = (1:int) * 365.241, end = "Y", 
             event = "stat", start = "start", episode = "epi")
         fk <- (attributes(rform$ratetable)$factor != 1)
         nfk <- length(fk)
-        U[, 4:(nfk + 3)] <- U[, 4:(nfk + 3)] + 365.24 * (U$epi) %*% 
+        U[, 4:(nfk + 3)] <- U[, 4:(nfk + 3)] + 365.241 * (U$epi) %*% 
             t(fk)
         nsk <- dim(U)[1]
-        xx <- exp.prep(U[, 4:(nfk + 3),drop=FALSE], 365.24, rform$ratetable)
-        lambda <- -log(xx)/365.24
+        xx <- exp.prep(U[, 4:(nfk + 3),drop=FALSE], 365.241, rform$ratetable)
+        lambda <- -log(xx)/3651.24
     }
     else if (method == "mul1") {
         U$id <- 1:dim(U)[1]
@@ -1753,7 +1763,7 @@ rstrans <- function (formula = formula(data), data = parent.frame(), ratetable =
     rform <- rformulate(formula, data, ratetable, na.action, 
         int)
     if (missing(int)) 
-	    int <- ceiling(max(rform$Y/365.24))
+	    int <- ceiling(max(rform$Y/365.241))
     fk <- (attributes(rform$ratetable)$factor != 1)
     nfk <- length(fk)
     if (rform$type == "counting") {
@@ -1797,7 +1807,7 @@ transrate <- function (men, women, yearlim, int.length = 1)
         stop("input tables must be of class matrix")
     dimi <- dim(men)
     temp <- array(c(men, women), dim = c(dimi, 2))
-    temp <- -log(temp)/365.24
+    temp <- -log(temp)/365.241
     temp <- aperm(temp, c(1, 3, 2))
     cp <- as.date(apply(matrix(yearlim[1] + int.length * (0:(dimi[2] - 
         1)), ncol = 1), 1, function(x) {
@@ -1807,11 +1817,11 @@ transrate <- function (men, women, yearlim, int.length = 1)
         1)), c("male", "female"), as.character(yearlim[1] + int.length * 
         (0:(dimi[2] - 1)))), dimid = c("age", "sex", "year"), 
         factor = c(0, 1, 0),type=c(2,1,3), cutpoints = list((0:(dimi[1] - 1)) * 
-            (365.24), NULL, cp), class = "ratetable")
+            (365.241), NULL, cp), class = "ratetable")
     attributes(temp)$summary <- function (R) 
 	{
-		x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
-		1])/365.24, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
+		x <- c(format(round(min(R[, 1])/365.241, 1)), format(round(max(R[, 
+		1])/365.241, 1)), sum(R[, 2] == 1), sum(R[, 2] == 2))
 		x2 <- as.character(as.date(c(min(R[, 3]), max(R[, 3]))))
 		paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
 		x[3], " female:", x[4], "\n", " date of entry from", 
@@ -1895,7 +1905,7 @@ transrate.hld <- function(file, cut.year,race){
 			dimnames=list(as.character(0:amax),as.character(y1),c("male","female")),	
 			dimid=c("age","year","sex"),
 			factor=c(0,0,1),type=c(2,3,1),
-			cutpoints=list((0:amax)*(365.24),cp,NULL),
+			cutpoints=list((0:amax)*(365.241),cp,NULL),
 			class="ratetable"
 		)
 		
@@ -1920,14 +1930,14 @@ transrate.hld <- function(file, cut.year,race){
 			dimnames=list(as.character(0:amax),as.character(y1),c("male","female"),race.val),	
 			dimid=c("age","year","sex","race"),
 			factor=c(0,0,1,1),type=c(2,3,1,1),
-			cutpoints=list((0:amax)*(365.24),cp,NULL,NULL),
+			cutpoints=list((0:amax)*(365.241),cp,NULL,NULL),
 			class="ratetable"
 		)
 	}
 	attributes(out)$summary <- function (R) 
 		{
-			x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
-			1])/365.24, 1)), sum(R[, 3] == 1), sum(R[, 3] == 2))
+			x <- c(format(round(min(R[, 1])/365.241, 1)), format(round(max(R[, 
+			1])/365.241, 1)), sum(R[, 3] == 1), sum(R[, 3] == 2))
 			x2 <- as.character(as.date(c(min(R[, 2]), max(R[, 2]))))
 			paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
 			x[3], " female:", x[4], "\n", " date of entry from", 
@@ -1971,13 +1981,13 @@ transrate.hmd <- function(male,female){
 		dimnames=list(as.character(0:nr),as.character(y1),c("male","female")),	
 		dimid=c("age","year","sex"),
 		factor=c(0,0,1),type=c(2,3,1),
-		cutpoints=list((0:nr)*(365.24),cp,NULL),
+		cutpoints=list((0:nr)*(365.241),cp,NULL),
 		class="ratetable"
 	)
 	attributes(out)$summary <- function (R) 
 	{
-		x <- c(format(round(min(R[, 1])/365.24, 1)), format(round(max(R[, 
-		1])/365.24, 1)), sum(R[, 3] == 1), sum(R[, 3] == 2))
+		x <- c(format(round(min(R[, 1])/365.241, 1)), format(round(max(R[, 
+		1])/365.241, 1)), sum(R[, 3] == 1), sum(R[, 3] == 2))
 		x2 <- as.character(as.date(c(min(R[, 2]), max(R[, 2]))))
 		paste("  age ranges from", x[1], "to", x[2], "years\n", " male:", 
 		x[3], " female:", x[4], "\n", " date of entry from", 
@@ -2441,7 +2451,7 @@ exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys) {			#function t
 
 rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
      na.action, fin.date, method = "pohar-perme", conf.type = "log", 
-     conf.int = 0.95,type="kaplan-meier") 
+     conf.int = 0.95,type="kaplan-meier",all.times=FALSE) 
     
     #formula: for example Surv(time,cens)~sex
     #data: the observed data set
@@ -2471,7 +2481,7 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
             else if (length(fin.date) == nrow(rform$R)) 				
                 Y2[rform$status == 1] <- fin.date[rform$status == 				
                     1] - year[rform$status == 1]
-            else stop("fin.date must be either one value of a vector of the same length as the data")
+            else stop("fin.date must be either one value or a vector of the same length as the data")
             status2 <- rep(0, nrow(rform$X))						#stat2=0 for everyone
        }
      p <- rform$m								#number of covariates
@@ -2486,7 +2496,8 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
     for (kt in 1:length(out$n)) {						#for each stratum
         inx <- which(data$Xs == names(out$n)[kt])				#individuals within this stratum
 
-   	tis <- sort(unique(rform$Y[inx]))					#unique times
+   	if(!all.times)tis <- sort(unique(rform$Y[inx]))					#unique times
+   	else tis <- as.numeric(1:max(rform$Y[inx]))					#1-day long intervals used - to take into the account the continuity of the pop. part
    	if(method==3)tis <- sort(unique(pmin(max(tis),c(tis,Y2[inx]))))				#add potential times in case of Hakulinen
    
    	
@@ -2586,8 +2597,8 @@ rs.period <- function (formula = formula(data), data = parent.frame(), ratetable
     ys <- as.numeric(winst - year)
     yf <- as.numeric(winfin - year)
     
-    relv <- which(ys <= rform$Y)						#relevant individuals -> live up to the period window
-    centhem <- which(yf < rform$Y)						#censor these - their event happens outside of the period window   
+    relv <- which(ys <= rform$Y & yf>0)					#relevant individuals -> live up to the period window and were diagnosed before window end
+    centhem <- which(yf < rform$Y)					#censor these - their event happens outside of the period window  
 
     rform$status[centhem] <- 0
     rform$Y[centhem] <- yf[centhem]
@@ -2630,7 +2641,12 @@ rs.period <- function (formula = formula(data), data = parent.frame(), ratetable
    	tis <- sort(unique(rform$Y[inx]))					#unique times
    	if(method==3)tis <- sort(unique(pmin(max(tis),c(tis,Y2[inx]))))				#add potential times in case of Hakulinen
    
-   	
+   	ys <- pmax(ys,0)
+   	#tis <- sort(unique(c(tis,ys[ys>0]-1,ys[ys>0])))
+   	tis <- sort(unique(c(tis,ys[ys>0])))
+   	tis <- sort(unique(c(tis,tis-1,tis+1)))					#the day after exiting, the day before entering
+   	tis <- tis[-length(tis)]							#exclude the largest since it is beyond observation time (1 day later)
+   	   	
    	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis,fast=(method<3),ys=ys)	#calculate the values for each interval of time
    	
    	out$time <- c(out$time, tis)						#add times

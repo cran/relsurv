@@ -1,3 +1,4 @@
+cmp.rel			Compute crude mortality curves
 invtime                 Inverse transforming of time in Relative
                         Survival
 joinrate                Join ratetables
