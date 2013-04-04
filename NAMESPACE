@@ -5,9 +5,11 @@ export("epa","invtime","joinrate",
 	"rs.zph","rsadd","rsmul","rstrans",
 	"residuals.rsadd",
 	"survsplit","transrate","transrate.hld",
-	"transrate.hmd","rs.surv.rsadd","survfit.rsadd")
+	"transrate.hmd","rs.surv.rsadd","survfit.rsadd","cmp.rel")
 S3method(residuals, rsadd)
 S3method(plot, rs.br)
+S3method(plot, cmp.rel)
+S3method(print, cmp.rel)
 S3method(plot, rs.zph)
 S3method(print, rsadd)
 S3method(summary, rsadd)

@@ -1,5 +1,7 @@
 \name{rs.surv}
 \alias{rs.surv}
+\alias{plot.rs.surv}
+
 
 
 
@@ -11,7 +13,7 @@
 }
 \usage{
      rs.surv(formula, data,ratetable=survexp.us,na.action,fin.date,
-	     method="pohar-perme",conf.type="log",conf.int=0.95,type="kaplan-meier") 
+	     method="pohar-perme",conf.type="log",conf.int=0.95,type="kaplan-meier",all.times=FALSE) 
 }
 \arguments{
 \item{formula}{
@@ -52,13 +54,14 @@ log option calculates intervals based on the cumulative hazard or log(survival).
 \item{type}{defines how survival estimates are to be calculated given the hazards.  The default (\code{kaplan-meier})
 calculates the product integral, whereas the option \code{fleming-harrington} exponentiates the negative cumulative hazard. Analogous to the usage in \code{survfit}.
 }
+\item{all.times}{should the curve be calculated in daily intervals for better precision? Default is \code{FALSE}.
+}
 
 }
 
 \details{
 NOTE: All times used in the formula argument must be specified in days. This is true for the follow-up time as well as for
-any variables needed \code{ratetable} object, like \code{age} and \code{year}. On the contrary, the \code{int} argument requires
-interval specification in years.
+any variables needed \code{ratetable} object, like \code{age} and \code{year}.
 
 The potential censoring times needed for the calculation of the expected survival by the Hakulinen method
 are calculated automatically. The times of censoring are left as they are, the times of events are replaced with 
