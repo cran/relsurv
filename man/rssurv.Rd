@@ -12,8 +12,9 @@
      Ederer II method, Pohar-Perme method or the Hakulinen method
 }
 \usage{
-     rs.surv(formula, data,ratetable=survexp.us,na.action,fin.date,
-	     method="pohar-perme",conf.type="log",conf.int=0.95,type="kaplan-meier",all.times=FALSE) 
+     rs.surv(formula, data,ratetable=relsurv::slopop,na.action,fin.date,
+            method="pohar-perme", conf.type="log",conf.int=0.95,type="kaplan-meier",
+	    all.times=FALSE) 
 }
 \arguments{
 \item{formula}{
@@ -36,7 +37,7 @@ a data.frame in which to interpret the variables named in the
 }
 \item{ratetable}{
 a table of event rates, organized as a \code{ratetable} object,
-          such as \code{survexp.us}.  
+          such as \code{slopop}.  
 }
 \item{na.action}{a missing-data filter function, applied to the model.frame,
           after any subset argument has been used.  Default is

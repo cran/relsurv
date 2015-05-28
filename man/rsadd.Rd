@@ -7,7 +7,7 @@ The function fits an additive model to the data. The methods implemented are the
 method, a glm model with a \code{binomial} error and a glm model with a \code{poisson} error. 
 }
 \usage{
-rsadd(formula, data=parent.frame(), ratetable = survexp.us,
+rsadd(formula, data=parent.frame(), ratetable = relsurv::slopop,
       int, na.action, method, init,bwin,centered,cause,control,...)
 }
 \arguments{
@@ -28,7 +28,7 @@ a data.frame in which to interpret the variables named in
 the \code{formula}.
 }
 \item{ratetable}{
-a table of event rates, organized as a \code{ratetable} object, such as \code{survexp.us}. 
+a table of event rates, organized as a \code{ratetable} object, such as \code{slopop}. 
 }
 \item{int}{
 either a single value denoting the number of follow-up years or a vector

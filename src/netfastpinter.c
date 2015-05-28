@@ -36,7 +36,7 @@
 **  to the contents of the object "charlie"; the latter is
 **  used in the computations
 */
-SEXP netfastp(   SEXP   efac2,   SEXP edims2,
+SEXP netfastpinter(   SEXP   efac2,   SEXP edims2,
 	      SEXP   ecut2,     SEXP   expect2,
 	      SEXP   x2, 	SEXP   y2,SEXP ys2, SEXP status2,     SEXP times2) {
     int i,j,k;
@@ -44,9 +44,9 @@ SEXP netfastp(   SEXP   efac2,   SEXP edims2,
 	    edim,
 	    ntime;
     double  **x;
-    double  *data2, *si;
+    double  *data2, *si, *sitt;
     double  **ecut, *etemp;
-    double  hazard;						   /*cum hazard over an interval */
+    double  hazard, hazspi;						   /*cum hazard over an interval, also weigthed hazard */
     double     thiscell,
 	    etime,
 	    time,
@@ -61,8 +61,8 @@ SEXP netfastp(   SEXP   efac2,   SEXP edims2,
 
 	/*my declarations*/
 
-    SEXP    yidli2, dnisi2,yisi2,yidlisi2,yi2,dni2,dnisisq2;
-    double  *yidli, *dnisi,*yisi,*yidlisi,*yi,*dni,*dnisisq;
+    SEXP    yidli2, dnisi2,yisi2,yidlisi2,yi2,dni2,dnisisq2,yisitt2,yidlisitt2,yidlisiw2;
+    double  *yidli, *dnisi,*yisi,*yidlisi,*yi,*dni,*dnisisq, *yisitt,*yidlisitt,*yidlisiw;
 
 
     /*
@@ -87,7 +87,7 @@ SEXP netfastp(   SEXP   efac2,   SEXP edims2,
     data2 = (double *)ALLOC(edim+1, sizeof(double));
 
     si = (double *)ALLOC(n, sizeof(double));			/*Si for each individual - this is a pointer, the values are called using s[i]*/
-
+	sitt = (double *)ALLOC(n, sizeof(double));			/*Si at the beg. of the interval for each individual */
 	/*
     ** Set up ecut index as a ragged array
     */
@@ -109,8 +109,14 @@ SEXP netfastp(   SEXP   efac2,   SEXP edims2,
     dnisi = REAL(dnisi2);
     PROTECT(yisi2 = allocVector(REALSXP, ntime));		/*sum Yi/Si for each time* - length=length(times2)*/
     yisi = REAL(yisi2);
+    PROTECT(yisitt2 = allocVector(REALSXP, ntime));		/*add tt*/
+    yisitt = REAL(yisitt2);
     PROTECT(yidlisi2 = allocVector(REALSXP, ntime));		/*sum yi/Si dLambdai for each time* - length=length(times2)*/
     yidlisi = REAL(yidlisi2);
+    PROTECT(yidlisitt2 = allocVector(REALSXP, ntime));		/*add tt*/
+    yidlisitt = REAL(yidlisitt2);
+    PROTECT(yidlisiw2 = allocVector(REALSXP, ntime));		/*add w*/
+    yidlisiw = REAL(yidlisiw2);
 	PROTECT(yi2 = allocVector(REALSXP, ntime));					/* sum yi at each time*/
     yi = REAL(yi2);
     PROTECT(dni2 = allocVector(REALSXP, ntime));		/*sum Yi dLambdai for each time* - length=length(times2)*/
@@ -122,6 +128,7 @@ SEXP netfastp(   SEXP   efac2,   SEXP edims2,
  	/*initialize Si values*/
     for (i=0; i<n; i++) {
    	si[i] =1;
+   	sitt[i] =1;
    	}
 
 
@@ -130,7 +137,10 @@ SEXP netfastp(   SEXP   efac2,   SEXP edims2,
 	yidli[j] =0;
 	dnisi[j] =0;
 	yisi[j]=0;
+	yisitt[j]=0;
 	yidlisi[j]=0;
+	yidlisitt[j]=0;
+	yidlisiw[j]=0;
 	yi[j]=0;
 	dni[j]=0;
 	dnisisq[j]=0;
@@ -166,20 +176,27 @@ SEXP netfastp(   SEXP   efac2,   SEXP edims2,
 	    */
 	    etime = thiscell;
 	    hazard =0;
+	    hazspi=0;					//integration of haz/si
 	    while (etime >0) {
 		et2 = pystep(edim, &indx, &indx2, &wt, data2, efac,
 			     edims, ecut, etime, 1);
+		hazspi+= et2* expect[indx]/(si[i]*exp(-hazard));		//add the integrated part
 		if (wt <1) hazard+= et2*(wt*expect[indx] +(1-wt)*expect[indx2]);
 		else       hazard+= et2* expect[indx];
 		for (k=0; k<edim; k++)
 		    if (efac[k] !=1) data2[k] += et2;
 		etime -= et2;
-
 		}
+		sitt[i] = si[i];				// si at the beginning of the interval
 		si[i] = si[i]* exp(-hazard);
+
+
 		if(ys[i]<=times[j]){		// if start of observation before this time
 			yisi[j]+=1/si[i];
+			yisitt[j]+=1/sitt[i];
 			yidlisi[j]+=hazard/si[i];
+			yidlisitt[j]+=hazard/sitt[i];
+			yidlisiw[j]+=hazspi;
 			yidli[j]+=hazard;
 			yi[j]+=1;
 			if(y[i]==times[j]){
@@ -196,7 +213,7 @@ SEXP netfastp(   SEXP   efac2,   SEXP edims2,
     /*
     ** package the output
     */
-    PROTECT(rlist = allocVector(VECSXP, 7));
+    PROTECT(rlist = allocVector(VECSXP, 10));					//number of variables
   	SET_VECTOR_ELT(rlist,0, dnisi2);
  	 SET_VECTOR_ELT(rlist,1, yisi2);
  	 SET_VECTOR_ELT(rlist,2, yidlisi2);
@@ -204,9 +221,14 @@ SEXP netfastp(   SEXP   efac2,   SEXP edims2,
  	 SET_VECTOR_ELT(rlist,4, yi2);
  	 SET_VECTOR_ELT(rlist,5, dni2);
  	 SET_VECTOR_ELT(rlist,6, yidli2);
+ 	 SET_VECTOR_ELT(rlist,7, yisitt2);							/*added tt*/
+	 SET_VECTOR_ELT(rlist,8, yidlisitt2);						/*added tt*/
+	 SET_VECTOR_ELT(rlist,9, yidlisiw2);						/*added w*/
 
 
-    PROTECT(rlistnames= allocVector(STRSXP, 7));
+
+
+    PROTECT(rlistnames= allocVector(STRSXP, 10));					//number of variables
     SET_STRING_ELT(rlistnames, 0, mkChar("dnisi"));
     SET_STRING_ELT(rlistnames, 1, mkChar("yisi"));
     SET_STRING_ELT(rlistnames, 2, mkChar("yidlisi"));
@@ -214,11 +236,14 @@ SEXP netfastp(   SEXP   efac2,   SEXP edims2,
     SET_STRING_ELT(rlistnames, 4, mkChar("yi"));
     SET_STRING_ELT(rlistnames, 5, mkChar("dni"));
  	SET_STRING_ELT(rlistnames, 6, mkChar("yidli"));
+    SET_STRING_ELT(rlistnames, 7, mkChar("yisitt"));				/*added tt*/
+    SET_STRING_ELT(rlistnames, 8, mkChar("yidlisitt"));				/*added tt*/
+    SET_STRING_ELT(rlistnames, 9, mkChar("yidlisiw"));				/*added w*/
 
 
 
     setAttrib(rlist, R_NamesSymbol, rlistnames);
 
-    unprotect(9);					/*number of variables + 2*/
+    unprotect(12);					/*number of variables + 2*/
     return(rlist);
     }

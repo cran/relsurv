@@ -20,7 +20,7 @@ SEXP netwei(   SEXP   efac2,   SEXP edims2,
 	      SEXP   ecut2,     SEXP   expect2,
 	      SEXP   x2, 	SEXP   y2,  SEXP status2,    SEXP times2) ;
 
-SEXP netfastp(   SEXP   efac2,   SEXP edims2,
+SEXP netfastpinter(   SEXP   efac2,   SEXP edims2,
 	      SEXP   ecut2,     SEXP   expect2,
 	      SEXP   x2, 	SEXP   y2, SEXP ys2,  SEXP status2,    SEXP times2) ;
 

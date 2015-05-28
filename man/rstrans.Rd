@@ -30,7 +30,7 @@ a data.frame in which to interpret the variables named
  in the \code{formula}.  
 }
 \item{ratetable}{
-a table of event rates, such as \code{survexp.us}. 
+a table of event rates, such as \code{slopop}. 
 }
 \item{int}{ 
 the number of follow-up years used for calculating survival(the rest is censored). If missing, it is set the 

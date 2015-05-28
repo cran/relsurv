@@ -15,4 +15,5 @@ S3method(print, rsadd)
 S3method(summary, rsadd)
 S3method(print, summary.rsadd)
 S3method(print, rs.br)
+S3method(survfit, rsadd)
 

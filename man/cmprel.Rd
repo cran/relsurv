@@ -11,7 +11,7 @@
      Estimates the probability of dying due to disease and due to population reasons
 }
 \usage{
-     cmp.rel(formula, data, ratetable = survexp.us, na.action,tau,conf.int=0.95) 
+     cmp.rel(formula, data, ratetable = relsurv::slopop, na.action,tau,conf.int=0.95) 
 
 }
 \arguments{
@@ -35,7 +35,7 @@ a data.frame in which to interpret the variables named in the
 }
 \item{ratetable}{
 a table of event rates, organized as a \code{ratetable} object,
-          such as \code{survexp.us}.  
+          such as \code{slopop}.  
 }
 \item{na.action}{a missing-data filter function, applied to the model.frame,
           after any subset argument has been used.  Default is

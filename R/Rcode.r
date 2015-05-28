@@ -68,16 +68,20 @@ databig <- rbind(databig,datacens)
 
 cause <- cause[data$stat==1]
 
-
+#NEW IN 2.05 (next 4 lines)
+fk <- (attributes(ratetable)$factor != 1)
+nfk <- length(fk)
+varstart <- 3+nfk+1		#first column of covariates
+varstop <- 3+nfk+m		#last column of covariates	
 #model matrix for relative survival
-xmat <- as.matrix(data[,7:(6+m)])
+xmat <- as.matrix(data[,varstart:varstop])		#NEW IN 2.05
 
 #ebx at initial values of b
 ebx <- as.vector(exp(xmat%*%b))
 
 #model matrix for coxph
-modmat <- as.matrix(databig[,7:(6+m)])
-varnames <- names(data)[7:(6+m)]
+modmat <- as.matrix(databig[,varstart:varstop])		#NEW IN 2.05
+varnames <- names(data)[varstart:varstop]		#NEW IN 2.05
 }
 else{
 	cause <- cause[data$stat==1]
@@ -186,8 +190,7 @@ for(i in 1:maxiter){
         b00<-b
         if(i==1)fit <- coxph(Surv(start,Y,cens)~modmat,data=databig,weights=databig$wei,init=b00,x=TRUE,iter.max=maxiter)
         else    fit <- coxph(Surv(start,Y,cens)~modmat,data=databig,weights=databig$wei,x=TRUE,iter.max=maxiter)
-             
-        
+                     
         if(any(is.na(fit$coeff))) stop("X matrix deemed to be singular, variable ",which(is.na(fit$coeff)))
         
         b <- fit$coeff
@@ -276,6 +279,7 @@ if(nded!=0){
 		fishem <- matrix(apply(fishem,1,sum),ncol=m)
 	}
 }
+
 else fishem <- 0
 fishcox <- solve(fit$var)
 fisher <- fishcox - fishem
@@ -329,11 +333,16 @@ em <- function (rform, init, control, bwin)
     
     Nie <- rep(.5,sum(data$stat==1))
     Nie[rform$cause[data$stat==1]<2] <-  rform$cause[data$stat==1][rform$cause[data$stat==1]<2]
+
+#NEW IN 2.05
+varstart <- 3+nfk+1		#first column of covariates
+varstop <- 3+nfk+p		#last column of covariates	
+
     
     if(missing(bwin))bwin <- -1
     if(bwin<0){
 
-	if(p>0)data1 <- data[,-c(7:(6+p))]    
+	if(p>0)data1 <- data[,-c(varstart:varstop)]    		#NEW IN 2.05
 	else  data1 <- data
 	nfk <- length(attributes(rform$ratetable)$dimid)
 	names(data)[4:(3+nfk)] <- attributes(rform$ratetable)$dimid
@@ -375,7 +384,7 @@ em <- function (rform, init, control, bwin)
      }
 
 
-rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
+rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
     int, na.action, method = "max.lik", init, bwin, centered = FALSE, 
     cause, control, ...) 
 {
@@ -443,167 +452,6 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = s
     fit
 }
 
-rformulate <- function (formula, data = parent.frame(), ratetable, na.action, 
-    int, centered, cause) 
-{
-    call <- match.call()
-    m <- match.call(expand.dots = FALSE)
-    m$ratetable <- m$int <- m$centered <- NULL
-    if(!missing(cause)){						#NEW: ce cause obstaja
-    Terms <- if (missing(data)) 
-        terms(formula, "ratetable", "cause")
-    else terms(formula, "ratetable", "cause", data = data)
-    }
-    else{								#NEW: ce cause ne obstaja 
-    Terms <- if (missing(data)) 
-            terms(formula, "ratetable")
-        else terms(formula, "ratetable", data = data)
-    }
-    rate <- attr(Terms, "specials")$ratetable
-    if (length(rate) > 1) 
-        stop("Can have only 1 ratetable() call in a formula")
-    if (length(rate) == 0) {
-        xx <- function(x) formula(x)
-        if (is.ratetable(ratetable)) 
-            varlist <- attr(ratetable, "dimid")
-        else stop("Invalid rate table")
-        ftemp <- deparse(formula)
-         ftemp <- paste(ftemp,collapse="")
-        formula <- xx(paste(ftemp, "+ ratetable(", paste(varlist, 
-            "=", varlist, collapse = ","), ")"))
-        Terms <- if (missing(data)) 
-            terms(formula, "ratetable")
-        else terms(formula, "ratetable", data = data)
-        rate <- attr(Terms, "specials")$ratetable
-    }
-    m$formula <- Terms
-    m[[1]] <- as.name("model.frame")
-    m <- eval(m, parent.frame())
-    n <- nrow(m)
-    Y <- model.extract(m, "response")
-    if (!is.Surv(Y)) 
-        stop("Response must be a survival object")
-    Y.surv <- Y
-    if (attr(Y, "type") == "right") {
-        type <- attr(Y, "type")
-        status <- Y[, 2]
-        Y <- Y[, 1]
-        start <- rep(0, n)
-        ncol0 <- 2
-    }
-    else if (attr(Y, "type") == "counting") {
-        type <- attr(Y, "type")
-        status <- Y[, 3]
-        start <- Y[, 1]
-        Y <- Y[, 2]
-        ncol0 <- 3
-    }
-    else stop("Illegal response value")
-    if (any(c(Y, start) < 0)) 
-        stop("Negative follow up time")
-    if(max(Y)<30)
-    	warning("The event times must be expressed in days! (Your max time in the data is less than 30 days) \n")
-    if (is.ratetable(ratetable)) {
-        israte <- TRUE
-        rtemp <- match.ratetable(m[, rate], ratetable)
-        if(is.null(attributes(ratetable)$factor))attributes(ratetable)$factor <- attributes(ratetable)$type==1
-        rtorig <- attributes(ratetable)
-        nrt <- length(rtorig$dimid)
-        R <- rtemp$R
-        if (!is.null(rtemp$call)) {
-            ratetable <- eval(parse(text = rtemp$call))
-        }
-        #checking if the ratetable variables are given in days
-        wh.age <- which(attributes(ratetable)$dimid=="age")
-        wh.year <- which(attributes(ratetable)$dimid=="year")
-        if(length(wh.age)>0){
-        	if(max(rtemp$R[,wh.age])<150& median(diff(attributes(ratetable)$cutpoints[[wh.age]]))>12)
-        	warning("Age in the ratetable part of the formula must be expressed in days! \n (Your max age is less than 150 days) \n")
-        }
-        if(length(wh.year)>0){
-        	if(min(rtemp$R[,wh.year])>1850 & max(rtemp$R[,wh.year])<2020&class(attributes(ratetable)$cutpoints[[wh.year]])=="date")
-        	warning("The calendar year must be expressed in days since 1.1.1960! \n (Your variable seems to be expressed in years) \n")
-        }
-        #checking if one of the continuous variables is fixed:
-        if(nrt!=ncol(R)){
-        	nonex <- which(is.na(match(rtorig$dimid,attributes(ratetable)$dimid)))
-        	for(it in nonex){
-        		if(rtorig$type[it]!=1)warning(paste("Variable ",rtorig$dimid[it]," is held fixed even though it changes in time in the population tables. \n (You may wish to set a value for each individual and not just one value for all)",sep=""))
-        	}
-        }
-        
-    }
-    else stop("Invalid ratetable argument")
-    if (rate == 2) {
-        X <- NULL
-        mm <- 0
-    }
-    else {
-        if (length(rate == 1)) {
-            formula1 <- formula				#NEW: create object formula1
-            formula1[[3]] <- formula1[[3]][[2]]		#NEW: delete the ratetable part
-        }
-        X <- as.data.frame(model.matrix(formula1, data = data))[,-1, drop = FALSE]
-        if(nrow(X)!=n)warning("You have missing values in demographic variables \n")
-        #mm <- ncol(X)
-        #X <- X[,1:(mm-nrt),drop=FALSE]			#NEW: tega vec ne rabim
-        mm <- ncol(X)
-        #mn <- names(X)
-        #X <- data.frame(do.call("cbind",m))
-	#X <- X[,(ncol0+1):(ncol0+mm),drop=FALSE]
-        #names(X) <- mn
-    }
-    mvalue <- rep(0,mm)
-    if (!missing(centered)) {
-        if (mm != 0 & centered == TRUE) {
-            mvalue <- apply(as.matrix(X),2,mean)
-            X <- apply(as.matrix(X), 2, function(x) x - mean(x))
-       }
-    }
-    offset <- attr(Terms, "offset")
-    tt <- length(offset)
-    offset <- if (tt == 0) 
-        rep(0, n)
-    else if (tt == 1) 
-        m[[offset]]
-    else {
-        ff <- m[[offset[1]]]
-        for (i in 2:tt) ff <- ff + m[[offset[i]]]
-        ff
-    }
-    keep <- Y > start
-    cause <- model.extract(m, "cause")
-    if(is.null(cause)) cause <- rep(2,nrow(m))					#NEW: ce cause manjka
-    #status[cause==0] <- 0
-    if (!missing(int)) {
-        int <- max(int)
-        status[Y > int * 365.241] <- 0
-        Y <- pmin(Y, int * 365.241)
-        keep <- keep & (start < int * 365.241)
-    }
-    if (any(start > Y) | any(Y < 0)) 
-        stop("Negative follow-up times")
-    X <- X[keep, , drop = FALSE]
-    Y <- Y[keep]
-    start <- start[keep]
-    status <- status[keep]
-    R <- R[keep, ,drop=FALSE]
-    offset <- offset[keep]
-    Y.surv <- Y.surv[keep, , drop = FALSE]
-    cause <- cause[keep]
-    n <- sum(keep)
-    data <- data.frame(start = start, Y = Y, stat = status, R)
-    if (mm != 0) 
-        data <- cbind(data, X)
-    out <- list(data = data, R = R, status = status, start = start, 
-        Y = Y, X = as.data.frame(X), m = mm, n = n, type = type, Y.surv = Y.surv, 
-        Terms = Terms, ratetable = ratetable, offset = offset, formula=formula,
-        cause = cause,mvalue=mvalue)
-    na.action <- attr(m, "na.action")
-    if (length(na.action)) 
-        out$na.action <- na.action
-    out
-}
 
 maxlik <- function (rform, interval, subset, init, control) 
 {
@@ -1489,7 +1337,7 @@ rs.zph <- function (fit, sc, transform = "identity", var.type = "sum")
 plot.rs.zph <- function (x,resid = TRUE, df = 4, nsmo = 40, var, cex = 1,  add = FALSE, col = 1, 
     lty = 1, xlab, ylab, scale = 1, ...) 
 {
-    require(splines)
+    #require(splines)
     xx <- x$x
     if(x$transform=="identity")xx <- xx/scale
     yy <- x$y
@@ -1609,7 +1457,7 @@ kernerleftch <- function (td, b, nt4)
 
 
 invtime <- function (y = 0.1, age = 23011, sex = "male", year = 9497, scale = 1, 
-    ratetable = survexp.us, lower, upper) 
+    ratetable = relsurv::slopop, lower, upper) 
 {
     if (!is.numeric(age)) 
         stop("\"age\" must be numeric", call. = FALSE)
@@ -1667,10 +1515,10 @@ invtime <- function (y = 0.1, age = 23011, sex = "male", year = 9497, scale = 1,
 
 
 
-rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
+rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
     int, na.action, init, method = "mul", control, ...) 
 {
-    require(survival)
+    #require(survival)
     rform <- rformulate(formula, data, ratetable, na.action, 
         int)
     U <- rform$data
@@ -1748,7 +1596,7 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = s
             2)]
     }
     class(fit) <- c("rsmul",class(fit))
-    fit$lambda <- log(lambda)
+    fit$basehaz <- basehaz(fit)			#NEW 2.05
     fit$data <- rform$data
     fit$call <- match.call()
     fit$int <- int
@@ -1757,7 +1605,7 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = s
     fit
 }
 
-rstrans <- function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
+rstrans <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
     int, na.action, init, control, ...) 
 {
     rform <- rformulate(formula, data, ratetable, na.action, 
@@ -2429,7 +2277,7 @@ exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys) {			#function t
 	    ntime <- length(times)
 	    if(missing(ys)) ys <- rep(0,length(y))
     
-    	if(fast)    temp <- .Call("netfastp",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
+    	if(fast)    temp <- .Call("netfastpinter",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
 	        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
 	         x, y, ys,as.integer(status), times,PACKAGE="relsurv")    
     	
@@ -2449,7 +2297,7 @@ exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys) {			#function t
 }
 
 
-rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
+rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
      na.action, fin.date, method = "pohar-perme", conf.type = "log", 
      conf.int = 0.95,type="kaplan-meier",all.times=FALSE) 
     
@@ -2509,7 +2357,10 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
         out$n.censor <- c(out$n.censor,  c(-diff(temp$yi),temp$yi[length(temp$yi)]) - temp$dni) 	#add number of censored for each time
 
 	if(method==1){ 								#pohar perme method
-		haz <- temp$dnisi/temp$yisi - temp$yidlisi/temp$yisi			#cumulative hazard increment on each interval
+		#approximate1 <- (temp$yidlisi/temp$yisi +temp$yidlisitt/temp$yisitt)/2
+		approximate <- (temp$yidlisiw/temp$yisi +temp$yidlisiw/temp$yisitt)/2		#approximation for integration
+		#haz <- temp$dnisi/temp$yisi - temp$yidlisi/temp$yisi		#cumulative hazard increment on each interval
+		haz <- temp$dnisi/temp$yisi - approximate			#cumulative hazard increment on each interval
 		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dnisisq/(temp$yisi)^2)))  #standard error on each interval
 	}
 	else if(method==2){							#ederer2 method
@@ -2566,7 +2417,82 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
 }
 
 
-rs.period <- function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
+ness <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop,times) 
+    
+    #formula: for example Surv(time,cens)~sex
+    #data: the observed data set
+    #ratetable: the population mortality tables
+    #times: the times at which to report NESS, if no default, then all unique times
+
+{
+
+    call <- match.call()
+    rform <- rformulate(formula, data, ratetable)			#get the data ready
+ 
+  templab <- attr(rform$Terms,"term.labels")
+  templab <- templab[-length(templab)]
+  nameslist <- vector("list",length(templab))
+  for(it in 1:length(nameslist)){
+  	valuetab <- table(data[,match(templab[it],names(data))])
+  	nameslist[[it]] <- paste(templab[it],names(valuetab),sep="")
+  }
+  names(nameslist) <- templab
+      
+      
+      data <- rform$data								#the data set
+    
+    
+     p <- rform$m								#number of covariates
+     if (p > 0) 	{	#if covariates
+       
+        data$Xs <- my.strata(rform$X[,,drop=F],nameslist=nameslist)				#make strata according to covariates
+        }
+    	else data$Xs <- rep(1, nrow(data))						#if no covariates, just put 1
+
+	if(!missing(times)) tis <- times
+   	else tis <- unique(sort(floor(rform$Y/365.241)))			#unique years of follow-up
+   	tis <- unique(c(0,tis))
+	tisd <- tis*365.241   	
+
+
+    out <- NULL
+    out$n <- table(data$Xs)							#table of strata
+    out$sp <- out$strata <- NULL
+    for (kt in 1:length(out$n)) {						#for each stratum
+        inx <- which(data$Xs == names(out$n)[kt])				#individuals within this stratum
+
+	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tisd,fast=FALSE)	#calculate the values for each interval of time
+   	
+   	out$time <- c(out$time, tisd)						#add times
+        out$sp <- c(out$sp, temp$sis)						#add expected number of individuals alive
+  	out$strata <- c(out$strata, length(tis))				#number of times in this strata
+    }
+   
+    names(out$strata) <- names(out$n)
+    if (p == 0) out$strata <- NULL						#if no covariates
+    
+    mata <- matrix(out$sp,ncol=length(tis),byrow=TRUE)
+    mata <- data.frame(mata)
+    row.names(mata) <- names(out$n)
+    names(mata) <- tis
+    
+    cat("\n")
+    print(round(mata,1))
+    cat("\n")
+    
+    out$mata <- mata
+    out$n <- as.vector(out$n)
+    class(out) <- "ness"
+    invisible(out)
+}
+
+
+
+
+
+
+
+rs.period <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
      na.action, fin.date, method = "pohar-perme", conf.type = "log", 
      conf.int = 0.95,type="kaplan-meier",winst,winfin,diag.date) 
     

@@ -33,7 +33,8 @@ Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival analysi
 
 
 \examples{
-#newpop <- joinrate(list(Arizona=survexp.az,Florida=survexp.fl,Minnesota=survexp.mn),dim.name="state")
+#newpop <- joinrate(list(Arizona=survexp.az,Florida=survexp.fl,
+#                   Minnesota=survexp.mn),dim.name="state")
 }
 \seealso{\code{\link{ratetable}}, \code{\link{transrate.hld}}, \code{\link{transrate.hmd}}, \code{\link{transrate}}.}
 \keyword{survival}

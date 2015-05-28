@@ -1,4 +1,4 @@
-cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable = survexp.us, 
+cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
      na.action,tau,conf.int=0.95) 
     
     #formula: for example Surv(time,cens)~1 #not implemented for subgroups - DO IT!
@@ -63,14 +63,14 @@ cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable 
   
   	out[[2*kt-1]]$est <- cumince
   	out[[2*kt-1]]$var <- ve
-  	out[[2*kt-1]]$lower <- cumince-1.96*sqrt(ve)
-  	out[[2*kt-1]]$upper <- cumince+1.96*sqrt(ve)
+  	out[[2*kt-1]]$lower <- cumince-se.fac*sqrt(ve)
+  	out[[2*kt-1]]$upper <- cumince+se.fac*sqrt(ve)
   	out[[2*kt-1]]$area <- areae
   	
   	out[[2*kt]]$est <- cumincp
 	out[[2*kt]]$var <- vp
-	out[[2*kt]]$lower <- cumincp-1.96*sqrt(vp)
-	out[[2*kt]]$upper <- cumincp+1.96*sqrt(vp)
+	out[[2*kt]]$lower <- cumincp-se.fac*sqrt(vp)
+	out[[2*kt]]$upper <- cumincp+se.fac*sqrt(vp)
 	out[[2*kt]]$area <- areap
    }
    if(p>0)names(out) <- paste(rep(c("causeSpec","population"),ntab.strata),rep(names(tab.strata),each=2))
