@@ -17,3 +17,10 @@ S3method(print, summary.rsadd)
 S3method(print, rs.br)
 S3method(survfit, rsadd)
 
+importFrom("graphics", "abline", "axis", "box", "legend", "lines",
+     "par", "plot", "points")
+importFrom("stats", "approx", "binomial", "coef", "delete.response",
+     "glm", "glm.control", "median", "model.extract",
+     "model.frame", "model.matrix", "pchisq", "pnorm", "poisson",
+     "printCoefmat", "qchisq", "resid", "symnum", "terms")
+importFrom("utils", "getFromNamespace", "read.table")

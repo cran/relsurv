@@ -1,6 +1,6 @@
-rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
+rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv:::slopop, 
                      na.action,all.times=FALSE) 
-  #made by Klemen, new in 2.05
+  
   #formula: for example Surv(time,cens)~sex
   #data: the observed data set
   #ratetable: the population mortality tables
@@ -23,7 +23,7 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
   
   #TIMES ARE EQUAL FOR ALL GROUPS  								
   if(!all.times)tis <- sort(unique(rform$Y))					#unique times
-  else tis <- as.numeric(1:max(rform$Y))					#1-day long intervals used - to take into the account the continuity of the pop. part
+  else tis <- sort(union(as.numeric(1:max(rform$Y)),rform$Y))					#1-day long intervals used - to take into the account the continuity of the pop. part
   
   # zacetek dela s statistikami
   kgroups <- length(out$n)  						#number of groups
@@ -66,6 +66,8 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
     zhs <- apply(zhst,2,sum)    # the vector of test statistics
     zs <- zs + zhs 
   }
+  # cat("vektor testnih statistik je = \n")
+  # print(zs)
     
   #covariance matrix:
   covmats <- matrix(0,nrow=kgroups,ncol=kgroups)
@@ -75,6 +77,7 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
     inx_str <- which(w.risk.total[,s] > 0)
     for(kt in 1:kgroups){						#matrix calculation through the groups
       ys <- matrix(d[kt,],nrow=length(inx_str),ncol=kgroups,byrow=T) - w.risk[inx_str,,s]/w.risk.total[inx_str,s]	#preparing the matrix for the first two terms	
+      #yslist <- apply(apply(ys,1,list),unlist)			#a list, each row of ys (each time point) represents one item
       yslist <- as.list(data.frame(t(ys)))				#a list, each row of ys (each time point) represents one item
       yprod <- lapply(yslist,function(x)outer(x,x))			#a list of matrices with y products through all the time points, 
       yproda <- array(unlist(yprod),dim=c(kgroups,kgroups,length(inx_str)))#y terms transformed to an array
@@ -84,14 +87,15 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
     covmat <- apply(underint,1:2,sum)						#summing down the array
     covmats <- covmats + covmat
   }
-
-  # calculation of the test statistic
-
-  zs <-    zs[-kgroups]							
+  # cat("kovariancna matrika je = \n")
+  # print(covmats)
+  # del za testiranje
+  
+  zs <-    zs[-kgroups]							# ajout? par nathalie, pour avoir les (k-1) stat de test qui serevnt au calcul <- the last one is deleted
   zs <- matrix(zs,nrow=1)
-
+  # print(covmats)
   covmats <- covmats[-kgroups,-kgroups,drop=F]
-
+  # print(covmats)
   test.stat <- zs %*% solve(covmats) %*% t(zs)
   p.value <- 1-pchisq(test.stat,df=kgroups-1)
   
@@ -100,16 +104,18 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
   if (p == 0) out$groups <- NULL						#if no covariates
   out$n <- as.vector(out$n)
   out$call <- call
+  #class(out) <- c("survdiff", "rs.surv")
+  #cat(zh)
   out$zh <- zs  
   out$covmat <- covmats
   out$test.stat <- test.stat
   out$p.value <- p.value
-  out$df <- kgroups
-  class(out) <- "rs.diff"
+  out$df <- kgroups-1
+  class(out) <- "rsdiff"
   invisible(out)
 }
- print.rs.diff <- function(x){
+ print.rsdiff <- function(x){
  cat("Value of test statistic:", x$test.stat, "\n")
- cat("Degrees of freedom:", x$df-1, "\n")
+ cat("Degrees of freedom:", x$df, "\n")
  cat("P value:", x$p.value, "\n")
  }

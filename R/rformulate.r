@@ -127,7 +127,9 @@ if (missing(cause)){
       formula1 <- formula	#NEW: create object formula1
       #formula1[[3]] <- eval(parse(text=paste("formula1[[3]]",paste(rep("[[2]]",length(strats)+1),collapse = ""),sep=""))) # delete the ratetable (and strata) part
       f_temp1_part2 <- as.character(formula1[[2]])
-      f_temp1 <- paste(f_temp1_part2[1],"(",f_temp1_part2[2],",",f_temp1_part2[3],") ~ ",sep="")
+      if (type == "right")f_temp1 <- paste(f_temp1_part2[1],"(",f_temp1_part2[2],",",f_temp1_part2[3],") ~ ",sep="")
+      else if(type == "counting")f_temp1 <- paste(f_temp1_part2[1],"(",f_temp1_part2[2],",",f_temp1_part2[3],",",f_temp1_part2[4],") ~ ",sep="")
+      
       f_temp2_temp <- attr(Terms,"term.labels")[-c(rate-1,strats-1)]
       if (length(f_temp2_temp) == 1){
         f_temp2 <- f_temp2_temp

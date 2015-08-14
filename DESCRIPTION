@@ -1,7 +1,7 @@
 Package: relsurv
 Title: Relative Survival
-Date: 2015-05-28
-Version: 2.0-5
+Date: 2015-08-14
+Version: 2.0-6
 Authors@R: c(person(c("Maja","Pohar","Perme"),role=c("aut","cre"),email="maja.pohar@mf.uni-lj.si"),person("Klemen", "Pavlic", role = "ctb",
 		     email = "klemen.pavlic@mf.uni-lj.si"))
 Author: Maja Pohar Perme [aut, cre],  Klemen Pavlic [ctb]
@@ -10,6 +10,6 @@ Description: Various functions for relative survival analysis.
 Depends: survival, splines, date
 License: GPL
 NeedsCompilation: yes
-Packaged: 2015-05-28 12:41:38 UTC; majap
+Packaged: 2015-08-14 08:02:13 UTC; majap
 Repository: CRAN
-Date/Publication: 2015-05-28 17:10:06
+Date/Publication: 2015-08-14 20:13:49

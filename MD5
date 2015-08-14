@@ -1,12 +1,12 @@
-fec680d7abb39321513361e924b0fd92 *DESCRIPTION
+130823f71d0051775fd1c8a9d2a428ed *DESCRIPTION
 0b1c0ca4b3fdb59c0ba128f24edd6493 *INDEX
-91bd747fd3b1d8a95aca684ac40becd0 *NAMESPACE
+a42dd0a9e2753438c15799350d394a98 *NAMESPACE
 fd9f71a4ef143469a6962905b9fc69f7 *R/Rcode.r
 d4c94222edbdd7ae1a7458597ae56d71 *R/cmprel.r
 476d5effd3aff473f5ce65717dd4551a *R/mystrata.r
 341cad8b8664d939bb6c45984d8b1951 *R/plotrssurv.r
-25316a0590e6ff038e3f016dd091c3b5 *R/rformulate.r
-44dd138391d890ce2867ecfddd5ad6d7 *R/rsdiff.r
+2ec6f3f9d229655fbf4f6a0064bcc054 *R/rformulate.r
+02225787a09f1a17050d6f28015b4359 *R/rsdiff.r
 ceca1cde417d54a95d3e057ffda85405 *R/rssurvrsadd.r
 a46af41b8ae9dedf8d0268216d591bd5 *R/survfitrsadd.r
 3820354bc630edaa5d29f0225798b4da *R/zzz.R
