@@ -14,7 +14,7 @@
 \usage{
      rs.surv(formula, data,ratetable=relsurv::slopop,na.action,fin.date,
             method="pohar-perme", conf.type="log",conf.int=0.95,type="kaplan-meier",
-	    all.times=FALSE) 
+	    all.times=TRUE) 
 }
 \arguments{
 \item{formula}{

@@ -1,5 +1,5 @@
-rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv:::slopop, 
-                     na.action,all.times=FALSE) 
+rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
+                     na.action,all.times=TRUE) 
   
   #formula: for example Surv(time,cens)~sex
   #data: the observed data set
@@ -13,8 +13,8 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
   if (p > 0) 									#if covariates 
     data$Xs <- strata(rform$X[, ,drop=FALSE ])	#make groups according to covariates
   else data$Xs <- rep(1, nrow(data))        					#if no covariates, just put 1
-  # Xs je vektor faktorjev, ki oznacujejo skupine, ki jih zelimo primerjati
-  strats <- rform$strata.keep # dodano za strato
+  # Xs is a  vector of factors determining the groups we wish to compare
+  strats <- rform$strata.keep # added for strata
   str_num <- length(levels(strats)) # number of strata
 
   out <- NULL
@@ -25,15 +25,15 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
   if(!all.times)tis <- sort(unique(rform$Y))					#unique times
   else tis <- sort(union(as.numeric(1:max(rform$Y)),rform$Y))					#1-day long intervals used - to take into the account the continuity of the pop. part
   
-  # zacetek dela s statistikami
+  # start working
   kgroups <- length(out$n)  						#number of groups
   
   if (kgroups == 1) stop("There is only one group in your data. You should choose another variable.")
   
-  w.risk <- w.event <- dnisisq <- array(NA,dim=c(length(tis),length(out$n),str_num))			#MATRIX - COLUMNS ARE GROUPS, ROWS ARE TIMES,levels are stratas
+  w.risk <- w.event <- dnisisq <- array(NA,dim=c(length(tis),length(out$n),str_num))			#MATRIX - COLUMNS ARE GROUPS, ROWS ARE TIMES,levels are strata
   #numOfSmallGrps <- 0
   numOfFewEvents <- 0
-  for (s in 1:str_num){ # dodano za strato
+  for (s in 1:str_num){ # added for strata
     for (kt in 1:kgroups) {						#for each group
       inx <- which(data$Xs == names(out$n)[kt] & strats == levels(strats)[s])				#individuals within this group
       #if (length(inx)<10)numOfSmallGrps <- numOfSmallGrps + 1
@@ -56,7 +56,7 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
   w.risk.total <- apply(w.risk,c(1,3),sum)					#sum over all individuals at each time point ## Y_{.,s}^w
   w.event.total <- apply(w.event,c(1,3),sum)       #sum over all individuals at each time point ## dN_{E,.,s}^w
   
-  zs <- rep(0,kgroups) # dodano za strato
+  zs <- rep(0,kgroups) # added for strata
   for (s in 1:str_num){
     # znotraj danega stratuma
     inx_str <- which(w.risk.total[,s] > 0)
@@ -91,7 +91,7 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
   # print(covmats)
   # del za testiranje
   
-  zs <-    zs[-kgroups]							# ajout? par nathalie, pour avoir les (k-1) stat de test qui serevnt au calcul <- the last one is deleted
+  zs <-    zs[-kgroups]							# the last one is deleted
   zs <- matrix(zs,nrow=1)
   # print(covmats)
   covmats <- covmats[-kgroups,-kgroups,drop=F]
@@ -112,10 +112,10 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
   out$p.value <- p.value
   out$df <- kgroups-1
   class(out) <- "rsdiff"
-  invisible(out)
+  out
 }
- print.rsdiff <- function(x){
- cat("Value of test statistic:", x$test.stat, "\n")
- cat("Degrees of freedom:", x$df, "\n")
- cat("P value:", x$p.value, "\n")
+ print.rsdiff <- function(x,...){
+ invisible(cat("Value of test statistic:", x$test.stat, "\n"))
+ invisible(cat("Degrees of freedom:", x$df, "\n"))
+ invisible(cat("P value:", x$p.value, "\n"))
  }

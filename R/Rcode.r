@@ -346,7 +346,7 @@ varstop <- 3+nfk+p		#last column of covariates
 	else  data1 <- data
 	nfk <- length(attributes(rform$ratetable)$dimid)
 	names(data)[4:(3+nfk)] <- attributes(rform$ratetable)$dimid
-	expe <- rs.surv(Surv(Y,stat)~1,data,ratetable=rform$ratetable,method="ederer2")
+	expe <- rs.surv(Surv(Y,stat)~1,data,ratetable=rform$ratetable,method="ederer2",all.times=FALSE)
 	esurv <- -log(expe$surv[expe$n.event!=0])
 	if(esurv[length(esurv)]==Inf)esurv[length(esurv)] <-  esurv[length(esurv)-1]
 	x <- seq(.1,3,length=5)
@@ -1536,7 +1536,7 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = r
             t(fk)
         nsk <- dim(U)[1]
         xx <- exp.prep(U[, 4:(nfk + 3),drop=FALSE], 365.241, rform$ratetable)
-        lambda <- -log(xx)/3651.24
+        lambda <- -log(xx)/365.241
     }
     else if (method == "mul1") {
         U$id <- 1:dim(U)[1]
@@ -2299,7 +2299,7 @@ exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys) {			#function t
 
 rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
      na.action, fin.date, method = "pohar-perme", conf.type = "log", 
-     conf.int = 0.95,type="kaplan-meier",all.times=FALSE) 
+     conf.int = 0.95,type="kaplan-meier",all.times=TRUE) 
     
     #formula: for example Surv(time,cens)~sex
     #data: the observed data set
@@ -2345,7 +2345,7 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
         inx <- which(data$Xs == names(out$n)[kt])				#individuals within this stratum
 
    	if(!all.times)tis <- sort(unique(rform$Y[inx]))					#unique times
-   	else tis <- as.numeric(1:max(rform$Y[inx]))					#1-day long intervals used - to take into the account the continuity of the pop. part
+   	else tis <- sort(union(rform$Y[inx],as.numeric(1:max(rform$Y[inx]))))					#1-day long intervals used - to take into the account the continuity of the pop. part
    	if(method==3)tis <- sort(unique(pmin(max(tis),c(tis,Y2[inx]))))				#add potential times in case of Hakulinen
    
    	

@@ -1,7 +1,7 @@
 useDynLib(relsurv)
 import(survival, date,splines)
 export("epa","invtime","joinrate",
-	"rs.br","rs.surv",
+	"rs.br","rs.diff","rs.surv",
 	"rs.zph","rsadd","rsmul","rstrans",
 	"residuals.rsadd",
 	"survsplit","transrate","transrate.hld",
@@ -14,13 +14,14 @@ S3method(plot, rs.zph)
 S3method(print, rsadd)
 S3method(summary, rsadd)
 S3method(print, summary.rsadd)
+S3method(print, rsdiff)
 S3method(print, rs.br)
 S3method(survfit, rsadd)
-
 importFrom("graphics", "abline", "axis", "box", "legend", "lines",
-     "par", "plot", "points")
+             "par", "plot", "points")
 importFrom("stats", "approx", "binomial", "coef", "delete.response",
-     "glm", "glm.control", "median", "model.extract",
-     "model.frame", "model.matrix", "pchisq", "pnorm", "poisson",
-     "printCoefmat", "qchisq", "resid", "symnum", "terms")
+             "glm", "glm.control", "median", "model.extract",
+             "model.frame", "model.matrix", "pchisq", "pnorm", "poisson",
+             "printCoefmat", "qchisq", "resid", "symnum", "terms")
 importFrom("utils", "getFromNamespace", "read.table")
+

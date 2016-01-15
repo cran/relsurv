@@ -1,0 +1,16 @@
+citHeader("To cite package 'relsurv' in publications use:")
+
+year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date, perl = TRUE)
+vers <- paste("R package version", meta$Version)
+
+citEntry(entry="Manual",
+         title = "relsurv: Relative survival analysis",
+         author = personList(as.person("Maja Pohar Perme"),
+                             as.person("Klemen Pavlic"),
+         year = year,
+         note = vers,
+
+         textVersion =
+         paste("Maja Pohar Perme, Klemen Pavlic(",year,
+               "). relsurv: Relative survival analysis. ",
+               vers, ".", sep=""))
