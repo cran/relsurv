@@ -4,8 +4,8 @@ export("epa","invtime","joinrate",
 	"rs.br","rs.diff","rs.surv",
 	"rs.zph","rsadd","rsmul","rstrans",
 	"residuals.rsadd",
-	"survsplit","transrate","transrate.hld",
-	"transrate.hmd","rs.surv.rsadd","survfit.rsadd","cmp.rel")
+	"survsplit","checktimes","transrate","transrate.hld",
+	"transrate.hmd","rs.surv.rsadd","survfit.rsadd","cmp.rel","nessie")
 S3method(residuals, rsadd)
 S3method(plot, rs.br)
 S3method(plot, cmp.rel)
@@ -18,7 +18,7 @@ S3method(print, rsdiff)
 S3method(print, rs.br)
 S3method(survfit, rsadd)
 importFrom("graphics", "abline", "axis", "box", "legend", "lines",
-             "par", "plot", "points")
+             "par", "plot", "points", "polygon")
 importFrom("stats", "approx", "binomial", "coef", "delete.response",
              "glm", "glm.control", "median", "model.extract",
              "model.frame", "model.matrix", "pchisq", "pnorm", "poisson",

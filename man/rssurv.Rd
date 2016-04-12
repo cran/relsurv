@@ -1,6 +1,6 @@
 \name{rs.surv}
 \alias{rs.surv}
-\alias{plot.rs.surv}
+
 
 
 
@@ -9,12 +9,12 @@
 
 \description{
      Computes an estimate of the relative survival curve using the
-     Ederer II method, Pohar-Perme method or the Hakulinen method
+     Ederer I, Ederer II method, Pohar-Perme method or the Hakulinen method
 }
 \usage{
      rs.surv(formula, data,ratetable=relsurv::slopop,na.action,fin.date,
             method="pohar-perme", conf.type="log",conf.int=0.95,type="kaplan-meier",
-	    all.times=TRUE) 
+	    add.times,precision=1)
 }
 \arguments{
 \item{formula}{
@@ -48,14 +48,16 @@ a table of event rates, organized as a \code{ratetable} object,
           potential follow-up times in the Hakulinen method. If
           missing, it is calculated as \code{max(year+time)}. 
 }
-\item{method}{the method for calculating the relative survival. The options are \code{pohar-perme}(default), \code{ederer} and \code{hakulinen}.}
+\item{method}{the method for calculating the relative survival. The options are \code{pohar-perme}(default), \code{ederer1}, \code{ederer2}  and \code{hakulinen}.}
 \item{conf.type}{one of \code{plain}, \code{log} (the default), or \code{log-log}. The first option causes the standard intervals curve +- k *se(curve), where k is determined from conf.int. The
 log option calculates intervals based on the cumulative hazard or log(survival). The last option bases intervals on the log hazard or log(-log(survival)). }
 \item{conf.int}{the level for a two-sided confidence interval on the survival curve(s). Default is 0.95.}
 \item{type}{defines how survival estimates are to be calculated given the hazards.  The default (\code{kaplan-meier})
 calculates the product integral, whereas the option \code{fleming-harrington} exponentiates the negative cumulative hazard. Analogous to the usage in \code{survfit}.
 }
-\item{all.times}{should the curve be calculated in daily intervals for better precision? Default is \code{FALSE}.
+\item{add.times}{specific times at which the curve should be evaluated.
+}
+\item{precision}{Precision for numerical integration. Default is 1, which means that daily intervals are taken, the value may be decreased to get a higher precision or increased to achieve a faster calculation. The calculation intervals always include at least all times of event and censoring as border points. 
 }
 
 }
@@ -70,11 +72,16 @@ are calculated automatically. The times of censoring are left as they are, the t
 
 The calculation of the Pohar-Perme estimate is more time consuming since more data are needed from the population tables. 
 The old version of the function, now named \code{rs.survo} can be used as a faster version for the Hakulinen and Ederer II estimate.
+
+Numerical integration is required for Pohar-Perme estimate. The integration precision is set with argument \code{precision}, which defaults to daily intervals, a default that should give enough precision for any practical purpose.
+
+Note that even though the estimate is always calculated using numerical integration, only the values at event and censoring times are reported. Hence, the function \code{plot} draws a step function in between and the function \code{summary} reports the value at the last 
+event or censoring time before the specified time. If the output of the estimated values at other points is required, this should be specified with argument \code{add.times}.
 }
 
 \value{
  a \code{survfit} object; see the help on \code{survfit.object} for details.
- The \code{survfit} methods are used for \code{print},
+ The \code{survfit} methods are used for \code{print}, \code{summary},
      \code{plot}, \code{lines}, and \code{points}.
 
 }

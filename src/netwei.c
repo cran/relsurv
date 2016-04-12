@@ -59,8 +59,8 @@ SEXP netwei(   SEXP   efac2,   SEXP edims2,
 
 	/*my declarations*/
 
-    SEXP    yidli2, dnisi2,yisi2,yidlisi2,yi2,dni2,sidli2,dnisisq2,yisisq2,sis2,yisidli2,yisis2,yidsi2;
-    double  *yidli, *dnisi,*yisi,*yidlisi,*yi,*dni,*sidli,*dnisisq,*yisisq,*sis,*yisidli,*yisis,*yidsi;
+    SEXP    yidli2, dnisi2,yisi2,yidlisi2,yi2,dni2,sidli2,dnisisq2,yisisq2,sis2,yisidli2,yisis2,yidsi2,sit2;
+    double  *yidli, *dnisi,*yisi,*yidlisi,*yi,*dni,*sidli,*dnisisq,*yisisq,*sis,*yisidli,*yisis,*yidsi,*sit;
 
 
     /*
@@ -124,8 +124,8 @@ SEXP netwei(   SEXP   efac2,   SEXP edims2,
     yisidli = REAL(yisidli2);
 	PROTECT(yisis2 = allocVector(REALSXP, ntime));					/* sum of Si*Yi at each time*/
     yisis = REAL(yisis2);
-    //PROTECT(si2 = allocVector(REALSXP, n));					/* Si for each individual*/
-    //si = REAL(si2);
+    PROTECT(sit2 = allocVector(REALSXP, n));					/* Si for each individual*/
+    sit = REAL(sit2);
 	PROTECT(yidsi2 = allocVector(REALSXP, ntime));					/* sum of dSi*Yi at each time*/
 	yidsi = REAL(yidsi2);
 
@@ -134,6 +134,7 @@ SEXP netwei(   SEXP   efac2,   SEXP edims2,
  	/*initialize Si values*/
     for (i=0; i<n; i++) {
    	si[i] =1;
+   	sit[i]=0;
    	}
 
 
@@ -186,13 +187,17 @@ SEXP netwei(   SEXP   efac2,   SEXP edims2,
 	    while (etime >0) {
 		et2 = pystep(edim, &indx, &indx2, &wt, data2, efac,
 			     edims, ecut, etime, 1);
+		//sit[i]+=1/expect[indx]*(si[i]* exp(-hazard)- si[i]* exp(-hazard + et2*expect[indx]));
+		if(expect[indx]==0) expect[indx]=0.000000001;
 		if (wt <1) hazard+= et2*(wt*expect[indx] +(1-wt)*expect[indx2]);
 		else       hazard+= et2* expect[indx];
+
 		for (k=0; k<edim; k++)
 		    if (efac[k] !=1) data2[k] += et2;
 		etime -= et2;
 
 		}
+		sit[i]+=si[i]*(1-exp(-hazard))/(hazard/thiscell);
 		si[i] = si[i]* exp(-hazard);
 		sis[j]+=si[i];
 	   	sidli[j]+=hazard*si[i];
@@ -218,7 +223,7 @@ SEXP netwei(   SEXP   efac2,   SEXP edims2,
     /*
     ** package the output
     */
-    PROTECT(rlist = allocVector(VECSXP, 13));
+    PROTECT(rlist = allocVector(VECSXP, 14));
     SET_VECTOR_ELT(rlist,0, yidli2);
     SET_VECTOR_ELT(rlist,1, yidsi2);
     SET_VECTOR_ELT(rlist,2, dnisi2);
@@ -232,9 +237,10 @@ SEXP netwei(   SEXP   efac2,   SEXP edims2,
     SET_VECTOR_ELT(rlist,10, sis2);
     SET_VECTOR_ELT(rlist,11, yisidli2);
     SET_VECTOR_ELT(rlist,12, yisis2);
+    SET_VECTOR_ELT(rlist,13, sit2);
 
 
-    PROTECT(rlistnames= allocVector(STRSXP, 13));
+    PROTECT(rlistnames= allocVector(STRSXP, 14));
     SET_STRING_ELT(rlistnames, 0, mkChar("yidli"));
     SET_STRING_ELT(rlistnames, 1, mkChar("yidsi"));
     SET_STRING_ELT(rlistnames, 2, mkChar("dnisi"));
@@ -248,11 +254,12 @@ SEXP netwei(   SEXP   efac2,   SEXP edims2,
 	SET_STRING_ELT(rlistnames, 10, mkChar("sis"));
 	SET_STRING_ELT(rlistnames, 11, mkChar("yisidli"));
 	SET_STRING_ELT(rlistnames, 12, mkChar("yisis"));
+	SET_STRING_ELT(rlistnames, 13, mkChar("sit"));
 
 
 
     setAttrib(rlist, R_NamesSymbol, rlistnames);
 
-    unprotect(15);					/*kolk mora bit tu stevilka??  kolikor jih je +2??*/
+    unprotect(16);					/*kolk mora bit tu stevilka??  kolikor jih je +2??*/
     return(rlist);
     }

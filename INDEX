@@ -1,4 +1,5 @@
 cmp.rel			Compute crude mortality curves
+plot.cmp.rel		Plot the cumulative incidence curves
 invtime                 Inverse transforming of time in Relative
                         Survival
 joinrate                Join ratetables

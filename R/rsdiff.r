@@ -1,5 +1,5 @@
 rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
-                     na.action,all.times=TRUE) 
+                     na.action,precision=1) 
   
   #formula: for example Surv(time,cens)~sex
   #data: the observed data set
@@ -22,9 +22,11 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
   out$time <- out$n.risk <- out$n.event <- out$n.censor <- out$surv <- out$std.err <- out$groups <- NULL
   
   #TIMES ARE EQUAL FOR ALL GROUPS  								
-  if(!all.times)tis <- sort(unique(rform$Y))					#unique times
-  else tis <- sort(union(as.numeric(1:max(rform$Y)),rform$Y))					#1-day long intervals used - to take into the account the continuity of the pop. part
-  
+  if(!precision)tis <- sort(unique(rform$Y))					#unique times
+  else{
+  extra <- as.numeric(seq(1,max(rform$Y),by=precision))
+  tis <- sort(union(extra,rform$Y))					#1-day long intervals used - to take into the account the continuity of the pop. part
+  }
   # start working
   kgroups <- length(out$n)  						#number of groups
   

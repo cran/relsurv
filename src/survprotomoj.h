@@ -24,8 +24,19 @@ SEXP netfastpinter(   SEXP   efac2,   SEXP edims2,
 	      SEXP   ecut2,     SEXP   expect2,
 	      SEXP   x2, 	SEXP   y2, SEXP ys2,  SEXP status2,    SEXP times2) ;
 
+SEXP cmpfast(   SEXP   efac2,   SEXP edims2,
+	      SEXP   ecut2,     SEXP   expect2,
+	      SEXP   x2, 	SEXP   y2, SEXP ys2,  SEXP status2,    SEXP times2) ;
+
+SEXP netfastpinter2(   SEXP   efac2,   SEXP edims2,
+	      SEXP   ecut2,     SEXP   expect2,
+	      SEXP   x2, 	SEXP   y2,SEXP ys2, SEXP status2,     SEXP times2, SEXP myprec2) ;
+
 
 double pystep(int nc,        int  *index,  int  *index2,   double *wt,
 	      double *data,  Sint *fac,    Sint *dims,     double **cuts,
 	      double step,   int  edge);
 
+double pystep2(int nc,        int  *index,  int  *index2,   double *wt,
+	      double *data,  Sint *fac,    Sint *dims,     double **cuts,
+	      double step,   int  edge);

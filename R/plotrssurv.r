@@ -1,5 +1,5 @@
-plot.rs.surv <- function (x, conf.int, mark.time = TRUE, mark = 3, col = 1, lty = 1, 
-    lwd = 1, cex = 1, log = FALSE, xscale = 1, yscale = 1, firstx = 0, 
+plot.rs.surv <- function (x, conf.int, mark.time = TRUE, mark = 3, col = 1, 
+    lty = 1, lwd = 1, cex = 1, log = FALSE, xscale = 1, yscale = 1, firstx = 0, 
     firsty = 1, xmax, ymin = 0, fun, xlab = "", ylab = "", xaxs = "S", 
     ...) 
 {
@@ -38,18 +38,33 @@ plot.rs.surv <- function (x, conf.int, mark.time = TRUE, mark = 3, col = 1, lty 
             conf.int <- TRUE
         else conf.int <- FALSE
     }
-    if (is.null(x$strata)) {
+    #if (all.times == FALSE & x$method == 1){
+    #if (is.null(x$strata0)){
+    #    nstrat <- 1
+    #    stemp <- rep(1, length(x$index)) # length(x$time[x$index]) == length(x$index)
+    #  }
+    #  else {
+    #    nstrat <- length(x$strata0)
+    #    stemp <- rep(1:nstrat,x$strata0)
+    #  }
+    #}
+    #else {
+      if (is.null(x$strata)) {
         nstrat <- 1
         stemp <- rep(1, length(x$time))
-    }
-    else {
+      }
+      else {
         nstrat <- length(x$strata)
         stemp <- rep(1:nstrat, x$strata)
-    }
+      }
+    #}
     ssurv <- x$surv
     stime <- x$time
     supper <- x$upper
     slower <- x$lower
+    #if (all.times == FALSE & x$method == 1){
+    #  ssurv <- ssurv[x$index]; stime <- stime[x$index]; supper <- supper[x$index]; slower <- slower[x$index]
+    #}
     if (!missing(xmax) && any(x$time > xmax)) {
         keepx <- keepy <- NULL
         yzero <- NULL
@@ -195,12 +210,19 @@ plot.rs.surv <- function (x, conf.int, mark.time = TRUE, mark = 3, col = 1, lty 
         xx <- c(firstx, stime[who])
         nn <- length(xx)
         if (x$type == "counting") {
+            #if (all.times == FALSE & x$method == 1){deaths <- c(-1,x$n.censor[x$index][who])}
+            #else {
             deaths <- c(-1, x$n.censor[who])
+            #}
             zero.one <- 1
         }
         else if (x$type == "right") {
-	    deaths <- c(-1, x$n.censor[who])
-            zero.one <- 1        }
+            #if (all.times == FALSE & x$method == 1){deaths <- c(-1,x$n.censor[x$index][who])}
+            #else {
+            deaths <- c(-1, x$n.censor[who])
+            #}
+            zero.one <- 1        
+        }
         if (is.matrix(ssurv)) {
             for (k in 1:ncol(ssurv)) {
                 i <- i + 1
@@ -214,8 +236,8 @@ plot.rs.surv <- function (x, conf.int, mark.time = TRUE, mark = 3, col = 1, lty 
                   points(mark.time[indx < nn], yy[indx[indx < 
                     nn]], pch = mark[i], col = col[i], cex = cex)
                 }
-                else if (mark.time && any(deaths == zero.one)) {
-                  points(xx[deaths == zero.one], yy[deaths == 
+                else if (mark.time && any(deaths >= zero.one)) {
+                  points(xx[deaths >= zero.one], yy[deaths >= 
                     zero.one], pch = mark[i], col = col[i], cex = cex)
                 }
                 xend <- c(xend, max(xx))
@@ -244,8 +266,8 @@ plot.rs.surv <- function (x, conf.int, mark.time = TRUE, mark = 3, col = 1, lty 
                 points(mark.time[indx < nn], yy[indx[indx < nn]], 
                   pch = mark[i], col = col[i], cex = cex)
             }
-            else if (mark.time == TRUE && any(deaths == zero.one)) {
-                points(xx[deaths == zero.one], yy[deaths == zero.one], 
+            else if (mark.time == TRUE && any(deaths >= zero.one)) {
+                points(xx[deaths >= zero.one], yy[deaths >= zero.one], 
                   pch = mark[i], col = col[i], cex = cex)
             }
             xend <- c(xend, max(xx))

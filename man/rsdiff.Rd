@@ -11,7 +11,7 @@
      Tests if there is a difference between two or more net survival curves using a log-rank type test.
 }
 \usage{
-     rs.diff(formula, data, ratetable = relsurv::slopop, na.action,all.times=TRUE) 
+     rs.diff(formula, data, ratetable = relsurv::slopop, na.action,precision=1) 
 }
 \arguments{
 \item{formula}{
@@ -42,7 +42,7 @@ a table of event rates, organized as a \code{ratetable} object,
           \code{options()$na.action}.} 
 
 
-\item{all.times}{should the curve be calculated in daily intervals for better precision? Default is \code{TRUE}.
+\item{precision}{Precision for numerical integration. Default is 1, which means that daily intervals are taken, the value may be decreased to get a higher precision or increased to achieve a faster calculation. The calculation intervals always include at least all times of event and censoring as border points.
 }
 
 }
@@ -58,10 +58,10 @@ any variables needed \code{ratetable} object, like \code{age} and \code{year}.
 }
 
 \references{
-Package. Pohar M., Stare J. (2006) "Relative survival analysis in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+Package: Pohar M., Stare J. (2006) "Relative survival analysis in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
 
-Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival analysis relatively easy."
-Computers in biology and medicine, \bold{37}: 1741--1749.
+Log-rank type test: 
+Graffeo, N., Castell, F., Belot, A. and Giorgi, R. (2016) "A log-rank-type test to compare net survival distributions. Biometrics. doi: 10.1111/biom.12477"
 }
 
 

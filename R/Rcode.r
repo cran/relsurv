@@ -346,7 +346,7 @@ varstop <- 3+nfk+p		#last column of covariates
 	else  data1 <- data
 	nfk <- length(attributes(rform$ratetable)$dimid)
 	names(data)[4:(3+nfk)] <- attributes(rform$ratetable)$dimid
-	expe <- rs.surv(Surv(Y,stat)~1,data,ratetable=rform$ratetable,method="ederer2",all.times=FALSE)
+	expe <- rs.surv(Surv(Y,stat)~1,data,ratetable=rform$ratetable,method="ederer2")
 	esurv <- -log(expe$surv[expe$n.event!=0])
 	if(esurv[length(esurv)]==Inf)esurv[length(esurv)] <-  esurv[length(esurv)-1]
 	x <- seq(.1,3,length=5)
@@ -2210,7 +2210,7 @@ kern <- function (times,td, b, nt4)
     krn
 }
 
-exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys) {			#function that prepares the data for C function call
+exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys,prec,cmp=F) {			#function that prepares the data for C function call
 
 #x= matrix of demographic covariates - each individual has one line
 #y= follow-up time for each individual (same length as nrow(x)!)
@@ -2276,12 +2276,18 @@ exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys) {			#function t
 	        stop("Negative time point requested")
 	    ntime <- length(times)
 	    if(missing(ys)) ys <- rep(0,length(y))
-    
-    	if(fast)    temp <- .Call("netfastpinter",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
+#    times2 <- times
+#    times2[1] <- preci
+    	if(cmp)   temp <- .Call("cmpfast",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
+			        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
+			         x, y, ys,as.integer(status), times,PACKAGE="relsurv")    
+    	else if(fast&!missing(prec))    temp <- .Call("netfastpinter2",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
 	        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
-	         x, y, ys,as.integer(status), times,PACKAGE="relsurv")    
-    	
-    	else    temp <- .Call("netwei",  as.integer(rfac), 
+	         x, y, ys,as.integer(status), times,prec,PACKAGE="relsurv")    
+	else if(fast&missing(prec))    temp <- .Call("netfastpinter",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
+		        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
+		         x, y, ys,as.integer(status), times,PACKAGE="relsurv")    
+	else    temp <- .Call("netwei",  as.integer(rfac), 
 	        as.integer(atts$dim), as.double(unlist(cuts)), ratetable, 
 	         x, y, as.integer(status), times,PACKAGE="relsurv")    
     }
@@ -2296,10 +2302,9 @@ exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys) {			#function t
     temp
 }
 
-
 rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
      na.action, fin.date, method = "pohar-perme", conf.type = "log", 
-     conf.int = 0.95,type="kaplan-meier",all.times=TRUE) 
+     conf.int = 0.95,type="kaplan-meier",add.times,precision=1) 
     
     #formula: for example Surv(time,cens)~sex
     #data: the observed data set
@@ -2332,7 +2337,7 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
             else stop("fin.date must be either one value or a vector of the same length as the data")
             status2 <- rep(0, nrow(rform$X))						#stat2=0 for everyone
        }
-     p <- rform$m								#number of covariates
+    p <- rform$m								#number of covariates
     if (p > 0) 									#if covariates
         data$Xs <- strata(rform$X[, ,drop=FALSE ])				#make strata according to covariates
     else data$Xs <- rep(1, nrow(data))						#if no covariates, just put 1
@@ -2340,51 +2345,61 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
     se.fac <- sqrt(qchisq(conf.int, 1))						#factor needed for confidence interval
     out <- NULL
     out$n <- table(data$Xs)							#table of strata
-    out$time <- out$n.risk <- out$n.event <- out$n.censor <- out$surv <- out$std.err <- out$strata <- NULL
+    out$time <- out$n.risk <- out$n.event <- out$n.censor <- out$surv <- out$std.err <- out$strata <-  NULL
+    #out$index <- out$strata0 <- NULL
+    # out$index = indices of the original times from the data among the times used for calculations
+    # out$strata0 = the same as out$strata but only on the original times from the data
     for (kt in 1:length(out$n)) {						#for each stratum
         inx <- which(data$Xs == names(out$n)[kt])				#individuals within this stratum
-
-   	if(!all.times)tis <- sort(unique(rform$Y[inx]))					#unique times
-   	else tis <- sort(union(rform$Y[inx],as.numeric(1:max(rform$Y[inx]))))					#1-day long intervals used - to take into the account the continuity of the pop. part
-   	if(method==3)tis <- sort(unique(pmin(max(tis),c(tis,Y2[inx]))))				#add potential times in case of Hakulinen
-   
+        tis <- sort(unique(rform$Y[inx])) #unique times
+        
+        #if (method == 1 & all.times == TRUE) tis <- sort(union(rform$Y[inx],as.numeric(1:max(floor(rform$Y[inx])))))	#1-day long intervals used - to take into the account the continuity of the pop. part
+        if (method == 1 & !missing(add.times)){
+        	#tis <- sort(union(rform$Y[inx],as.numeric(1:max(floor(rform$Y[inx])))))	#1-day long intervals used - to take into the account the continuity of the pop. part
+        	add.times <- pmin(as.numeric(add.times),max(rform$Y[inx]))
+        	tis <- sort(union(rform$Y[inx],as.numeric(add.times)))	#1-day long intervals used - to take into the account the continuity of the pop. part
+        }
+        if(method==3)tis <- sort(unique(pmin(max(tis),c(tis,Y2[inx]))))				#add potential times in case of Hakulinen
+        #out$index <- c(out$index, which(tis %in% rform$Y[inx])+length(out$time))
    	
-   	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis,fast=(method<3))	#calculate the values for each interval of time
+   	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis,fast=(method<3),prec=precision)	#calculate the values for each interval of time
    	
    	out$time <- c(out$time, tis)						#add times
         out$n.risk <- c(out$n.risk, temp$yi)					#add number at risk for each time
         out$n.event <- c(out$n.event, temp$dni)					#add number of events for each time
         out$n.censor <- c(out$n.censor,  c(-diff(temp$yi),temp$yi[length(temp$yi)]) - temp$dni) 	#add number of censored for each time
 
-	if(method==1){ 								#pohar perme method
-		#approximate1 <- (temp$yidlisi/temp$yisi +temp$yidlisitt/temp$yisitt)/2
-		approximate <- (temp$yidlisiw/temp$yisi +temp$yidlisiw/temp$yisitt)/2		#approximation for integration
-		#haz <- temp$dnisi/temp$yisi - temp$yidlisi/temp$yisi		#cumulative hazard increment on each interval
-		haz <- temp$dnisi/temp$yisi - approximate			#cumulative hazard increment on each interval
-		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dnisisq/(temp$yisi)^2)))  #standard error on each interval
-	}
-	else if(method==2){							#ederer2 method
-		haz <- temp$dni/temp$yi - temp$yidli/temp$yi			#cumulative hazard increment on each interval
-		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
-	}
-	else if(method==3){							#Hakulinen method
-		temp2 <- exp.prep(rform$R[inx,,drop=FALSE],Y2[inx],ratetable,status2[inx],times=tis)	#calculate the values for each interval of time
-		popsur <- exp(-cumsum(temp2$yisidli/temp2$yisis))			#population survival
-		haz <- temp$dni/temp$yi						#observed hazard on each interval
-		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
-	}
-	else if(method==4){							#Ederer I
-		popsur <- temp$sis/length(inx)					#population survival
-		haz <- temp$dni/temp$yi						#observed hazard on each interval
-		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
-	}
-	if(type==2)survtemp <- exp(-cumsum(haz))
-	else survtemp <-  cumprod(1-haz)
-	if(method>2){
-		survtemp <- survtemp/popsur
-  	}
-  	out$surv <- c(out$surv,survtemp)
-  	out$strata <- c(out$strata, length(tis))				#number of times in this strata
+        if(method==1){ 								#pohar perme method
+          #approximate1 <- (temp$yidlisi/temp$yisi +temp$yidlisitt/temp$yisitt)/2
+          #approximate <- (temp$yidlisiw/temp$yisi +temp$yidlisiw/temp$yisitt)/2		#approximation for integration
+          approximate <- temp$yidlisiw
+          #haz <- temp$dnisi/temp$yisi - temp$yidlisi/temp$yisi		#cumulative hazard increment on each interval
+          haz <- temp$dnisi/temp$yisi - approximate			#cumulative hazard increment on each interval
+          out$std.err <- c(out$std.err, sqrt(cumsum(temp$dnisisq/(temp$yisi)^2)))  #standard error on each interval
+        }
+        else if(method==2){							#ederer2 method
+          haz <- temp$dni/temp$yi - temp$yidli/temp$yi			#cumulative hazard increment on each interval
+          out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
+        }
+        else if(method==3){							#Hakulinen method
+          temp2 <- exp.prep(rform$R[inx,,drop=FALSE],Y2[inx],ratetable,status2[inx],times=tis)	#calculate the values for each interval of time
+          popsur <- exp(-cumsum(temp2$yisidli/temp2$yisis))			#population survival
+          haz <- temp$dni/temp$yi						#observed hazard on each interval
+          out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
+        }
+        else if(method==4){							#Ederer I
+          popsur <- temp$sis/length(inx)					#population survival
+          haz <- temp$dni/temp$yi						#observed hazard on each interval
+          out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
+        }
+        if(type==2)survtemp <- exp(-cumsum(haz))
+        else survtemp <-  cumprod(1-haz)
+        if(method>2){
+          survtemp <- survtemp/popsur
+        }
+        out$surv <- c(out$surv,survtemp)
+        out$strata <- c(out$strata, length(tis))				#number of times in this strata
+        #out$strata0 <- c(out$strata0, length(unique(rform$Y[inx])))
     }
     if (conf.type == "plain") {						
         out$lower <- as.vector(out$surv - out$std.err * se.fac * 		#surv + fac*se
@@ -2404,8 +2419,13 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
         out$upper <- exp(-exp(as.vector(log(-log(out$surv)) + 
             out$std.err * se.fac/log(out$surv))))
     }
-    names(out$strata) <- names(out$n)
-    if (p == 0) out$strata <- NULL						#if no covariates
+    names(out$strata) <-  names(out$n)
+    #names(out$strata0) <- names(out$n)
+    if (p == 0){
+    	out$strata <-  NULL						#if no covariates
+    	#out$strata0 <- NULL
+    }    
+    #if (method != 1) out$index <- out$strata0 <- NULL # if method != pohar-perme
     out$n <- as.vector(out$n)
     out$conf.type <- conf.type
     out$conf.int <- conf.int
@@ -2417,7 +2437,8 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
 }
 
 
-ness <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop,times) 
+
+nessie <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop,times) 
     
     #formula: for example Surv(time,cens)~sex
     #data: the observed data set
@@ -2446,6 +2467,7 @@ ness <- function (formula = formula(data), data = parent.frame(), ratetable = re
      if (p > 0) 	{	#if covariates
        
         data$Xs <- my.strata(rform$X[,,drop=F],nameslist=nameslist)				#make strata according to covariates
+        #data$Xs <- factor(data$Xs,levels=nameslist)				#order them in the same way as namelist
         }
     	else data$Xs <- rep(1, nrow(data))						#if no covariates, just put 1
 
@@ -2458,7 +2480,8 @@ ness <- function (formula = formula(data), data = parent.frame(), ratetable = re
     out <- NULL
     out$n <- table(data$Xs)							#table of strata
     out$sp <- out$strata <- NULL
-    for (kt in 1:length(out$n)) {						#for each stratum
+   # for (kt in 1:length(out$n)) {						#for each stratum
+    for (kt in order(names(table(data$Xs)))) {						#for each stratum
         inx <- which(data$Xs == names(out$n)[kt])				#individuals within this stratum
 
 	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tisd,fast=FALSE)	#calculate the values for each interval of time
@@ -2466,23 +2489,28 @@ ness <- function (formula = formula(data), data = parent.frame(), ratetable = re
    	out$time <- c(out$time, tisd)						#add times
         out$sp <- c(out$sp, temp$sis)						#add expected number of individuals alive
   	out$strata <- c(out$strata, length(tis))				#number of times in this strata
+  	
+  	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=(seq(0,100,by=.5)*365.241)[-1],fast=FALSE)	#calculate the values for each interval of time
+	out$povp <- c(out$povp,mean(temp$sit/365.241))
     }
    
-    names(out$strata) <- names(out$n)
+    names(out$strata) <- names(out$n)[order(names(table(data$Xs)))]
     if (p == 0) out$strata <- NULL						#if no covariates
     
     mata <- matrix(out$sp,ncol=length(tis),byrow=TRUE)
     mata <- data.frame(mata)
-    row.names(mata) <- names(out$n)
-    names(mata) <- tis
+    mata <- cbind(mata,out$povp)
+    row.names(mata) <- names(out$n)[order(names(table(data$Xs)))]
+    names(mata) <- c(tis,"c.exp.surv")
     
+
     cat("\n")
     print(round(mata,1))
     cat("\n")
     
     out$mata <- mata
     out$n <- as.vector(out$n)
-    class(out) <- "ness"
+    class(out) <- "nessie"
     invisible(out)
 }
 
