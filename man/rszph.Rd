@@ -58,7 +58,7 @@ Computers in biology and medicine, \bold{37}: 1741--1749.
 \examples{
 data(slopop)
 data(rdata)
-fit <- rsadd(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
+fit <- rsadd(Surv(time,cens)~sex+ratetable(age=age*365.241,sex=sex,
 	     year=year),ratetable=slopop,data=rdata,int=5)
 rszph <- rs.zph(fit)
 plot(rszph)

@@ -70,6 +70,8 @@ An object of class \code{cmp.rel} is composed of several lists, each pertaining 
 \item{lower}{the lower limit of the confidence interval}
 \item{upper}{the upper limit of the confidence interval}
 \item{area}{the area under the curve calculated on the interval [0,\code{tau}]}
+\item{index}{indicator of event and censoring times among all the times in the output. The times added via paramater \code{add.times} are also included}
+\item{add.times}{the times added via parameter \code{add.times}}
 }
 
 
@@ -82,14 +84,14 @@ data(rdata)
 #note that the variable year is given in days since 01.01.1960 and that 
 #age must be multiplied by 365 in order to be expressed in days.
 fit <- cmp.rel(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
-      year=year),ratetable=slopop,data=rdata,tau=3652.4)
+      year=year),ratetable=slopop,data=rdata,tau=3652.41)
 fit
 plot(fit,col=c(1,1,2,2),xscale=365.241,xlab="Time (years)")
 }
 
 
 \seealso{
-\code{rs.surv}, \code{timepoints}
+\code{rs.surv}, \code{checktimes}
 }
 
 \keyword{survival}

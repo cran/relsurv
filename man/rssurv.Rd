@@ -101,8 +101,8 @@ data(slopop)
 data(rdata)
 #calculate the relative survival curve
 #note that the variable year is given in days since 01.01.1960 and that 
-#age must be multiplied by 365 in order to be expressed in days.
-rs.surv(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
+#age must be multiplied by 365.241 in order to be expressed in days.
+rs.surv(Surv(time,cens)~sex+ratetable(age=age*365.241,sex=sex,
       year=year),ratetable=slopop,data=rdata)
 }
 

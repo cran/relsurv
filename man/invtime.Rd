@@ -22,7 +22,7 @@ invtime(y, age, sex, year, scale, ratetable, lower, upper)
 \item{sex}{sex of the individual. Must be coded in the same way as in the \code{ratetable}.}
 \item{year}{date of diagnosis. Must be in date format}
 \item{scale}{
-numeric value to scale the results. If \code{ratetable} is in units/day, \code{scale = 365.25} causes the output
+numeric value to scale the results. If \code{ratetable} is in units/day, \code{scale = 365.241} causes the output
 to be reported in years.
 }
 \item{ratetable}{a table of event rates, such as \code{survexp.us}. }

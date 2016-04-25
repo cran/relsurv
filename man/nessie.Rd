@@ -13,7 +13,7 @@
 }
 \arguments{
 \item{formula}{
-a formula object, same as in \code{rs.surv}. The right-hand side of the formula object includes the variable that defines the subgroups by which the expected sample size is to be calculated and, if required, the \code{ratetable} argument as in all the other functions of the package.
+a formula object, same as in \code{rs.surv}. The right-hand side of the formula object includes the variable that defines the subgroups (a variable of type \code{factor}) by which the expected sample size is to be calculated and, if required, the \code{ratetable} argument as in all the other functions of the package.
 }
 \item{data}{
 a data.frame in which to interpret the variables named in the
@@ -46,7 +46,7 @@ A list of values.
 data(slopop)
 data(rdata)
 rdata$agegr <-cut(rdata$age,seq(40,95,by=5))
-nessie(Surv(time,cens)~agegr+ratetable(age=age*365,sex=sex,year=year),
+nessie(Surv(time,cens)~agegr+ratetable(age=age*365.241,sex=sex,year=year),
 	ratetable=slopop,data=rdata,times=c(1,3,5,10,15))
 }
 

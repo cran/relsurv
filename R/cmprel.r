@@ -48,6 +48,7 @@ cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable 
 	areae <- sum(temp$areae)/365.241		# sum(diff(c(0,tis))*temp$cumince)/365.241
 	areap <- sum(temp$areap)/365.241		#sum(diff(c(0,tis))*temp$cumincp)/365.241
   
+  	options(warn=-1)
   	out[[2*kt-1]]$est <- c(0,temp$cumince)
   	out[[2*kt-1]]$var <- c(0,temp$ve)
   	out[[2*kt-1]]$lower <- temp$cumince-se.fac*sqrt(temp$ve)
@@ -59,7 +60,11 @@ cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable 
 	out[[2*kt]]$lower <- temp$cumincp-se.fac*sqrt(temp$vp)
 	out[[2*kt]]$upper <- temp$cumincp+se.fac*sqrt(temp$vp)
 	out[[2*kt]]$area <- areap
-		
+	options(warn=0)
+	
+	ne <- sum(temp$ve<0)
+	if(ne>0) warning(paste(names(tab.strata)[kt],": The estimated variance of crude mortality is negative in ", ne, " out of ", length(temp$ve)," intervals"), call. = FALSE)
+	
 	if(!missing(add.times)){
 	out[[2*kt-1]]$index <- out[[2*kt]]$index <- unique(c(1,which(tis %in% c(rform$Y[inx],add.times,tau))))
 	out[[2*kt-1]]$add.times <- out[[2*kt]]$add.times <- add.times

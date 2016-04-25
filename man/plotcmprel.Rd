@@ -47,8 +47,8 @@ data(slopop)
 data(rdata)
 #calculate the cumulative incidence curve
 #note that the variable year is given in days since 01.01.1960 and that 
-#age must be multiplied by 365 in order to be expressed in days.
-fit <- cmp.rel(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
+#age must be multiplied by 365.241 in order to be expressed in days.
+fit <- cmp.rel(Surv(time,cens)~sex+ratetable(age=age*365.241,sex=sex,
       year=year),ratetable=slopop,data=rdata,tau=3652.41)
 plot(fit,col=c(1,1,2,2),xscale=365.241,conf.int=c(1,3))
 }
