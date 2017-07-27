@@ -2,10 +2,10 @@
 \alias{plot.cmp.rel}
 
 
-\title{Plot the cumulative incidence curves}
+\title{Plot the crude probability of death}
 
 \description{
-     Plot method for cmp.rel. Plots the probability of dying due to disease and due to population reasons
+     Plot method for cmp.rel. Plots the cumulative probability of death due to disease and due to population reasons
 }
 \usage{
 	\method{plot}{cmp.rel}(x, main, curvlab, ylim=c(0, 1), xlim, wh=2, xlab="Time (days)",
@@ -45,7 +45,7 @@ No value is returned.
 \examples{
 data(slopop)
 data(rdata)
-#calculate the cumulative incidence curve
+#calculate the crude probability of death
 #note that the variable year is given in days since 01.01.1960 and that 
 #age must be multiplied by 365.241 in order to be expressed in days.
 fit <- cmp.rel(Surv(time,cens)~sex+ratetable(age=age*365.241,sex=sex,

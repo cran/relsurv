@@ -1,5 +1,6 @@
-cmp.rel			Compute crude mortality curves
-plot.cmp.rel		Plot the cumulative incidence curves
+cmp.rel			Compute crude probability of dying
+plot.cmp.rel		Plot the crude probability of dying
+summary.cmp.rel		Print the crude probability of dying at given timepoints
 invtime                 Inverse transforming of time in Relative
                         Survival
 joinrate                Join ratetables

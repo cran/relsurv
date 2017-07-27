@@ -58,10 +58,8 @@ any variables needed \code{ratetable} object, like \code{age} and \code{year}.
 }
 
 \references{
-Package: Pohar M., Stare J. (2006) "Relative survival analysis in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
-
-Log-rank type test: 
 Graffeo, N., Castell, F., Belot, A. and Giorgi, R. (2016) "A log-rank-type test to compare net survival distributions. Biometrics. doi: 10.1111/biom.12477"
+Pavlic, K., Pohar Perme, M. (2017) "On comparison of net survival curves. BMC Med Res Meth. doi: 10.1186/s12874-017-0351-3"
 }
 
 

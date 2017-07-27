@@ -4,10 +4,10 @@
 
 
 
-\title{Compute crude mortality curves}
+\title{Compute crude probability of death}
 
 \description{
-     Estimates the probability of dying due to disease and due to population reasons
+     Estimates the crude probability of death due to disease and due to population reasons
 }
 \usage{
      cmp.rel(formula, data, ratetable = relsurv::slopop, na.action,tau,
@@ -56,13 +56,13 @@ Note that numerical integration is required to calculate the variance estimator.
 
 The area under the curve is calculated on the interval [0,\code{tau}]. 
 
-Function \code{timepoints} may be used to get the output at specific points in time.
+Function \code{summary} may be used to get the output at specific points in time.
 
 }
 
 \value{
 An object of class \code{cmp.rel}.
-Objects of this class have methods for the functions \code{print} and \code{plot}.
+Objects of this class have methods for the functions \code{print} and \code{plot}. The \code{summary} function can be used for printing output at required time points.
 An object of class \code{cmp.rel} is composed of several lists, each pertaining the cumulative hazard function for one risk and one strata. Each of the lists contains the following objects:
 \item{time}{the time-points at which the curves are estimated}
 \item{est}{the estimate}
@@ -80,7 +80,7 @@ An object of class \code{cmp.rel} is composed of several lists, each pertaining 
 \examples{
 data(slopop)
 data(rdata)
-#calculate the cumulative incidence curve
+#calculate the crude probability of death
 #note that the variable year is given in days since 01.01.1960 and that 
 #age must be multiplied by 365 in order to be expressed in days.
 fit <- cmp.rel(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
@@ -91,7 +91,7 @@ plot(fit,col=c(1,1,2,2),xscale=365.241,xlab="Time (years)")
 
 
 \seealso{
-\code{rs.surv}, \code{checktimes}
+\code{rs.surv}, \code{summary.cmp.rel}
 }
 
 \keyword{survival}

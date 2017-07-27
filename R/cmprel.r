@@ -177,13 +177,13 @@ print.cmp.rel <- function (x, ntp = 4, maxtime,xscale=365.241, ...)
 	tp <- sort(unique(c(tp,round(x[[1]]$add.times/xscale,1))))
     }
     cat("Estimates, variances and area under the curves:\n")
-    print(checktimes(x, tp,xscale,area=TRUE), ...)
+    print(summary(x, tp,xscale,area=TRUE), ...)
     invisible()
 }
 
-checktimes <- function (w, times,xscale=1,area=FALSE) 
+summary.cmp.rel <- function (object, times,xscale=1,area=FALSE,...) 
 {
-    ng <- length(w)
+    ng <- length(object)
     times <- sort(unique(times))*xscale
     nt <- length(times)
     storage.mode(times) <- "double"
@@ -195,20 +195,20 @@ checktimes <- function (w, times,xscale=1,area=FALSE)
     storage.mode(ind) <- "integer"
     slct <- rep(TRUE, ng)
     for (i in 1:ng) {
-        if (is.null((w[[i]])$est)) {
+        if (is.null((object[[i]])$est)) {
             slct[i] <- FALSE
         }
         else {
             z <- rep(NA,nt)
-            for(kt in 1:nt)z[kt] <- rev(which(w[[i]][[1]]<=times[kt]))[1]
+            for(kt in 1:nt)z[kt] <- rev(which(object[[i]][[1]]<=times[kt]))[1]
             ind[i, ] <- z
-            oute[i, ind[i, ] > 0] <- w[[i]][[2]][z]
-            outa[i,] <- w[[i]][[6]]
-            if (length(w[[i]]) > 2) 
-                outv[i, ind[i, ] > 0] <- w[[i]][[3]][z]
+            oute[i, ind[i, ] > 0] <- object[[i]][[2]][z]
+            outa[i,] <- object[[i]][[6]]
+            if (length(object[[i]]) > 2) 
+                outv[i, ind[i, ] > 0] <- object[[i]][[3]][z]
         }
     }
-    dimnames(oute) <- list(names(w)[1:ng], as.character(times/xscale))
+    dimnames(oute) <- list(names(object)[1:ng], as.character(times/xscale))
     dimnames(outv) <- dimnames(oute) 
     rownames(outa) <- rownames(oute)
     colnames(outa) <- paste("Area at tau") 
