@@ -8,13 +8,13 @@
      Returns a list containing the estimated values at required times. 
 }
 \usage{
-	\method{summary}{cmp.rel}(object, times, xscale = 1,area=FALSE,...) 
+	\method{summary}{cmp.rel}(object, times, scale = 365.241,area=FALSE,...) 
 
 }
 \arguments{
 \item{object}{output of the function \code{cmp.rel}.}
 \item{times}{the times at which the output is required.}
-\item{xscale}{The time scale in which the times are specified. The default value is \code{1}, i.e. days.}
+\item{scale}{The time scale in which the times are specified. The default value is \code{1}, i.e. days.}
 \item{area}{Should area under the curves at time \code{tau} be printed out? Default is \code{FALSE}.}
 \item{...}{Additional arguments, currently not implemented}
 }
@@ -35,7 +35,7 @@ data(rdata)
 #age must be multiplied by 365 in order to be expressed in days.
 fit <- cmp.rel(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
       year=year),ratetable=slopop,data=rdata,tau=3652.41)
-summary(fit,c(1,3),xscale=365.241)
+summary(fit,c(1,3),scale=365.241)
 }
 
 

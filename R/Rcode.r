@@ -1335,11 +1335,11 @@ rs.zph <- function (fit, sc, transform = "identity", var.type = "sum")
 }
 
 plot.rs.zph <- function (x,resid = TRUE, df = 4, nsmo = 40, var, cex = 1,  add = FALSE, col = 1, 
-    lty = 1, xlab, ylab, scale = 1, ...) 
+    lty = 1, xlab, ylab, xscale = 1, ...) 
 {
     #require(splines)
     xx <- x$x
-    if(x$transform=="identity")xx <- xx/scale
+    if(x$transform=="identity")xx <- xx/xscale
     yy <- x$y
     d <- nrow(yy)
     df <- max(df)
@@ -1368,7 +1368,7 @@ plot.rs.zph <- function (x,resid = TRUE, df = 4, nsmo = 40, var, cex = 1,  add =
             pred.x <- exp(pred.x)
         }
     else if (x$transform != "identity") {
-            xtime <- as.numeric(dimnames(yy)[[1]])/scale
+            xtime <- as.numeric(dimnames(yy)[[1]])/xscale
             apr1 <- approx(xx, xtime, seq(min(xx), max(xx), length = 17)[2 * 
                 (1:8)])
             temp <- signif(apr1$y, 2)

@@ -74,6 +74,7 @@ cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable 
    }
    if(p>0)names(out) <- paste(rep(c("causeSpec","population"),ntab.strata),rep(names(tab.strata),each=2))
    else names(out) <- c("causeSpec","population")
+   out$tau <- tau
    class(out) <- "cmp.rel"
    out
 }
@@ -84,6 +85,8 @@ plot.cmp.rel <- function (x, main = " ", curvlab, ylim = c(0, 1), xlim, wh = 2,
     col = 1, lwd = par("lwd"), curves, conf.int, all.times=FALSE,...) 
 {
 #wh= upper left coordinates of the legend, if of length 1, the legend is placed top left.
+    tau <- x$tau
+    x$tau <- NULL
     nc <- length(x)			#number of curves
     if (length(lty) < nc)		#if not enough different line types 
         lty <- rep(lty[1], nc)
@@ -162,29 +165,34 @@ my.poly <- function(x1,x2,y1,y2,...){
 }
 
 
-print.cmp.rel <- function (x, ntp = 4, maxtime,xscale=365.241, ...) 
+print.cmp.rel <- function (x, ntp = 4, maxtime,scale=365.241, ...) 
 {
+    tau <- x$tau
+    x$tau <- NULL
     nc <- length(x)
 
     if (missing(maxtime)) {
         maxtime <- 0
         for (i in 1:nc) maxtime <- max(maxtime, x[[i]]$time)
     }
-    tp <- pretty(c(0, maxtime/xscale), ntp + 1)
+    tp <- pretty(c(0, maxtime/scale), ntp + 1)
     tp <- tp[-c(1, length(tp))]
     
     if(length(x[[1]]$add.times)>0 & length(x[[1]]$add.times)<5){
-	tp <- sort(unique(c(tp,round(x[[1]]$add.times/xscale,1))))
+	tp <- sort(unique(c(tp,round(x[[1]]$add.times/scale,1))))
     }
     cat("Estimates, variances and area under the curves:\n")
-    print(summary(x, tp,xscale,area=TRUE), ...)
+    x$tau <- tau
+    print(summary(x, tp,scale,area=TRUE), ...)
     invisible()
 }
 
-summary.cmp.rel <- function (object, times,xscale=1,area=FALSE,...) 
+summary.cmp.rel <- function (object, times,scale=365.241,area=FALSE,...) 
 {
+    tau <- object$tau
+    object$tau <- NULL
     ng <- length(object)
-    times <- sort(unique(times))*xscale
+    times <- sort(unique(times))*scale
     nt <- length(times)
     storage.mode(times) <- "double"
     storage.mode(nt) <- "integer"
@@ -208,10 +216,10 @@ summary.cmp.rel <- function (object, times,xscale=1,area=FALSE,...)
                 outv[i, ind[i, ] > 0] <- object[[i]][[3]][z]
         }
     }
-    dimnames(oute) <- list(names(object)[1:ng], as.character(times/xscale))
+    dimnames(oute) <- list(names(object)[1:ng], as.character(times/scale))
     dimnames(outv) <- dimnames(oute) 
     rownames(outa) <- rownames(oute)
-    colnames(outa) <- paste("Area at tau") 
+    colnames(outa) <- paste("Area at tau =",tau/scale) 
     if(area)list(est = oute[slct, , drop = FALSE], var = outv[slct, , 
         drop = FALSE], area=outa[slct,,drop=FALSE])
     else list(est = oute[slct, , drop = FALSE], var = outv[slct, , 

@@ -8,7 +8,7 @@ Displays a graph of the scaled partial residuals, along with a smooth curve.
 }
 \usage{
 \method{plot}{rs.zph}(x, resid=TRUE, df = 4, nsmo = 40,var,cex=1,add=FALSE,col=1,
-    lty=1,xlab,ylab,scale=1,...)
+    lty=1,xlab,ylab,xscale=1,...)
 }
 
 \arguments{
@@ -39,7 +39,7 @@ the set of variables for which plots are desired.  By
 \item{lty}{the line type.}
 \item{xlab}{x axis label.}
 \item{ylab}{y axis label.}
-\item{scale}{units for x axis, default is 1, i.e. days.}
+\item{xscale}{units for x axis, default is 1, i.e. days.}
 \item{...}{Additional arguments passed to the \code{plot} function. }
 }
 

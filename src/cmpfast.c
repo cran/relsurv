@@ -267,8 +267,10 @@ SEXP cmpfast(   SEXP   efac2,   SEXP edims2,
 		}
 
  	for (kt=0; kt<=j; kt++) {
-	    ve[j]+=  (cumince[j] - cumince[kt])*(cumince[j] - cumince[kt])*sigma[kt] + So[kt]*sigmae[kt]*(So[kt]-2*(cumince[j]-cumince[kt]));
-	    vp[j]+=  (cumincp[j] - cumincp[kt])*(cumincp[j] - cumincp[kt])*sigma[kt] + So[kt]*sigmap[kt]*(So[kt]-2*(cumincp[j]-cumincp[kt]));
+	  //  ve[j]+=  (cumince[j] - cumince[kt])*(cumince[j] - cumince[kt])*sigma[kt] + So[kt]*sigmae[kt]*(So[kt]-2*(cumince[j]-cumince[kt]));
+	  //  vp[j]+=  (cumincp[j] - cumincp[kt])*(cumincp[j] - cumincp[kt])*sigma[kt] + So[kt]*sigmap[kt]*(So[kt]-2*(cumincp[j]-cumincp[kt]));
+	      ve[j]+=  So[kt]*So[kt]*(1-(cumince[j] - cumince[kt])/So[kt])*(1-(cumince[j] - cumince[kt])/So[kt])*sigma[kt];
+	      vp[j]+=  (cumincp[j] - cumincp[kt])*(cumincp[j] - cumincp[kt])*sigma[kt];
 	}
 
 		areae[j] =  thiscell*cumince[j];

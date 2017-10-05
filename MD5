@@ -1,8 +1,8 @@
-b2966e4f1544168b318abfe3a64cc704 *DESCRIPTION
+b5275ec56fb04acb568fd84f7fe5a30b *DESCRIPTION
 77671e8b7de3d3b6723c411fb285c855 *INDEX
-8f5f9448d882f77d3e12adf27724ab3c *NAMESPACE
-dff670d7b7954522909c3bfbc4dc55ab *R/Rcode.r
-84ef3ed13f19d3443ea2fd874227155c *R/cmprel.r
+b72b20cc26b7ec889d25eb2f478b6410 *NAMESPACE
+231e929bf3eaf273140eae5830a07c91 *R/Rcode.r
+d9b63e5bc80adef459825732a9b3b2eb *R/cmprel.r
 476d5effd3aff473f5ce65717dd4551a *R/mystrata.r
 e8c5220a2b671c39c0be09d5991f5aae *R/plotrssurv.r
 2ec6f3f9d229655fbf4f6a0064bcc054 *R/rformulate.r
@@ -22,7 +22,7 @@ bd4787c86bf398bf7a72dfd8cbc80c3c *man/epa.Rd
 185f03cd09bda2acfecbde763fce4209 *man/joinrate.Rd
 74ef15abf279ff66e3226e78b7d40b7d *man/nessie.Rd
 83d5ee534a03f7cdb681d2348b4b61fa *man/plotcmprel.Rd
-2ffd6060fcfe7a7f55703469a419b419 *man/plotrszph.Rd
+4319e0954d7db46809081a92c5b903e6 *man/plotrszph.Rd
 c28a88ecfa1f891e98c8fc9ef7566e55 *man/rdata.Rd
 ccbf648df0f3619d2d081f89e82694f5 *man/resid.Rd
 865037ecb2223f5ca0f4b1867dd9b302 *man/rsadd.Rd
@@ -34,13 +34,13 @@ cc2b26e557aec8d00d4fb815817c8b84 *man/rssurv.Rd
 a6d98ea92b62866675e9acf982461c46 *man/rstrans.Rd
 a2b897a35bca70d0cbfe104e8c603620 *man/rszph.Rd
 be655c8edf2364de4cc91c03c6e61487 *man/slopop.Rd
-1f344ddd16101c3b95e2fd21a6c3ea7a *man/summary.cmp.rel.Rd
+c8266292cdcf74973477ffcb5f7cb919 *man/summary.cmp.rel.Rd
 725e6686039ca4b47e8f753c99139635 *man/survfitrsadd.rd
 43de679849893f7f8847efb130cd7af5 *man/survsplit.Rd
 713ee65969b8de3669824feed81846cf *man/transrate.Rd
 ce2365d59b077324be90c798f79379de *man/transratehld.Rd
 ade1cfda41d4ceb8f5ec749753a9ef78 *man/transratehmd.Rd
-2731558ff774e70abb129e79b4bfbcc5 *src/cmpfast.c
+3165b274aef1ec5d5313b1c357ff23c7 *src/cmpfast.c
 6853ad4d02cc6b1ff9e2e786f7dad4b5 *src/dmatrix.c
 35fe86cf308d11c704de3aaf3e58a629 *src/exps.c
 610b2b35cbcc528d6263bb1dbe7f856f *src/init.c

@@ -1,4 +1,4 @@
-useDynLib(relsurv)
+useDynLib(relsurv,.registration = TRUE)
 import(survival, date,splines)
 export("epa","invtime","joinrate",
 	"rs.br","rs.diff","rs.surv",
