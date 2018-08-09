@@ -47,11 +47,11 @@ Computers in biology and medicine, \bold{37}: 1741--1749.
 data(slopop)
 data(rdata)
 #BTW: work on a smaller dataset here to run the example faster
-fit <- rsadd(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
-      year=year),ratetable=slopop,data=rdata[1:500,],method="EM")
+fit <- rsadd(Surv(time,cens)~sex,rmap=list(age=age*365.241),
+	ratetable=slopop,data=rdata[1:500,],method="EM")
 survfit.rsadd(fit,newdata=data.frame(sex=1,age=60,year=17000))
-}
 
+}
 
 \seealso{
 \code{survfit},

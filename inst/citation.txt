@@ -1,16 +1,29 @@
-citHeader("To cite package 'relsurv' in publications use:")
-
 year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date, perl = TRUE)
 vers <- paste("R package version", meta$Version)
 
-citEntry(entry="Manual",
+bibentry(entry="Manual",
          title = "relsurv: Relative survival analysis",
          author = personList(as.person("Maja Pohar Perme"),
                              as.person("Klemen Pavlic"),
          year = year,
          note = vers,
-
+	 url="https://CRAN.R-project.org/package=relsurv",
          textVersion =
          paste("Maja Pohar Perme, Klemen Pavlic(",year,
                "). relsurv: Relative survival analysis. ",
-               vers, ".", sep=""))
+               vers, ".", sep=""),
+         key="relsurv-package"
+         )
+
+bibentry(bibtype= "Article",
+         title="Relative survival analysis in {R}",
+	 author=c(person(c("M.", "Pohar")),
+	          person(c("J.", "Stare"))),
+         year = "2006",
+         journal= "Computer methods and programs in biomedicine",
+	 volume = "81",
+	 issue = 3,
+	 pages= 272-278,
+	 key="relsurv-paper"
+	)
+	

@@ -1,5 +1,5 @@
 cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
-     na.action,tau,conf.int=0.95,precision=1,add.times) 
+     na.action,tau,conf.int=0.95,precision=1,add.times,rmap) 
     
     #formula: for example Surv(time,cens)~1 #not implemented for subgroups - DO IT!
     #data: the observed data set
@@ -10,7 +10,10 @@ cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable 
 {
 
     call <- match.call()
-    rform <- rformulate(formula, data, ratetable, na.action)			#get the data ready
+    if (!missing(rmap)) { 
+          rmap <- substitute(rmap)
+    }
+    rform <- rformulate(formula, data, ratetable, na.action,rmap)			#get the data ready
     data <- rform$data								#the data set
     se.fac <- sqrt(qchisq(conf.int, 1))						#factor needed for confidence interval
 
@@ -43,7 +46,7 @@ cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable 
 	
 	out[[2*kt-1]]$time <- out[[2*kt]]$time <- c(0,tis)
 	
-	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis,fast=TRUE,cmp=T)		#calculate the values for each interval of time
+	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE,cmp=T)		#calculate the values for each interval of time
 
 	areae <- sum(temp$areae)/365.241		# sum(diff(c(0,tis))*temp$cumince)/365.241
 	areap <- sum(temp$areap)/365.241		#sum(diff(c(0,tis))*temp$cumincp)/365.241

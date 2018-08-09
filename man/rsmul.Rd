@@ -7,21 +7,15 @@ coxph function using relative survival.
 }
 \usage{
 rsmul(formula, data, ratetable = relsurv::slopop, int,na.action,init,
-      method,control,...)
+      method,control,rmap,...)
 }
 \arguments{
 \item{formula}{
-a formula object, with the response on the left of a \code{~} operator, and
-the terms on the right. The terms consist of predictor variables separated by
-the \code{+} operator, along with a \code{ratetable} term. The \code{ratetable} term
-matches each subject to his/her expected cohort. If the variables are organized and named
-in the same way as in the population tables, the \code{ratetable} term can be omitted.
- The response must be a survival object as
-returned by the \code{Surv} function.
+a formula object, with the response as a \code{Surv} object on the
+          left of a \code{~} operator, and, if desired, terms separated  by
+          the \code{+} operator on the right. 
 
- NOTE: The time must be in days, and the same
-is required for the ratetable variables (the variables used in the population tables), for example age and year (year must be 
-given in the \code{date} format, i.e. in number of days since 01.01.1960). 
+ NOTE: The follow-up time must be in days.
 }
 \item{data}{
 a data.frame in which to interpret the variables named in
@@ -45,6 +39,9 @@ be more computationally intensive.}
 \item{control}{a list of parameters for controlling the fitting process. 
           See the documentation for \code{coxph.control} for details.
 }
+\item{rmap}{an optional list to be used if the variables are not
+          organized and named in the same way as in the \code{ratetable} object. See details below.}
+
 \item{...}{Other arguments will be passed to \code{coxph.control}.}
 }
 
@@ -56,9 +53,7 @@ an object of class \code{coxph} with an additional item:
 }
 
 \details{
-NOTE: All times used in the formula argument must be specified in days. This is true for the follow-up time as well as for
-any variables needed \code{ratetable} object, like \code{age} and \code{year}. On the contrary, the \code{int} argument requires
-interval specification in years.
+NOTE: The follow-up time must be specified in days. The \code{ratetable} being used may have different variable names and formats than the user's data set, this is dealt with by the \code{rmap} argument. For example, if age is in years in the data set but in days in the \code{ratetable} object, age=age*365.241 should be used. The calendar year can be in any date format (date, Date and POSIXt are allowed), the date formats in the \code{ratetable} and in the data may differ. 
 }
 
 \references{
@@ -79,10 +74,10 @@ Computers in biology and medicine, \bold{37}: 1741--1749.
 data(slopop)
 data(rdata)
 #fit a multiplicative model
-#note that the variable year is in the date format - the number of days since 01.01.1960 and that 
+#note that the variable year is given in days since 01.01.1960 and that 
 #age must be multiplied by 365.241 in order to be expressed in days.
-fit <- rsmul(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365.241,
-      sex=sex,year=year),ratetable=slopop,data=rdata)
+fit <- rsmul(Surv(time,cens)~sex+as.factor(agegr),rmap=list(age=age*365.241),
+            ratetable=slopop,data=rdata)
 
 
 #check the goodness of fit

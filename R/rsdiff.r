@@ -1,5 +1,5 @@
 rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
-                     na.action,precision=1) 
+                     na.action,precision=1,rmap) 
   
   #formula: for example Surv(time,cens)~sex
   #data: the observed data set
@@ -7,7 +7,10 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
 {
   
   call <- match.call()
-  rform <- rformulate(formula, data, ratetable, na.action)  		#get the data ready 
+  if (!missing(rmap)) { 
+        rmap <- substitute(rmap)
+      }
+    rform <- rformulate(formula, data, ratetable, na.action,rmap)  		#get the data ready 
   data <- rform$data								#the data set
   p <- rform$m								#number of covariates
   if (p > 0) 									#if covariates 
@@ -39,7 +42,7 @@ rs.diff <- function (formula = formula(data), data = parent.frame(), ratetable =
     for (kt in 1:kgroups) {						#for each group
       inx <- which(data$Xs == names(out$n)[kt] & strats == levels(strats)[s])				#individuals within this group
       #if (length(inx)<10)numOfSmallGrps <- numOfSmallGrps + 1
-      temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis,fast=TRUE)	#calculate the values for each interval of time
+      temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE)	#calculate the values for each interval of time
       out$time <- c(out$time, tis)						#add times
       out$n.risk <- c(out$n.risk, temp$yi)					#add number at risk for each time
       out$n.event <- c(out$n.event, temp$dni)					#add number of events for each time

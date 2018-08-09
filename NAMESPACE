@@ -23,6 +23,6 @@ importFrom("graphics", "abline", "axis", "box", "legend", "lines",
 importFrom("stats", "approx", "binomial", "coef", "delete.response",
              "glm", "glm.control", "median", "model.extract",
              "model.frame", "model.matrix", "pchisq", "pnorm", "poisson",
-             "printCoefmat", "qchisq", "resid", "symnum", "terms")
+             "printCoefmat", "qchisq", "resid", "symnum", "terms","as.formula", "model.offset")
 importFrom("utils", "getFromNamespace", "read.table")
 

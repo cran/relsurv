@@ -11,22 +11,14 @@
      Tests if there is a difference between two or more net survival curves using a log-rank type test.
 }
 \usage{
-     rs.diff(formula, data, ratetable = relsurv::slopop, na.action,precision=1) 
+     rs.diff(formula, data, ratetable = relsurv::slopop, na.action,precision=1,rmap) 
 }
 \arguments{
 \item{formula}{
-a formula object, with the response as a \code{Surv} object on the
-          left of a \code{~} operator, and, if desired, terms separated  by
-          the \code{+} operator on the right. If the variables are not
-          organized and named in the same way as in the population
-          tables, a \code{ratetable} term must be added to match each
-          subject  to his/her expected cohort.   
 A formula expression as for other survival models, of the form \code{Surv(time, status) ~ predictors}.
 Each combination of predictor values defines a subgroup. A \code{strata} term may be used to produce a stratified test. 
 
- NOTE: The time must be in days, and the same
-is required for the ratetable variables (the variables used in the population tables), for example age and year (year must be 
-given in the \code{date} format, i.e. in number of days since 01.01.1960). 
+ NOTE: The follow-up time must be in days. 
 }
 \item{data}{
 a data.frame in which to interpret the variables named in the
@@ -44,12 +36,13 @@ a table of event rates, organized as a \code{ratetable} object,
 
 \item{precision}{Precision for numerical integration. Default is 1, which means that daily intervals are taken, the value may be decreased to get a higher precision or increased to achieve a faster calculation. The calculation intervals always include at least all times of event and censoring as border points.
 }
+\item{rmap}{an optional list to be used if the variables are not
+          organized and named in the same way as in the \code{ratetable} object. See details below.}
 
 }
 
 \details{
-NOTE: All times used in the formula argument must be specified in days. This is true for the follow-up time as well as for
-any variables needed \code{ratetable} object, like \code{age} and \code{year}.
+NOTE: The follow-up time must be specified in days. The \code{ratetable} being used may have different variable names and formats than the user's data set, this is dealt with by the \code{rmap} argument. For example, if age is in years in the data set but in days in the \code{ratetable} object, age=age*365.241 should be used. The calendar year can be in any date format (date, Date and POSIXt are allowed), the date formats in the \code{ratetable} and in the data may differ. 
 }
 
 \value{
@@ -69,10 +62,10 @@ Pavlic, K., Pohar Perme, M. (2017) "On comparison of net survival curves. BMC Me
 data(slopop)
 data(rdata)
 #calculate the relative survival curve
-#note that the variable year is in the date format - the number of days since 01.01.1960 and that 
+#note that the variable year is given in days since 01.01.1960 and that 
 #age must be multiplied by 365.241 in order to be expressed in days.
-rs.diff(Surv(time,cens)~sex+ratetable(age=age*365.241,sex=sex,
-      year=year),ratetable=slopop,data=rdata)
+rs.diff(Surv(time,cens)~sex,rmap=list(age=age*365.241),
+		ratetable=slopop,data=rdata)
 }
 
 

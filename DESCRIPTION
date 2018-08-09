@@ -1,17 +1,17 @@
 Package: relsurv
 Title: Relative Survival
-Date: 2018-4-4
-Version: 2.1-2
+Date: 2018-8-9
+Version: 2.2
 Authors@R: c(person(c("Maja","Pohar","Perme"),role=c("aut","cre"),email="maja.pohar@mf.uni-lj.si"),person("Klemen", "Pavlic", role = "ctb",
 		     email = "klemen.pavlic@mf.uni-lj.si"))
 Author: Maja Pohar Perme [aut, cre],
   Klemen Pavlic [ctb]
 Maintainer: Maja Pohar Perme <maja.pohar@mf.uni-lj.si>
-Description: Various functions for relative survival analysis: regression and non-parametric estimators. See Pohar Perme et al (2016), <doi: 10.1186/s12885-016-2967-9> and Pohar et al (2006), <doi: 10.1016/j.cmpb.2006.01.004>.
-Depends: survival, splines, date
+Description: Contains functions for analysing relative survival data, including nonparametric estimators of net (marginal relative) survival, relative survival ratio, crude mortality, methods for fitting  and checking additive and multiplicative regression models, transformation approach, methods for dealing with population mortality tables.
+Depends: R (>= 2.10), survival, splines, date
 License: GPL
 LazyData: true
 NeedsCompilation: yes
-Packaged: 2018-04-04 12:29:11 UTC; majap
 Repository: CRAN
-Date/Publication: 2018-04-05 13:55:52 UTC
+Packaged: 2018-08-09 06:02:17 UTC; majap
+Date/Publication: 2018-08-09 07:00:03 UTC

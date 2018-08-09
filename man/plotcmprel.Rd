@@ -45,11 +45,8 @@ No value is returned.
 \examples{
 data(slopop)
 data(rdata)
-#calculate the crude probability of death
-#note that the variable year is in the date format - the number of days since 01.01.1960 and that 
-#age must be multiplied by 365.241 in order to be expressed in days.
-fit <- cmp.rel(Surv(time,cens)~sex+ratetable(age=age*365.241,sex=sex,
-      year=year),ratetable=slopop,data=rdata,tau=3652.41)
+fit <- cmp.rel(Surv(time,cens)~sex,rmap=list(age=age*365.241),
+		ratetable=slopop,data=rdata,tau=3652.41)
 plot(fit,col=c(1,1,2,2),xscale=365.241,conf.int=c(1,3))
 }
 

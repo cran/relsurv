@@ -39,8 +39,8 @@ A list with two components:
 data(slopop)
 data(rdata)
 #fit an additive model with the EM method
-fit <- rsadd(Surv(time,cens)~sex+age+ratetable(age=age*365.241,
-	   sex=sex,year=year), ratetable=slopop,data=rdata,int=5,method="EM")
+fit <- rsadd(Surv(time,cens)~sex+age,rmap=list(age=age*365.241),
+		ratetable=slopop,data=rdata,int=5,method="EM")
 sm <- epa(fit)
 plot(sm$times,sm$lambda)
 }

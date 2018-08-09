@@ -42,7 +42,7 @@ Package. Pohar M., Stare J. (2006) "Relative survival analysis in R." Computer M
 data(slopop)
 data(rdata)
 #fit a relative survival model
-fit <- rsadd(Surv(time,cens)~sex+age+year+ratetable(age=age*365.241,sex=sex,year=year),
+fit <- rsadd(Surv(time,cens)~sex+age+year,rmap=list(age=age*365.241),
 	ratetable=slopop,data=rdata,int=c(0:10,15))
 
 #calculate the predicted curve for a male individual, aged 65, diagnosed in 1982

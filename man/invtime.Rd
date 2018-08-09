@@ -20,7 +20,7 @@ invtime(y, age, sex, year, scale, ratetable, lower, upper)
 \item{y}{time in Y.}
 \item{age}{age of the individual.  Must be in days.}
 \item{sex}{sex of the individual. Must be coded in the same way as in the \code{ratetable}.}
-\item{year}{date of diagnosis. Must be in date format}
+\item{year}{date of diagnosis. Must be in a date format}
 \item{scale}{
 numeric value to scale the results. If \code{ratetable} is in units/day, \code{scale = 365.241} causes the output
 to be reported in years.

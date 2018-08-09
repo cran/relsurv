@@ -45,7 +45,7 @@ Goodness of fit: Stare J.,Pohar Perme M., Henderson R. (2005) "Goodness of fit o
 \examples{
 data(slopop)
 data(rdata)
-fit <- rsadd(Surv(time,cens)~sex+ratetable(age=age*365.241,sex=sex,year=year),
+fit <- rsadd(Surv(time,cens)~sex,rmap=list(age=age*365.241),
        ratetable=slopop,data=rdata,int=5)
 sresid <- residuals.rsadd(fit)
 }

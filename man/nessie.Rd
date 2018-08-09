@@ -9,11 +9,11 @@
      Calculates how the sample size decreases in time due to population mortality
 }
 \usage{
-     nessie(formula, data, ratetable = relsurv::slopop,times)  
+     nessie(formula, data, ratetable = relsurv::slopop,times,rmap)  
 }
 \arguments{
 \item{formula}{
-a formula object, same as in \code{rs.surv}. The right-hand side of the formula object includes the variable that defines the subgroups (a variable of type \code{factor}) by which the expected sample size is to be calculated and, if required, the \code{ratetable} argument as in all the other functions of the package.
+a formula object, same as in \code{rs.surv}. The right-hand side of the formula object includes the variable that defines the subgroups (a variable of type \code{factor}) by which the expected sample size is to be calculated.
 }
 \item{data}{
 a data.frame in which to interpret the variables named in the
@@ -25,6 +25,9 @@ a table of event rates, organized as a \code{ratetable} object,
           such as \code{slopop}.  
 }
 \item{times}{Times at which the calculation should be evaluated - in years!} 
+\item{rmap}{an optional list to be used if the variables are not
+          organized and named in the same way as in the \code{ratetable} object. See details of the \code{rs.surv} function.}
+
 }
 
 \details{
@@ -46,7 +49,7 @@ A list of values.
 data(slopop)
 data(rdata)
 rdata$agegr <-cut(rdata$age,seq(40,95,by=5))
-nessie(Surv(time,cens)~agegr+ratetable(age=age*365.241,sex=sex,year=year),
+nessie(Surv(time,cens)~agegr,rmap=list(age=age*365.241),
 	ratetable=slopop,data=rdata,times=c(1,3,5,10,15))
 }
 

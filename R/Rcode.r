@@ -386,7 +386,7 @@ varstop <- 3+nfk+p		#last column of covariates
 
 rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
     int, na.action, method = "max.lik", init, bwin, centered = FALSE, 
-    cause, control, ...) 
+    cause, control, rmap, ...) 
 {
     call <- match.call()
     if (missing(control)) 
@@ -399,8 +399,15 @@ rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = r
     rform <- rformulate(formula, data, ratetable, na.action, 
         int, centered, cause)
     }
-    else rform <- rformulate(formula, data, ratetable, na.action, 		#NEW: ce ni cause
-        int, centered)
+    else{ #no cause
+      if (!missing(rmap)) { 
+        rmap <- substitute(rmap)
+        #rform <- rformulate(formula,data, ratetable, na.action, rmap,int, centered)			#get the data ready
+      }
+      #else 
+      rform <- rformulate(formula,data, ratetable, na.action, rmap, int, centered)
+    }
+
     if (method == "EM") {
         if (!missing(int)) {
             if (length(int) > 1 | any(int <= 0)) 
@@ -1516,11 +1523,16 @@ invtime <- function (y = 0.1, age = 23011, sex = "male", year = 9497, scale = 1,
 
 
 rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
-    int, na.action, init, method = "mul", control, ...) 
+    int, na.action, init, method = "mul", control,rmap, ...) 
 {
     #require(survival)
-    rform <- rformulate(formula, data, ratetable, na.action, 
-        int)
+   
+    if (!missing(rmap)) { 
+      rmap <- substitute(rmap)
+    }
+    rform <- rformulate(formula,data, ratetable, na.action,rmap,int)
+    
+    
     U <- rform$data
     if (missing(int)) 
 	    int <- ceiling(max(rform$Y/365.241))
@@ -1606,10 +1618,14 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = r
 }
 
 rstrans <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
-    int, na.action, init, control, ...) 
+    int, na.action, init, control,rmap, ...) 
 {
-    rform <- rformulate(formula, data, ratetable, na.action, 
-        int)
+  if (!missing(rmap)) { 
+    rmap <- substitute(rmap)
+  }
+  rform <- rformulate(formula, data, ratetable, na.action, rmap, int)
+    
+    
     if (missing(int)) 
 	    int <- ceiling(max(rform$Y/365.241))
     fk <- (attributes(rform$ratetable)$factor != 1)
@@ -1661,8 +1677,8 @@ transrate <- function (men, women, yearlim, int.length = 1)
         1)), ncol = 1), 1, function(x) {
         paste("1jan", x, sep = "")
     }))
-    attributes(temp) <- list(dim = c(dimi[1], 2, dimi[2]), dimnames = list(as.character(0:(dimi[1] - 
-        1)), c("male", "female"), as.character(yearlim[1] + int.length * 
+    attributes(temp) <- list(dim = c(dimi[1], 2, dimi[2]), dimnames = list(age=as.character(0:(dimi[1] - 
+        1)), sex=c("male", "female"), year=as.character(yearlim[1] + int.length * 
         (0:(dimi[2] - 1)))), dimid = c("age", "sex", "year"), 
         factor = c(0, 1, 0),type=c(2,1,3), cutpoints = list((0:(dimi[1] - 1)) * 
             (365.241), NULL, cp), class = "ratetable")
@@ -1775,7 +1791,7 @@ transrate.hld <- function(file, cut.year,race){
 		}
 		attributes(out)<-list(
 			dim=c(dims,it),		
-			dimnames=list(as.character(0:amax),as.character(y1),c("male","female"),race.val),	
+			dimnames=list(age=as.character(0:amax),year=as.character(y1),sex=c("male","female"),race=race.val),	
 			dimid=c("age","year","sex","race"),
 			factor=c(0,0,1,1),type=c(2,3,1,1),
 			cutpoints=list((0:amax)*(365.241),cp,NULL,NULL),
@@ -1826,7 +1842,7 @@ transrate.hmd <- function(male,female){
 	out <- array(c(men,women),dim=dims)
 	attributes(out)<-list(
 		dim=dims,
-		dimnames=list(as.character(0:nr),as.character(y1),c("male","female")),	
+		dimnames=list(age=as.character(0:nr),year=as.character(y1),sex=c("male","female")),	
 		dimid=c("age","year","sex"),
 		factor=c(0,0,1),type=c(2,3,1),
 		cutpoints=list((0:nr)*(365.241),cp,NULL),
@@ -1853,9 +1869,11 @@ joinrate <- function(tables,dim.name="country"){
 	if(any(!unlist(lapply(tables,is.ratetable))))stop("Tables must be in ratetable format")
 	if(length(attributes(tables[[1]])$dim)!=3)stop("Currently implemented only for ratetables with 3 dimensions")
 
+	if(is.null(attr(tables[[1]],"dimid")))attr(tables[[1]],"dimid") <- names((attr(tables[[1]],"dimnames")))
 	
 	for(it in 2:nfiles){
-		if(length(attributes(tables[[it]])$dimid)!=3)stop("Each ratetable must have 3 dimensions: age, year and sex")
+	  if(is.null(attr(tables[[it]],"dimid")))attr(tables[[it]],"dimid") <- names((attr(tables[[it]],"dimnames")))
+	  if(length(attributes(tables[[it]])$dimid)!=3)stop("Each ratetable must have 3 dimensions: age, year and sex")
 		mc <- match(attributes(tables[[it]])$dimid,attributes(tables[[1]])$dimid,nomatch=0)
 		if(any(mc)==0) stop("Each ratetable must have 3 dimensions: age, year and sex")
 		if(any(mc!=1:3)){
@@ -1936,6 +1954,7 @@ joinrate <- function(tables,dim.name="country"){
 	newat$factor <- c(newat$factor,1)[mc]
 	newat$type <- c(newat$type,1)[mc]
 	newat$dimnames <- list(newat$dimnames[[1]],newat$dimnames[[2]],newat$dimnames[[3]],names(tables))[mc]
+	names(newat$dimnames) <- newat$dimid
 	attributes(out) <- newat
 	out
 }
@@ -2302,9 +2321,9 @@ exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys,prec,cmp=F) {			
     temp
 }
 
-rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
+rs.surv <- function (formula = formula(data), data = parent.frame(),ratetable = relsurv::slopop, 
      na.action, fin.date, method = "pohar-perme", conf.type = "log", 
-     conf.int = 0.95,type="kaplan-meier",add.times,precision=1) 
+     conf.int = 0.95,type="kaplan-meier",add.times,precision=1,rmap) 
     
     #formula: for example Surv(time,cens)~sex
     #data: the observed data set
@@ -2314,7 +2333,10 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
 {
 
     call <- match.call()
-    rform <- rformulate(formula, data, ratetable, na.action)			#get the data ready
+    if (!missing(rmap)) { 
+      rmap <- substitute(rmap)
+    }
+    rform <- rformulate(formula,data, ratetable, na.action,rmap)
     data <- rform$data								#the data set
     type <- match.arg(type, c("kaplan-meier", "fleming-harrington"))		#method of hazard -> survival scale transformation
     type <- match(type, c("kaplan-meier", "fleming-harrington"))
@@ -2362,7 +2384,7 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
         if(method==3)tis <- sort(unique(pmin(max(tis),c(tis,Y2[inx]))))				#add potential times in case of Hakulinen
         #out$index <- c(out$index, which(tis %in% rform$Y[inx])+length(out$time))
    	
-   	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis,fast=(method<3),prec=precision)	#calculate the values for each interval of time
+   	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=(method<3),prec=precision)	#calculate the values for each interval of time
    	
    	out$time <- c(out$time, tis)						#add times
         out$n.risk <- c(out$n.risk, temp$yi)					#add number at risk for each time
@@ -2438,7 +2460,7 @@ rs.surv <- function (formula = formula(data), data = parent.frame(), ratetable =
 
 
 
-nessie <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop,times) 
+nessie <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop,times,rmap) 
     
     #formula: for example Surv(time,cens)~sex
     #data: the observed data set
@@ -2448,10 +2470,14 @@ nessie <- function (formula = formula(data), data = parent.frame(), ratetable = 
 {
 
     call <- match.call()
-    rform <- rformulate(formula, data, ratetable)			#get the data ready
+    if (!missing(rmap)) { 
+      rmap <- substitute(rmap)
+    }
+    na.action <- NA		#set the object just to be able to execute the rformulate call
+   rform <- rformulate(formula, data, ratetable,na.action, rmap)			#get the data ready
  
   templab <- attr(rform$Terms,"term.labels")
-  templab <- templab[-length(templab)]
+  if(!is.null(attr(rform$Terms,"specials")$ratetable))templab <- templab[-length(templab)]	#delete the last term in the formula if the ratetable argument is there
   nameslist <- vector("list",length(templab))
   for(it in 1:length(nameslist)){
   	valuetab <- table(data[,match(templab[it],names(data))])
@@ -2484,13 +2510,13 @@ nessie <- function (formula = formula(data), data = parent.frame(), ratetable = 
     for (kt in order(names(table(data$Xs)))) {						#for each stratum
         inx <- which(data$Xs == names(out$n)[kt])				#individuals within this stratum
 
-	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tisd,fast=FALSE)	#calculate the values for each interval of time
+	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tisd,fast=FALSE)	#calculate the values for each interval of time
    	
    	out$time <- c(out$time, tisd)						#add times
         out$sp <- c(out$sp, temp$sis)						#add expected number of individuals alive
   	out$strata <- c(out$strata, length(tis))				#number of times in this strata
   	
-  	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=(seq(0,100,by=.5)*365.241)[-1],fast=FALSE)	#calculate the values for each interval of time
+  	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=(seq(0,100,by=.5)*365.241)[-1],fast=FALSE)	#calculate the values for each interval of time
 	out$povp <- c(out$povp,mean(temp$sit/365.241))
     }
    
@@ -2522,7 +2548,7 @@ nessie <- function (formula = formula(data), data = parent.frame(), ratetable = 
 
 rs.period <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
      na.action, fin.date, method = "pohar-perme", conf.type = "log", 
-     conf.int = 0.95,type="kaplan-meier",winst,winfin,diag.date) 
+     conf.int = 0.95,type="kaplan-meier",winst,winfin,diag.date,rmap) 
     
     #formula: for example Surv(time,cens)~sex
     #data: the observed data set
@@ -2535,7 +2561,10 @@ rs.period <- function (formula = formula(data), data = parent.frame(), ratetable
 {
 
     call <- match.call()
-    rform <- rformulate(formula, data, ratetable, na.action)			#get the data ready
+    if (!missing(rmap)) { 
+      rmap <- substitute(rmap)
+    }
+    rform <- rformulate(formula, data, ratetable, na.action,rmap)			#get the data ready
     data <- rform$data								#the data set
     type <- match.arg(type, c("kaplan-meier", "fleming-harrington"))		#method of hazard -> survival scale transformation
     type <- match(type, c("kaplan-meier", "fleming-harrington"))
@@ -2601,7 +2630,7 @@ rs.period <- function (formula = formula(data), data = parent.frame(), ratetable
    	tis <- sort(unique(c(tis,tis-1,tis+1)))					#the day after exiting, the day before entering
    	tis <- tis[-length(tis)]							#exclude the largest since it is beyond observation time (1 day later)
    	   	
-   	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],ratetable,rform$status[inx],times=tis,fast=(method<3),ys=ys)	#calculate the values for each interval of time
+   	temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=(method<3),ys=ys)	#calculate the values for each interval of time
    	
    	out$time <- c(out$time, tis)						#add times
         out$n.risk <- c(out$n.risk, temp$yi)					#add number at risk for each time
@@ -2617,7 +2646,7 @@ rs.period <- function (formula = formula(data), data = parent.frame(), ratetable
 		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval
 	}
 	else if(method==3){							#Hakulinen method
-		temp2 <- exp.prep(rform$R[inx,,drop=FALSE],Y2[inx],ratetable,status2[inx],times=tis,ys=ys)	#calculate the values for each interval of time
+		temp2 <- exp.prep(rform$R[inx,,drop=FALSE],Y2[inx],rform$ratetable,status2[inx],times=tis,ys=ys)	#calculate the values for each interval of time
 		popsur <- exp(-cumsum(temp2$yisidli/temp2$yisis))			#population survival
 		haz <- temp$dni/temp$yi						#observed hazard on each interval
 		out$std.err <- c(out$std.err, sqrt(cumsum(temp$dni/(temp$yi)^2)))  #standard error on each interval

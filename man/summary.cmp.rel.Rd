@@ -30,11 +30,9 @@ A list of values is returned.
 \examples{
 data(slopop)
 data(rdata)
-#calculate the crude probability of death
-#note that the variable year is in the date format - the number of days since 01.01.1960 and that 
-#age must be multiplied by 365 in order to be expressed in days.
-fit <- cmp.rel(Surv(time,cens)~sex+ratetable(age=age*365,sex=sex,
-      year=year),ratetable=slopop,data=rdata,tau=3652.41)
+#calculate the crude probability of death and summarize it
+fit <- cmp.rel(Surv(time,cens)~sex,rmap=list(age=age*365),
+      ratetable=slopop,data=rdata,tau=3652.41)
 summary(fit,c(1,3),scale=365.241)
 }
 
