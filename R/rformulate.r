@@ -186,11 +186,16 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action, rm
       rdata <- rdata[keep,]
   }
 
-  # the original code pasted R onto here, but we want to preserve 
-  #  variable class.  So paste on rdata, but with the right order and names
-  temp <- rdata[,match(dimid, names(rdata))]  # in the right order
+  # I do not want to preserve variable class here - so paste R onto here, give it names
+temp <- R
   names(temp) <- paste0("X", 1:ncol(temp))    # with the right names
-  data <- data.frame(start = start, Y = Y, stat = status, temp)
+  
+  #if variable class needs to be preserved, use this instead
+  #  variable class.  So paste on rdata, but with the right order and names
+  #temp <- rdata[,match(dimid, names(rdata))]  # in the right order
+  #names(temp) <- paste0("X", 1:ncol(temp))    # with the right names
+ 
+ data <- data.frame(start = start, Y = Y, stat = status, temp)
   if (mm != 0) data <- cbind(data, X)
   
   # we pass the altered cutpoints forward, keep them in the date format (could be changed eventually to get rid of the date package dependence)

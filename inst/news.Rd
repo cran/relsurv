@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
+
+\section{Changes in version 2.2-1}{
+  \itemize{
+    \item 10 Aug 2018  Corrected a bug in rformulate. R in (rtable)date format is put into rform$data, the original format of the variables is not preserved
+    }
+}
 \section{Changes in version 2.2}{
   \itemize{
     \item 15 Apr 2018  Multiple changes to rformulate function (by Terry Therneau) to be in line with the new survival package requirements - several date formats are now allowed (date, Date, POSIXt)
@@ -7,5 +13,7 @@
     \item Allow all the transrate functions to work without the dimid attribute
     \item New Slovene population tables included (up to 2016)
     
-}}
+}
+
+}
 

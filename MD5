@@ -1,11 +1,11 @@
-f040ead1542eea689af8de020b564b7f *DESCRIPTION
+a24130540d978c899ec9a8904c477850 *DESCRIPTION
 77671e8b7de3d3b6723c411fb285c855 *INDEX
 66f272d0787eb210ba2431dcaf79e767 *NAMESPACE
 44cde642e850e9293f9d8ddf47063363 *R/Rcode.r
 a9af69aa6f278a631bb39a3593358ece *R/cmprel.r
 476d5effd3aff473f5ce65717dd4551a *R/mystrata.r
 e8c5220a2b671c39c0be09d5991f5aae *R/plotrssurv.r
-ac8d3f04bd60c01717e1015eff08b315 *R/rformulate.r
+5eb9c57ec6e792ab06c417a9e1bb6fcf *R/rformulate.r
 87179b85428844d4add5e733cae955d6 *R/rsdiff.r
 ceca1cde417d54a95d3e057ffda85405 *R/rssurvrsadd.r
 b4637a419c60f04bf206fc517dcc3cd2 *R/survfitrsadd.r
@@ -14,7 +14,7 @@ b4637a419c60f04bf206fc517dcc3cd2 *R/survfitrsadd.r
 da512257141fedce138de599b5e9997a *data/rdata.rda
 6590e14f71cc425e679350e43cb6ee53 *data/slopop.rda
 bb2a1b3ccd6ca2200fd39b4669d112bb *inst/citation.txt
-6ce8c776bf1d5a5161ae8e7ec90b3b01 *inst/news.Rd
+b3bb9bef7d7a1b438726f2ab3d644872 *inst/news.Rd
 8032351817b7bd91e06f5636b7101a10 *man/cmprel.Rd
 e9e43bae88190dd04b902a6e3e4e702c *man/colrec.Rd
 9107f531f6c42fb0b11f6f607d2ca0ca *man/epa.Rd

@@ -1,7 +1,7 @@
 Package: relsurv
 Title: Relative Survival
-Date: 2018-8-9
-Version: 2.2
+Date: 2018-8-27
+Version: 2.2-1
 Authors@R: c(person(c("Maja","Pohar","Perme"),role=c("aut","cre"),email="maja.pohar@mf.uni-lj.si"),person("Klemen", "Pavlic", role = "ctb",
 		     email = "klemen.pavlic@mf.uni-lj.si"))
 Author: Maja Pohar Perme [aut, cre],
@@ -13,5 +13,5 @@ License: GPL
 LazyData: true
 NeedsCompilation: yes
 Repository: CRAN
-Packaged: 2018-08-09 06:02:17 UTC; majap
-Date/Publication: 2018-08-09 07:00:03 UTC
+Packaged: 2018-08-27 11:48:14 UTC; majap
+Date/Publication: 2018-08-28 06:20:03 UTC
