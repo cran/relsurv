@@ -1353,7 +1353,7 @@ plot.rs.zph <- function (x,resid = TRUE, df = 4, nsmo = 40, var, cex = 1,  add =
     nvar <- ncol(yy)
     pred.x <- seq(from = min(xx), to = max(xx), length = nsmo)
     temp <- c(pred.x, xx)
-    lmat <- ns(temp, df = df, intercept = TRUE)
+    lmat <- splines::ns(temp, df = df, intercept = TRUE)
     pmat <- lmat[1:nsmo, ]
     xmat <- lmat[-(1:nsmo), ]
     qmat <- qr(xmat)

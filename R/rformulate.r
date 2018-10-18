@@ -12,8 +12,8 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action, rm
   m[[1L]] <- quote(stats::model.frame)  # per CRAN, the formal way to set it
 
   Terms <- if (missing(data)) 
-               terms(formula, specials= "ratetable")
-           else terms(formula, specials= "ratetable", data = data)
+               terms(formula, specials= c("strata","ratetable"))
+           else terms(formula, specials=c("strata", "ratetable"), data = data)
   Term2 <- Terms
 
   #sorting out the ratetable argument - matching demographic variables

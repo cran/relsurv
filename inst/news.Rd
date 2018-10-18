@@ -1,6 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
 
+\section{Changes in version 2.2-2}{
+  \itemize{
+    \item 10 Oct 2018  Corrected a bug in rformulate. Strata did not work correctly.
+    \item 16 Oct 2018  Removed package splines from Depends to Imports. Set the depends for package survival to >= 2.42
+    }
+}
+
+
 \section{Changes in version 2.2-1}{
   \itemize{
     \item 10 Aug 2018  Corrected a bug in rformulate. R in (rtable)date format is put into rform$data, the original format of the variables is not preserved

@@ -26,3 +26,4 @@ importFrom("stats", "approx", "binomial", "coef", "delete.response",
              "printCoefmat", "qchisq", "resid", "symnum", "terms","as.formula", "model.offset")
 importFrom("utils", "getFromNamespace", "read.table")
 
+
