@@ -1,0 +1,30 @@
+bibentry(bibtype = "Article",
+  title        = "Nonparametric Relative Survival Analysis with the {R} Package {relsurv}",
+  author       = c(person(given = c("Maja", "Pohar"),
+                          family = "Perme",
+                          email = "maja.pohar@mf.uni-lj.si"),
+                   person(given = "Klemen",
+                          family = "Pavli\\v{c}")),
+  journal      = "Journal of Statistical Software",
+  year         = "2018",
+  volume       = "87",
+  number       = "8",
+  pages        = "1--27",
+  doi          = "10.18637/jss.v087.i08",
+
+  header       = "To cite relsurv in publications use:"
+)
+
+bibentry(bibtype= "Article",
+         title="Relative survival analysis in {R}",
+	 author=c(person(c("M.", "Pohar")),
+	          person(c("J.", "Stare"))),
+         year = "2006",
+         journal= "Computer methods and programs in biomedicine",
+	 volume = "81",
+	 issue = 3,
+	 pages= 272-278,
+	 
+	 header       = "For regression models cite:"
+	)
+	

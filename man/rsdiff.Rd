@@ -51,8 +51,9 @@ NOTE: The follow-up time must be specified in days. The \code{ratetable} being u
 }
 
 \references{
-Graffeo, N., Castell, F., Belot, A. and Giorgi, R. (2016) "A log-rank-type test to compare net survival distributions. Biometrics. doi: 10.1111/biom.12477"
-Pavlic, K., Pohar Perme, M. (2017) "On comparison of net survival curves. BMC Med Res Meth. doi: 10.1186/s12874-017-0351-3"
+Package: Pohar Perme, M., Pavlic, K. (2018) "Nonparametric Relative Survival Analysis with the {R} Package {relsurv}". Journal of Statistical Software. 87(8), 1-27,  doi: "10.18637/jss.v087.i08" 
+Theory: Graffeo, N., Castell, F., Belot, A. and Giorgi, R. (2016) "A log-rank-type test to compare net survival distributions. Biometrics. doi: 10.1111/biom.12477"
+Theory: Pavlic, K., Pohar Perme, M. (2017) "On comparison of net survival curves. BMC Med Res Meth. doi: 10.1186/s12874-017-0351-3"
 }
 
 

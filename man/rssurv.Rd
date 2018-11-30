@@ -82,10 +82,9 @@ event or censoring time before the specified time. If the output of the estimate
 }
 
 \references{
-Package. Pohar M., Stare J. (2006) "Relative survival analysis in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
-
-Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival analysis relatively easy."
-Computers in biology and medicine, \bold{37}: 1741--1749.
+Package: Pohar Perme, M., Pavlic, K. (2018) "Nonparametric Relative Survival Analysis with the {R} Package {relsurv}". Journal of Statistical Software. 87(8), 1-27,  doi: "10.18637/jss.v087.i08" 
+Theory: Pohar Perme, M., Esteve, J., Rachet, B. (2016) "Analysing Population-Based Cancer Survival - Settling the Controversies." BMC Cancer, 16 (933), 1-8. doi:10.1186/s12885-016-2967-9.
+Theory: Pohar Perme, M., Stare, J., Esteve, J. (2012) "On Estimation in Relative Survival", Biometrics, 68(1), 113-120. doi:10.1111/j.1541-0420.2011.01640.x.
 }
 
 

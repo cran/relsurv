@@ -42,8 +42,9 @@ The last column of the output reports the conditional expected (population) surv
 A list of values.
 }
 
-
-
+\references{
+Pohar Perme, M., Pavlic, K. (2018) "Nonparametric Relative Survival Analysis with the {R} Package {relsurv}". Journal of Statistical Software. 87(8), 1-27,  doi: "10.18637/jss.v087.i08" 
+}
 
 \examples{
 data(slopop)

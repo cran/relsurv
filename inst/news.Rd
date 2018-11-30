@@ -1,6 +1,13 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
 
+\section{Changes in version 2.2-3}{
+  \itemize{
+    \item 28 Nov 2018  The CITATION changed to include the paper descrbing the package published in JSS
+    }
+}
+
+
 \section{Changes in version 2.2-2}{
   \itemize{
     \item 10 Oct 2018  Corrected a bug in rformulate. Strata did not work correctly.
