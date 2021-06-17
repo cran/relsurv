@@ -34,15 +34,15 @@
  **  to the contents of the object "charlie"; the latter is
  **  used in the computations
  */
-SEXP netwei(   SEXP   efac2,   SEXP edims2,
-               SEXP   ecut2,     SEXP   expect2,
-               SEXP   x2, 	SEXP   y2, SEXP status2,     SEXP times2) {
+SEXP netweiDM(   SEXP   efac2,   SEXP edims2,
+                 SEXP   ecut2,     SEXP   expect2,
+                 SEXP   x2, 	SEXP   y2, 	SEXP ys2, SEXP status2,     SEXP times2) {
   int i,j,k;
   int     n,
   edim,
   ntime;
   double  **x;
-  double  *data2, *si;
+  double  *data2, *si, *si2;
   double  **ecut, *etemp;
   double  hazard;						   /*cum hazard over an interval */
 double     thiscell,
@@ -54,13 +54,13 @@ indx2;
 double  wt;
 
 int	    *efac, *edims, *status;
-double  *expect, *y, *times;
+double  *expect, *y, *ys, *times;
 SEXP      rlist, rlistnames;
 
 /*my declarations*/
 
-SEXP    yidli2, dnisi2,yisi2,yidlisi2,yi2,dni2,sidli2,dnisisq2,yisisq2,sis2,yisidli2,yisis2,yidsi2,sit2;
-double  *yidli, *dnisi,*yisi,*yidlisi,*yi,*dni,*sidli,*dnisisq,*yisisq,*sis,*yisidli,*yisis,*yidsi,*sit;
+SEXP    yidli2, dnisi2,yisi2,yidlisi2,yi2,dni2,sidli2,sidliD2,dnisisq2,yisisq2,sis2,sisD2,yisidli2,yisis2,yidsi2,sit2;
+double  *yidli, *dnisi,*yisi,*yidlisi,*yi,*dni,*sidli,*sidliD,*dnisisq,*yisisq,*sis,*sisD,*yisidli,*yisis,*yidsi,*sit;
 
 
 /*
@@ -76,6 +76,7 @@ expect= REAL(expect2);
 n     = LENGTH(y2);									/*number of individuals */
 x     = dmatrix(REAL(x2), n, edim);
 y     = REAL(y2);									/*follow-up times*/
+ys	  = REAL(ys2);
 status = INTEGER(status2);								/* status */
 times = REAL(times2);
 ntime = LENGTH(times2);								/*length of times for reportint */
@@ -84,6 +85,7 @@ ntime = LENGTH(times2);								/*length of times for reportint */
 data2 = (double *)ALLOC(edim+1, sizeof(double));
 
 si = (double *)ALLOC(n, sizeof(double));			/*Si for each individual - to je zdaj pointer, vrednosti klicem s s[i]*/
+si2 = (double *)ALLOC(n, sizeof(double));			/*Si for each individual - to je zdaj pointer, vrednosti klicem s s[i]*/
 
 /*
  ** Set up ecut index as a ragged array
@@ -114,12 +116,16 @@ PROTECT(dni2 = allocVector(REALSXP, ntime));		/*sum Yi dLambdai for each time* -
 dni = REAL(dni2);
 PROTECT(sidli2 = allocVector(REALSXP, ntime));		/*sum dNi/Si for each time* - length=length(times2)*/
 sidli = REAL(sidli2);
+PROTECT(sidliD2 = allocVector(REALSXP, ntime));		/*sum dNi/Si for each time* - length=length(times2)*/
+sidliD = REAL(sidliD2);
 PROTECT(yisisq2 = allocVector(REALSXP, ntime));		/*sum Yi/Si for each time* - length=length(times2)*/
 yisisq = REAL(yisisq2);
 PROTECT(dnisisq2 = allocVector(REALSXP, ntime));		/*sum yi/Si dLambdai for each time* - length=length(times2)*/
 dnisisq = REAL(dnisisq2);
 PROTECT(sis2 = allocVector(REALSXP, ntime));					/* sum of Si at each time*/
 sis = REAL(sis2);
+PROTECT(sisD2 = allocVector(REALSXP, ntime));					/* sum of Si at each time*/
+sisD = REAL(sisD2);
 PROTECT(yisidli2 = allocVector(REALSXP, ntime));					/* sum of Si*dLambdai*Yi at each time*/
 yisidli = REAL(yisidli2);
 PROTECT(yisis2 = allocVector(REALSXP, ntime));					/* sum of Si*Yi at each time*/
@@ -134,6 +140,7 @@ yidsi = REAL(yidsi2);
 /*initialize Si values*/
 for (i=0; i<n; i++) {
   si[i] =1;
+  si2[i] =1;
   sit[i]=0;
 }
 
@@ -147,9 +154,11 @@ for (j=0; j<ntime; j++) {
   yi[j]=0;
   dni[j]=0;
   sidli[j]=0;
+  sidliD[j]=0;
   dnisisq[j]=0;
   yisisq[j]=0;
   sis[j]=0;
+  sisD[j]=0;
   yisidli[j]=0;
   yisis[j]=0;
   yidsi[j]=0;
@@ -201,6 +210,17 @@ thiscell = times[j] - time;
     si[i] = si[i]* exp(-hazard);
     sis[j]+=si[i];
     sidli[j]+=hazard*si[i];
+
+    si2[i] = si2[i]* exp(-hazard);
+    if(y[i]>= times[j]){
+      if(ys[i]==times[j]){
+        si2[i]=1;
+      }
+      if(ys[i]<times[j]){
+        sisD[j]+=si2[i];
+        sidliD[j]+=hazard*si2[i];
+      }
+    }
     if(y[i]>= times[j]){
       yidsi[j]+=exp(-hazard);
       yidli[j]+=hazard;
@@ -223,7 +243,7 @@ thiscell = times[j] - time;
 /*
  ** package the output
  */
-PROTECT(rlist = allocVector(VECSXP, 14));
+PROTECT(rlist = allocVector(VECSXP, 16));
 SET_VECTOR_ELT(rlist,0, yidli2);
 SET_VECTOR_ELT(rlist,1, yidsi2);
 SET_VECTOR_ELT(rlist,2, dnisi2);
@@ -238,9 +258,10 @@ SET_VECTOR_ELT(rlist,10, sis2);
 SET_VECTOR_ELT(rlist,11, yisidli2);
 SET_VECTOR_ELT(rlist,12, yisis2);
 SET_VECTOR_ELT(rlist,13, sit2);
+SET_VECTOR_ELT(rlist,14, sidliD2);
+SET_VECTOR_ELT(rlist,15, sisD2);
 
-
-PROTECT(rlistnames= allocVector(STRSXP, 14));
+PROTECT(rlistnames= allocVector(STRSXP, 16));
 SET_STRING_ELT(rlistnames, 0, mkChar("yidli"));
 SET_STRING_ELT(rlistnames, 1, mkChar("yidsi"));
 SET_STRING_ELT(rlistnames, 2, mkChar("dnisi"));
@@ -255,11 +276,12 @@ SET_STRING_ELT(rlistnames, 10, mkChar("sis"));
 SET_STRING_ELT(rlistnames, 11, mkChar("yisidli"));
 SET_STRING_ELT(rlistnames, 12, mkChar("yisis"));
 SET_STRING_ELT(rlistnames, 13, mkChar("sit"));
-
+SET_STRING_ELT(rlistnames, 14, mkChar("sidliD"));
+SET_STRING_ELT(rlistnames, 15, mkChar("sisD"));
 
 
 setAttrib(rlist, R_NamesSymbol, rlistnames);
 
-unprotect(16);					/*kolk mora bit tu stevilka??  kolikor jih je +2??*/
+unprotect(18);					/*kolk mora bit tu stevilka??  kolikor jih je +2??*/
 return(rlist);
 }

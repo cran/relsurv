@@ -22,9 +22,9 @@ bibentry(bibtype= "Article",
          year = "2006",
          journal= "Computer methods and programs in biomedicine",
 	 volume = "81",
-	 issue = 3,
-	 pages= 272-278,
-	 
+	 issue = "3",
+	 pages= "272-278",
+	 doi= "10.1016/j.cmpb.2006.01.004",
 	 header       = "For regression models cite:"
 	)
-	
+

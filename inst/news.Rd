@@ -1,6 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
 
+\section{Changes in version 2.2-4}{
+  \itemize{
+    \item 8 June 2021  The latest version of slopop is added (1930-2019)
+    \item 8 June 2021  The C code routine netfastpinter has been changed to correctly assign individuals at risk for left truncated data
+    \item 8 June 2021  In the summary of ratetable objects as.Date is used (instead of as.date)
+    \item 8 June 2021  A C code routine netweiDM has been added (based on netwei)
+    }
+}
+
+
 \section{Changes in version 2.2-3}{
   \itemize{
     \item 28 Nov 2018  The CITATION changed to include the paper descrbing the package published in JSS
@@ -27,7 +37,7 @@
     \item 7 Aug 2018   Add the rmap argument to functions rs.surv, rsmul, rsadd, rstrans, nessie, rs.period, rsdiff,cmp.rel, as is the practice in the survival package, and update the manual pages and examples. The ratetable() argument in the formula is still allowed but flagged as deprecated.
     \item Allow all the transrate functions to work without the dimid attribute
     \item New Slovene population tables included (up to 2016)
-    
+
 }
 
 }

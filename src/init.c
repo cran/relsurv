@@ -3,7 +3,7 @@
 #include <stdlib.h> // for NULL
 #include <R_ext/Rdynload.h>
 
-/* FIXME: 
+/* FIXME:
    Check these declarations against the C/Fortran source code.
 */
 
@@ -13,6 +13,7 @@ extern SEXP expc(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP netfastpinter(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP netfastpinter2(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP netwei(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP netweiDM(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
     {"cmpfast",        (DL_FUNC) &cmpfast,         9},
@@ -20,6 +21,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"netfastpinter",  (DL_FUNC) &netfastpinter,   9},
     {"netfastpinter2", (DL_FUNC) &netfastpinter2, 10},
     {"netwei",         (DL_FUNC) &netwei,          8},
+    {"netweiDM",         (DL_FUNC) &netweiDM,          9},
     {NULL, NULL, 0}
 };
 

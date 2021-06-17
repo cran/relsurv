@@ -1,6 +1,6 @@
-3d4d54a0f11c27771250aa45682378d2 *DESCRIPTION
+22571cb5a6dce53110335fb46367ec72 *DESCRIPTION
 89b7b40368351c34e6f1c543ad5902a3 *NAMESPACE
-4486ca7c2174692c2a3036e5deca59c6 *R/Rcode.r
+61041e16f78cd75ea67c95c9a85463b9 *R/Rcode.r
 a9af69aa6f278a631bb39a3593358ece *R/cmprel.r
 476d5effd3aff473f5ce65717dd4551a *R/mystrata.r
 e8c5220a2b671c39c0be09d5991f5aae *R/plotrssurv.r
@@ -11,9 +11,9 @@ b4637a419c60f04bf206fc517dcc3cd2 *R/survfitrsadd.r
 3820354bc630edaa5d29f0225798b4da *R/zzz.R
 3d33b58409d59c1f05de22766960f039 *data/colrec.rda
 da512257141fedce138de599b5e9997a *data/rdata.rda
-6590e14f71cc425e679350e43cb6ee53 *data/slopop.rda
-538a7487bf697ab8b5e9038679ba76c9 *inst/CITATION
-b083e2e24c6734aca25cc23a8f4eee40 *inst/news.Rd
+3c3911dd7383d8c3a39057655a7978d4 *data/slopop.rda
+eb7093b9f50f7f6c4b928caa368e537d *inst/CITATION
+2dff652ab9374ab00d58c474153c8968 *inst/news.Rd
 809ff6dfcec2e0c759b3b364980c24ee *man/cmprel.Rd
 e9e43bae88190dd04b902a6e3e4e702c *man/colrec.Rd
 9107f531f6c42fb0b11f6f607d2ca0ca *man/epa.Rd
@@ -42,11 +42,12 @@ ade1cfda41d4ceb8f5ec749753a9ef78 *man/transratehmd.Rd
 3165b274aef1ec5d5313b1c357ff23c7 *src/cmpfast.c
 6853ad4d02cc6b1ff9e2e786f7dad4b5 *src/dmatrix.c
 35fe86cf308d11c704de3aaf3e58a629 *src/exps.c
-610b2b35cbcc528d6263bb1dbe7f856f *src/init.c
+0553be7d03225d831692b0995a3d9f63 *src/init.c
 f1508f17270fdc2fef10788b7ca034be *src/netfastp.c
-835a0c78fa3f88bf27b963fee8867c3c *src/netfastpinter.c
+cf08c1197fb1785378c385b0430c5170 *src/netfastpinter.c
 9da637dbb10add8b072da100f842ecf4 *src/netfastpinter2.c
-f5c736b5d98722344c3a72e32a424959 *src/netwei.c
+efc2b2569dbe343bd85568e4303b3296 *src/netwei.c
+cc28deac6535fac9ab5b4be0121035c7 *src/netweiDM.c
 2d85cafe474de3c4d9cb2df04eafb8bb *src/pystep.c
 cf7cd04af54914c338bf99663db7e2d2 *src/pystep2.c
 fffb5d75a0a72415aa59db882ea7933f *src/survprotomoj.h
