@@ -1,6 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
 
+\section{Changes in version 2.2-5}{
+  \itemize{
+    \item 5 July 2021  exp.prep is copied and exported as expprep2
+    \item 5 July 2021  All R code has been roxygenized
+}
+}
 \section{Changes in version 2.2-4}{
   \itemize{
     \item 8 June 2021  The latest version of slopop is added (1930-2019)

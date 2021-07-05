@@ -18,6 +18,7 @@ S3method(print, summary.rsadd)
 S3method(print, rsdiff)
 S3method(print, rs.br)
 S3method(survfit, rsadd)
+export(expprep2)
 importFrom("graphics", "abline", "axis", "box", "legend", "lines",
              "par", "plot", "points", "polygon")
 importFrom("stats", "approx", "binomial", "coef", "delete.response",

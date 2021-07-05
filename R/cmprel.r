@@ -1,3 +1,90 @@
+#' Compute crude probability of death
+#' 
+#' Estimates the crude probability of death due to disease and due to
+#' population reasons
+#' 
+#' NOTE: The follow-up time must be specified in days. The \code{ratetable}
+#' being used may have different variable names and formats than the user's
+#' data set, this is dealt with by the \code{rmap} argument. For example, if
+#' age is in years in the data set but in days in the \code{ratetable} object,
+#' age=age*365.241 should be used. The calendar year can be in any date format
+#' (date, Date and POSIXt are allowed), the date formats in the
+#' \code{ratetable} and in the data may differ.
+#' 
+#' Note that numerical integration is required to calculate the variance
+#' estimator. The integration precision is set with argument \code{precision},
+#' which defaults to daily intervals, a default that should give enough
+#' precision for any practical purpose.
+#' 
+#' The area under the curve is calculated on the interval [0,\code{tau}].
+#' 
+#' Function \code{summary} may be used to get the output at specific points in
+#' time.
+#' 
+#' @aliases cmp.rel print.cmp.rel
+#' @param formula a formula object, with the response as a \code{Surv} object
+#' on the left of a \code{~} operator, and, if desired, terms separated by the
+#' \code{+} operator on the right. If no strata are used, \code{~1} should be
+#' specified.
+#' 
+#' NOTE: The follow-up time must be in days.
+#' @param data a data.frame in which to interpret the variables named in the
+#' \code{formula}.
+#' @param ratetable a table of event rates, organized as a \code{ratetable}
+#' object, such as \code{slopop}.
+#' @param na.action a missing-data filter function, applied to the model.frame,
+#' after any subset argument has been used.  Default is
+#' \code{options()$na.action}.
+#' @param tau the maximum follow-up time of interest, all times larger than
+#' \code{tau} shall be censored. Equals maximum observed time by default
+#' @param conf.int the level for a two-sided confidence interval on the
+#' survival curve(s). Default is 0.95.
+#' @param precision the level of precision used in the numerical integration of
+#' variance. Default is 1, which means that daily intervals are taken, the
+#' value may be decreased to get a higher precision or increased to achieve a
+#' faster calculation. The calculation intervals always include at least all
+#' times of event and censoring as border points.
+#' @param add.times specific times at which the value of estimator and its
+#' variance should be evaluated. Default is all the event and censoring times.
+#' @param rmap an optional list to be used if the variables are not organized
+#' and named in the same way as in the \code{ratetable} object. See details
+#' below.
+#' @return An object of class \code{cmp.rel}. Objects of this class have
+#' methods for the functions \code{print} and \code{plot}. The \code{summary}
+#' function can be used for printing output at required time points. An object
+#' of class \code{cmp.rel} is composed of several lists, each pertaining the
+#' cumulative hazard function for one risk and one strata. Each of the lists
+#' contains the following objects: \item{time}{the time-points at which the
+#' curves are estimated} \item{est}{the estimate} \item{var}{the variance of
+#' the estimate} \item{lower}{the lower limit of the confidence interval}
+#' \item{upper}{the upper limit of the confidence interval} \item{area}{the
+#' area under the curve calculated on the interval [0,\code{tau}]}
+#' \item{index}{indicator of event and censoring times among all the times in
+#' the output. The times added via paramater \code{add.times} are also
+#' included} \item{add.times}{the times added via parameter \code{add.times}}
+#' @seealso \code{rs.surv}, \code{summary.cmp.rel}
+#' @references Package: Pohar Perme, M., Pavlic, K. (2018) "Nonparametric
+#' Relative Survival Analysis with the R Package relsurv". Journal of
+#' Statistical Software. 87(8), 1-27, doi: "10.18637/jss.v087.i08"
+#' @keywords survival
+#' @examples
+#' 
+#' 
+#' data(slopop)
+#' data(rdata)
+#' #calculate the crude probability of death
+#' #note that the variable year must be given in a date format and that 
+#' #age must be multiplied by 365.241 in order to be expressed in days.
+#' fit <- cmp.rel(Surv(time,cens)~sex,rmap=list(age=age*365.241),
+#' 		ratetable=slopop,data=rdata,tau=3652.41)
+#' fit
+#' plot(fit,col=c(1,1,2,2),xscale=365.241,xlab="Time (years)")
+#' #if no strata are desired:
+#' fit <- cmp.rel(Surv(time,cens)~1,rmap=list(age=age*365.241),
+#' 		ratetable=slopop,data=rdata,tau=3652.41)
+#' 
+#' 
+#' 
 cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop, 
      na.action,tau,conf.int=0.95,precision=1,add.times,rmap) 
     
@@ -83,6 +170,70 @@ cmp.rel <-  function (formula = formula(data), data = parent.frame(), ratetable 
 }
 
 
+
+
+#' Plot the crude probability of death
+#' 
+#' Plot method for cmp.rel. Plots the cumulative probability of death due to
+#' disease and due to population reasons
+#' 
+#' By default, the graph is plotted as a step function for the cause specific
+#' mortality and as a piecewise linear function for the population mortality.
+#' It is evaluated at all event and censoring times even though it constantly
+#' changes also between these time points.
+#' 
+#' If the argument \code{all.times} is set to \code{TRUE}, the plot is
+#' evaluated at all times that were used for numerical integration in the
+#' \code{cmp.rel} function (there, the default is set to daily intervals). If
+#' only specific time points are to be added, this should be done via argument
+#' \code{add.times} in \code{cmp.rel}.
+#' 
+#' @param x a list, with each component representing one curve in the plot,
+#' output of the function \code{cmp.rel}.
+#' @param main the main title for the plot.
+#' @param curvlab Curve labels for the plot. Default is \code{names(x)}, or if
+#' that is missing, \code{1:nc}, where \code{nc} is the number of curves in
+#' \code{x}.
+#' @param ylim yaxis limits for plot.
+#' @param xlim xaxis limits for plot (default is 0 to the largest time in any
+#' of the curves).
+#' @param wh if a vector of length 2, then the upper right coordinates of the
+#' legend; otherwise the legend is placed in the upper right corner of the
+#' plot.
+#' @param xlab X axis label.
+#' @param ylab y axis label.
+#' @param lty vector of line types. Default \code{1:nc} (\code{nc} is the
+#' number of curves in \code{x}). For color displays, \code{lty=1},
+#' \code{color=1:nc}, might be more appropriate. If \code{length(lty)<nc}, then
+#' \code{lty[1]} is used for all.
+#' @param xscale Scale of the X axis. Default is in days (1).
+#' @param col vector of colors. If \code{length(col)<nc}, then the
+#' \code{col[1]} is used for all.
+#' @param lwd vector of line widths. If \code{length(lwd)<nc}, then
+#' \code{lwd[1]} is used for all.
+#' @param curves Vector if integers, specifies which curves should be plotted.
+#' May take values \code{1:nc}, where \code{nc} is the number of curves in
+#' \code{x}. By default, all of the curves are plotted.
+#' @param conf.int Vector if integers, specifies which confidence intervals
+#' should be plotted. May take values \code{1:nc}, where \code{nc} is the
+#' number of curves in \code{x}. By default, no confidence intervals are
+#' plotted.
+#' @param all.times By default, the disease specific mortality estimate is
+#' plotted as a step function between event or censoring times. If set to
+#' \code{TRUE}, the graph is evaluated at all estimated times.
+#' @param ... additional arguments passed to the initial call of the plot
+#' function.
+#' @return No value is returned.
+#' @seealso \code{rs.surv}
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' fit <- cmp.rel(Surv(time,cens)~sex,rmap=list(age=age*365.241),
+#' 		ratetable=slopop,data=rdata,tau=3652.41)
+#' plot(fit,col=c(1,1,2,2),xscale=365.241,conf.int=c(1,3))
+#' 
 plot.cmp.rel <- function (x, main = " ", curvlab, ylim = c(0, 1), xlim, wh = 2, 
     xlab = "Time (days)", ylab = "Probability", lty = 1:length(x), xscale=1,
     col = 1, lwd = par("lwd"), curves, conf.int, all.times=FALSE,...) 
@@ -190,6 +341,36 @@ print.cmp.rel <- function (x, ntp = 4, maxtime,scale=365.241, ...)
     invisible()
 }
 
+
+
+#' Summary of the crude probability of death
+#' 
+#' Returns a list containing the estimated values at required times.
+#' 
+#' The variance is calculated using numerical integration. If the required time
+#' is not a time at which the value was estimated, the value at the last time
+#' before it is reported. The density of the time points is set by the
+#' \code{precision} argument in the \code{cmp.rel} function.
+#' 
+#' @param object output of the function \code{cmp.rel}.
+#' @param times the times at which the output is required.
+#' @param scale The time scale in which the times are specified. The default
+#' value is \code{1}, i.e. days.
+#' @param area Should area under the curves at time \code{tau} be printed out?
+#' Default is \code{FALSE}.
+#' @param ... Additional arguments, currently not implemented
+#' @return A list of values is returned.
+#' @seealso \code{cmp.rel}
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' #calculate the crude probability of death and summarize it
+#' fit <- cmp.rel(Surv(time,cens)~sex,rmap=list(age=age*365),
+#'       ratetable=slopop,data=rdata,tau=3652.41)
+#' summary(fit,c(1,3),scale=365.241)
+#' 
 summary.cmp.rel <- function (object, times,scale=365.241,area=FALSE,...) 
 {
     tau <- object$tau

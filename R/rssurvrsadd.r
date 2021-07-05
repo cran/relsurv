@@ -1,3 +1,43 @@
+#' Compute a Relative Survival Curve from an additive relative survival model
+#' 
+#' Computes the predicted relative survival function for an additive relative
+#' survival model fitted with maximum likelihood.
+#' 
+#' Does not work with factor variables - you have to form dummy variables
+#' before calling the rsadd function.
+#' 
+#' @param formula a \code{rsadd} object (Implemented only for models fitted
+#' with the codemax.lik (default) option.)
+#' @param newdata a data frame with the same variable names as those that
+#' appear in the \code{rsadd} formula.  a predicted curve for each individual
+#' in this data frame shall be calculated
+#' @return a \code{survfit} object; see the help on \code{survfit.object} for
+#' details.  The \code{survfit} methods are used for \code{print}, \code{plot},
+#' \code{lines}, and \code{points}.
+#' @seealso \code{survfit}, \code{survexp}
+#' @references Package. Pohar M., Stare J. (2006) "Relative survival analysis
+#' in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' #fit a relative survival model
+#' fit <- rsadd(Surv(time,cens)~sex+age+year,rmap=list(age=age*365.241),
+#' 	ratetable=slopop,data=rdata,int=c(0:10,15))
+#' 
+#' #calculate the predicted curve for a male individual, aged 65, diagnosed in 1982
+#' d <- rs.surv.rsadd(fit,newdata=data.frame(sex=1,age=65,year=as.date("1Jul1982")))
+#' #plot the curve (will result in a step function since the baseline is assumed piecewise constant)
+#' plot(d,xscale=365.241)
+#' 
+#' #calculate the predicted survival curves for each individual in the data set
+#' d <- rs.surv.rsadd(fit,newdata=rdata)
+#' #calculate the average over all predicted survival curves
+#' p.surv <- apply(d$surv,1,mean)
+#' #plot the relative survival curve
+#' plot(d$time/365.241,p.surv,type="b",ylim=c(0,1),xlab="Time",ylab="Relative survival")
+#' 
 rs.surv.rsadd <- 
 function (formula, newdata) 
 {

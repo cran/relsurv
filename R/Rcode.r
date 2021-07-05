@@ -384,6 +384,127 @@ varstop <- 3+nfk+p		#last column of covariates
      }
 
 
+
+
+#' Fit an Additive model for Relative Survival
+#' 
+#' The function fits an additive model to the data. The methods implemented are
+#' the maximum likelihood method, the semiparametric method, a glm model with a
+#' \code{binomial} error and a glm model with a \code{poisson} error.
+#' 
+#' NOTE: The follow-up time must be specified in days. The \code{ratetable}
+#' being used may have different variable names and formats than the user's
+#' data set, this is dealt with by the \code{rmap} argument. For example, if
+#' age is in years in the data set but in days in the \code{ratetable} object,
+#' age=age*365.241 should be used. The calendar year can be in any date format
+#' (date, Date and POSIXt are allowed), the date formats in the
+#' \code{ratetable} and in the data may differ.
+#' 
+#' The maximum likelihood method and both glm methods assume a fully parametric
+#' model with a piecewise constant baseline excess hazard function. The
+#' intervals on which the baseline is assumed constant should be passed via
+#' argument \code{int}. The EM method is semiparametric, i.e. no assumptions
+#' are made for the baseline hazard and therefore no intervals need to be
+#' specified.
+#' 
+#' The methods using glm are methods for grouped data. The groups are formed
+#' according to the covariate values. This should be taken into account when
+#' fitting a model. The glm method returns life tables for groups specified by
+#' the covariates in \code{groups}.
+#' 
+#' The EM method output includes the smoothed baseline excess hazard
+#' \code{lambda0}, the cumulative baseline excess hazard \code{Lambda0} and
+#' \code{times} at which they are estimated. The individual probabilites of
+#' dying due to the excess risk are returned as \code{Nie}.  The EM method
+#' fitting procedure requires some local smoothing of the baseline excess
+#' hazard. The default \code{bwin=-1} value lets the function find an
+#' appropriate value for the smoothing band width. While this ensures an
+#' unbiased estimate, the procedure time is much longer. As the value found by
+#' the function is independent of the covariates in the model, the value can be
+#' read from the output (\code{bwinfac}) and used for refitting different
+#' models to the same data to save time.
+#' 
+#' @param formula a formula object, with the response as a \code{Surv} object
+#' on the left of a \code{~} operator, and, if desired, terms separated by the
+#' \code{+} operator on the right.
+#' 
+#' NOTE: The follow-up time must be in days.
+#' @param data a data.frame in which to interpret the variables named in the
+#' \code{formula}.
+#' @param ratetable a table of event rates, organized as a \code{ratetable}
+#' object, such as \code{slopop}.
+#' @param int either a single value denoting the number of follow-up years or a
+#' vector specifying the intervals (in years) in which the hazard is constant
+#' (the times that are bigger than \code{max(int)} are censored. If missing,
+#' only one interval (from time 0 to maximum observation time) is assumed.  The
+#' EM method does not need the intervals, only the maximum time can be
+#' specified (all times are censored after this time point).
+#' @param na.action a missing-data filter function, applied to the model.frame,
+#' after any subset argument has been used.  Default is
+#' \code{options()$na.action}.
+#' @param method \code{glm.bin} or \code{glm.poi} for a glm model, \code{EM}
+#' for the EM algorithm and \code{max.lik} for the maximum likelihood model
+#' (default).
+#' @param init vector of initial values of the iteration.  Default initial
+#' value is zero for all variables.
+#' @param bwin controls the bandwidth used for smoothing in the EM algorithm.
+#' The follow-up time is divided into quartiles and \code{bwin} specifies a
+#' factor by which the maximum between events time length on each interval is
+#' multiplied. The default \code{bwin=-1} lets the function find an appropriate
+#' value. If \code{bwin=0}, no smoothing is applied.
+#' @param centered if \code{TRUE}, all the variables are centered before
+#' fitting and the baseline excess hazard is calculated accordingly. Default is
+#' \code{FALSE}.
+#' @param cause A vector of the same length as the number of cases. \code{0}
+#' for population deaths, \code{1} for disease specific deaths, \code{2}
+#' (default) for unknown. Can only be used with the \code{EM} method.
+#' @param control a list of parameters for controlling the fitting process.
+#' See the documentation for \code{glm.control} for details.
+#' @param rmap an optional list to be used if the variables are not organized
+#' and named in the same way as in the \code{ratetable} object. See details
+#' below.
+#' @param ... other arguments will be passed to \code{glm.control}.
+#' @return An object of class \code{rsadd}. In the case of
+#' \code{method="glm.bin"} and \code{method="glm.poi"} the class also inherits
+#' from \code{glm} which inherits from the class \code{lm}. Objects of this
+#' class have methods for the functions \code{print} and \code{summary}. An
+#' object of class \code{rsadd} is a list containing at least the following
+#' components: \item{data}{the data as used in the model, along with the
+#' variables defined in the rate table} \item{ratetable}{the ratetable used.}
+#' \item{int}{the maximum time (in years) used. All the events at and after
+#' this value are censored.} \item{method}{the fitting method that was used.}
+#' \item{linear.predictors}{the vector of linear predictors, one per subject.}
+#' @seealso \code{\link{rstrans}}, \code{\link{rsmul}}
+#' @references Package. Pohar M., Stare J. (2006) "Relative survival analysis
+#' in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741--1749.
+#' 
+#' EM algorithm: Pohar Perme M., Henderson R., Stare, J. (2009) "An approach to
+#' estimation in relative survival regression." Biostatistics, \bold{10}:
+#' 136--146.
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' #fit an additive model
+#' #note that the variable year is given in days since 01.01.1960 and that
+#' #age must be multiplied by 365.241 in order to be expressed in days.
+#' fit <- rsadd(Surv(time,cens)~sex+as.factor(agegr)+ratetable(age=age*365.241),
+#' 	    ratetable=slopop,data=rdata,int=5)
+#' 
+#' #check the goodness of fit
+#' rs.br(fit)
+#' 
+#' #use the EM method and plot the smoothed baseline excess hazard
+#' fit <- rsadd(Surv(time,cens)~sex+age,rmap=list(age=age*365.241),
+#' 	 ratetable=slopop,data=rdata,int=5,method="EM")
+#' sm <- epa(fit)
+#' plot(sm$times,sm$lambda,type="l")
+#' 
 rsadd <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop,
     int, na.action, method = "max.lik", init, bwin, centered = FALSE,
     cause, control, rmap, ...)
@@ -561,6 +682,33 @@ lik.fit <- function (data, m, intn, init, control, offset)
 
 
 
+
+
+#' Split a Survival Data Set at Specified Times
+#' 
+#' Given a survival data set and a set of specified cut times, the function
+#' splits each record into multiple records at each cut time. The new data set
+#' is be in \code{counting process} format, with a start time, stop time, and
+#' event status for each record. More general than \code{survSplit} as it also
+#' works with the data already in the \code{counting process} format.
+#' 
+#' 
+#' @param data data frame.
+#' @param cut vector of timepoints to cut at.
+#' @param end character string with name of event time variable.
+#' @param event character string with name of censoring indicator.
+#' @param start character string with name of start variable (will be created
+#' if it does not exist).
+#' @param id character string with name of new id variable to create
+#' (optional).
+#' @param zero If \code{start} doesn't already exist, this is the time that the
+#' original records start. May be a vector or single value.
+#' @param episode character string with name of new episode variable
+#' (optional).
+#' @param interval this argument is used by \code{max.lik} function
+#' @return New, longer, data frame.
+#' @seealso \code{\link{survSplit}}.
+#' @keywords survival
 survsplit <- function (data, cut, end, event, start, id = NULL, zero = 0,
     episode = NULL, interval = NULL)
 {
@@ -860,6 +1008,44 @@ glmxp <- function (rform, data, interval, method, control)
     return(local.ht)
 }
 
+
+
+#' Calculate Residuals for a "rsadd" Fit
+#' 
+#' Calculates partial residuals for an additive relative survival model.
+#' 
+#' 
+#' @param object an object inheriting from class \code{rsadd}, representing a
+#' fitted additive relative survival model. Typically this is the output from
+#' the \code{rsadd} function.
+#' @param type character string indicating the type of residual desired.
+#' Currently only Schoenfeld residuals are implemented.
+#' @param ... other arguments.
+#' @return A list of the following values is returned: \item{res}{a matrix
+#' containing the residuals for each variable.} \item{varr}{the variance for
+#' each residual} \item{varr1}{the sum of \code{varr}.} \item{kvarr}{the
+#' derivative of each residual, to be used in \code{rs.zph} function.}
+#' \item{kvarr1}{the sum of \code{kvarr}.}
+#' @seealso \code{\link{rsadd}}.
+#' @references Package. Pohar M., Stare J. (2006) "Relative survival analysis
+#' in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741--1749.
+#' 
+#' Goodness of fit: Stare J.,Pohar Perme M., Henderson R. (2005) "Goodness of
+#' fit of relative survival models." Statistics in Medicine, \bold{24}:
+#' 3911--3925.
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' fit <- rsadd(Surv(time,cens)~sex,rmap=list(age=age*365.241),
+#'        ratetable=slopop,data=rdata,int=5)
+#' sresid <- residuals.rsadd(fit)
+#' 
 residuals.rsadd <- function (object, type = "schoenfeld", ...)
 {
     data <- object$data[order(object$data$Y), ]
@@ -1079,6 +1265,57 @@ resid.com <- function (start, stop, event, z, beta, lp, lambda0, fup, n, rem,
 
 
 
+
+
+#' Test the Proportional Hazards Assumption for Relative Survival Regression
+#' Models
+#' 
+#' Test the proportional hazards assumption for relative survival models
+#' (\code{rsadd}, \code{rsmul} or \code{rstrans}) by forming a Brownian Bridge.
+#' 
+#' 
+#' @aliases rs.br plot.rs.br print.rs.br
+#' @param fit the result of fitting a relative survival model, using the
+#' \code{rsadd}, \code{rsmul} or \code{rstrans} function.
+#' @param sc partial residuals calculated by the \code{resid} function. This is
+#' used to save time if several tests are to be calculated on these residuals
+#' and can otherwise be omitted.
+#' @param rho a number controlling the weigths of residuals. The weights are
+#' the number of individuals at risk at each event time to the power
+#' \code{rho}. The default is \code{rho=0}, which sets all weigths to 1.
+#' @param test a character string specifying the test to be performed on
+#' Brownian bridge. Possible values are \code{"max"} (default), which tests the
+#' maximum absolute value of the bridge, and \code{cvm}, which calculates the
+#' Cramer Von Mises statistic.
+#' @param global should a global Brownian bridge test be performed, in addition
+#' to the per-variable tests
+#' @return an object of class \code{rs.br}. This function would usually be
+#' followed by both a print and a plot of the result. The plot gives a Brownian
+#' bridge for each of the variables. The horizontal lines are the 95% and 99%
+#' confidence intervals for the maximum absolute value of the Brownian bridge
+#' @seealso \code{\link{rsadd}}, \code{rsmul}, \code{rstrans},
+#' \code{\link{resid}}.
+#' @references Goodness of fit: Stare J.,Pohar Perme M., Henderson R. (2005)
+#' "Goodness of fit of relative survival models." Statistics in Medicine,
+#' \bold{24}: 3911--3925.
+#' 
+#' Package. Pohar M., Stare J. (2006) "Relative survival analysis in R."
+#' Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741--1749.
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' fit <- rsadd(Surv(time,cens)~sex,rmap=list(age=age*365.241),
+#' 		ratetable=slopop,data=rdata,int=5)
+#' rsbr <- rs.br(fit)
+#' rsbr
+#' plot(rsbr)
+#' 
 rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE)
 {
     test <- match.arg(test,c("max","cvm"))
@@ -1233,6 +1470,55 @@ rs.br <- function (fit, sc, rho = 0, test = "max", global = TRUE)
     out
 }
 
+
+
+#' Behaviour of Covariates in Time for Relative Survival Regression Models
+#' 
+#' Calculates the scaled partial residuals of a relative survival model
+#' (\code{rsadd}, \code{rsmul} or \code{rstrans})
+#' 
+#' 
+#' @param fit the result of fitting an additive relative survival model, using
+#' the \code{rsadd}, \code{rsmul} or \code{rstrans} function.
+#' 
+#' In the case of multiplicative and transformation models the output is
+#' identical to \code{cox.zph} function, except no test is performed.
+#' @param sc partial residuals calculated by the \code{resid} function. This is
+#' used to save time if several tests are to be calculated on these residuals
+#' and can otherwise be omitted.
+#' @param transform a character string specifying how the survival times should
+#' be transformed. Possible values are \code{"km"}, \code{"rank"},
+#' \code{"identity"} and \code{log}. The default is \code{"identity"}.
+#' @param var.type a character string specifying the variance used to scale the
+#' residuals. Possible values are \code{"each"}, which estimates the variance
+#' for each residual separately, and \code{sum}(default), which assumes the
+#' same variance for all the residuals.
+#' @return an object of class \code{rs.zph}. This function would usually be
+#' followed by a plot of the result. The plot gives an estimate of the
+#' time-dependent coefficient \code{beta(t)}. If the proportional hazards
+#' assumption is true, \code{beta(t)} will be a horizontal line.
+#' @seealso \code{\link{rsadd}}, \code{rsmul}, \code{rstrans},
+#' \code{\link{resid}}, \code{\link{cox.zph}}.
+#' @references Goodness of fit: Stare J.,Pohar Perme M., Henderson R. (2005)
+#' "Goodness of fit of relative survival models." Statistics in Medicine,
+#' \bold{24}: 3911--3925.
+#' 
+#' Package. Pohar M., Stare J. (2006) "Relative survival analysis in R."
+#' Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741--1749.
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' fit <- rsadd(Surv(time,cens)~sex,rmap=list(age=age*365.241),
+#' 	ratetable=slopop,data=rdata,int=5)
+#' rszph <- rs.zph(fit)
+#' plot(rszph)
+#' 
 rs.zph <- function (fit, sc, transform = "identity", var.type = "sum")
 {
     if (inherits(fit, "rsadd")) {
@@ -1341,6 +1627,54 @@ rs.zph <- function (fit, sc, transform = "identity", var.type = "sum")
     temp
 }
 
+
+
+#' Graphical Inspection of Proportional Hazards Assumption in Relative Survival
+#' Models
+#' 
+#' Displays a graph of the scaled partial residuals, along with a smooth curve.
+#' 
+#' 
+#' @param x result of the \code{rs.zph} function.
+#' @param resid a logical value, if \code{TRUE} the residuals are included on
+#' the plot, as well as the smooth fit.
+#' @param df the degrees of freedom for the fitted natural spline, \code{df=2}
+#' leads to a linear fit.
+#' @param nsmo number of points used to plot the fitted spline.
+#' @param var the set of variables for which plots are desired.  By default,
+#' plots are produced in turn for each variable of a model.  Selection of a
+#' single variable allows other features to be added to the plot, e.g., a
+#' horizontal line at zero or a main title.
+#' @param cex a numerical value giving the amount by which plotting text and
+#' symbols should be scaled relative to the default.
+#' @param add logical, if \code{TRUE} the plot is added to an existing plot
+#' @param col a specification for the default plotting color.
+#' @param lty the line type.
+#' @param xlab x axis label.
+#' @param ylab y axis label.
+#' @param xscale units for x axis, default is 1, i.e. days.
+#' @param ... Additional arguments passed to the \code{plot} function.
+#' @seealso \code{\link{rs.zph}}, \code{\link{plot.cox.zph}}.
+#' @references Goodness of fit: Stare J.,Pohar Perme M., Henderson R. (2005)
+#' "Goodness of fit of relative survival models." Statistics in Medicine,
+#' \bold{24}: 3911-3925.
+#' 
+#' Package: Pohar M., Stare J. (2006) "Relative survival analysis in R."
+#' Computer Methods and Programs in Biomedicine, \bold{81}: 272-278.
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741-1749, 2007.
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' fit <- rsadd(Surv(time,cens)~sex+as.factor(agegr),rmap=list(age=age*365.241),
+#'              ratetable=slopop,data=rdata,int=5)
+#' rszph <- rs.zph(fit)
+#' plot(rszph)
+#' 
 plot.rs.zph <- function (x,resid = TRUE, df = 4, nsmo = 40, var, cex = 1,  add = FALSE, col = 1,
     lty = 1, xlab, ylab, xscale = 1, ...)
 {
@@ -1463,6 +1797,49 @@ kernerleftch <- function (td, b, nt4)
 }
 
 
+
+
+#' Inverse transforming of time in Relative Survival
+#' 
+#' This function can be used when predicting in Relative Survival using the
+#' transformed time regression model (using \code{rstrans} function). It
+#' inverses the time from Y to T in relative survival using the given
+#' ratetable. The times Y can be produced with the \code{rstrans} function, in
+#' which case, this is the reverse function. This function does the
+#' transformation for one person at a time.
+#' 
+#' Works only with ratetables that are split by age, sex and year. Transforming
+#' can be computationally intensive, use lower and/or upper to guess the
+#' interval of the result and thus speed up the function.
+#' 
+#' @param y time in Y.
+#' @param age age of the individual.  Must be in days.
+#' @param sex sex of the individual. Must be coded in the same way as in the
+#' \code{ratetable}.
+#' @param year date of diagnosis. Must be in a date format
+#' @param scale numeric value to scale the results. If \code{ratetable} is in
+#' units/day, \code{scale = 365.241} causes the output to be reported in years.
+#' @param ratetable a table of event rates, such as \code{survexp.us}.
+#' @param lower the lower bound of interval where the result is expected. This
+#' argument is optional, but, if given, can shorten the time the function needs
+#' to calculate the result.
+#' @param upper the upper bound of interval where the result is expected. See
+#' \code{lower}
+#' @return A list of values \item{T}{the original time} \item{Y}{the
+#' transformed time}
+#' @seealso \code{\link{rstrans}}
+#' @references Package: Pohar M., Stare J. (2006) "Relative survival analysis
+#' in R."  Computer Methods and Programs in Biomedicine, \bold{81}: 272-278.
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741-1749.
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' invtime(y = 0.1, age = 23011, sex = 1, year = 9497, ratetable = slopop)
+#' 
 invtime <- function (y = 0.1, age = 23011, sex = "male", year = 9497, scale = 1,
     ratetable = relsurv::slopop, lower, upper)
 {
@@ -1522,6 +1899,78 @@ invtime <- function (y = 0.1, age = 23011, sex = "male", year = 9497, scale = 1,
 
 
 
+
+
+#' Fit Andersen et al Multiplicative Regression Model for Relative Survival
+#' 
+#' Fits the Andersen et al multiplicative regression model in relative
+#' survival. An extension of the coxph function using relative survival.
+#' 
+#' NOTE: The follow-up time must be specified in days. The \code{ratetable}
+#' being used may have different variable names and formats than the user's
+#' data set, this is dealt with by the \code{rmap} argument. For example, if
+#' age is in years in the data set but in days in the \code{ratetable} object,
+#' age=age*365.241 should be used. The calendar year can be in any date format
+#' (date, Date and POSIXt are allowed), the date formats in the
+#' \code{ratetable} and in the data may differ.
+#' 
+#' @param formula a formula object, with the response as a \code{Surv} object
+#' on the left of a \code{~} operator, and, if desired, terms separated by the
+#' \code{+} operator on the right.
+#' 
+#' NOTE: The follow-up time must be in days.
+#' @param data a data.frame in which to interpret the variables named in the
+#' \code{formula}.
+#' @param ratetable a table of event rates, such as \code{slopop}.
+#' @param int the number of follow-up years used for calculating survival(the
+#' data are censored after this time-point). If missing, it is set the the
+#' maximum observed follow-up time.
+#' @param na.action a missing-data filter function, applied to the model.frame,
+#' after any subset argument has been used.  Default is
+#' \code{options()$na.action}.
+#' @param init vector of initial values of the iteration.  Default initial
+#' value is zero for all variables.
+#' @param method the default method \code{mul} assumes hazard to be constant on
+#' yearly intervals. Method \code{mul1} uses the ratetable to determine the
+#' time points when hazard changes. The \code{mul1} method is therefore more
+#' accurate, but at the same time can be more computationally intensive.
+#' @param control a list of parameters for controlling the fitting process.
+#' See the documentation for \code{coxph.control} for details.
+#' @param rmap an optional list to be used if the variables are not organized
+#' and named in the same way as in the \code{ratetable} object. See details
+#' below.
+#' @param ... Other arguments will be passed to \code{coxph.control}.
+#' @return an object of class \code{coxph} with an additional item:
+#' \item{basehaz}{Cumulative baseline hazard (population values are seen as
+#' offset) at centered values of covariates.}
+#' @seealso \code{\link{rsadd}}, \code{\link{rstrans}}.
+#' @references Method: Andersen, P.K., Borch-Johnsen, K., Deckert, T., Green,
+#' A., Hougaard, P., Keiding, N. and Kreiner, S. (1985) "A Cox regression model
+#' for relative mortality and its application to diabetes mellitus survival
+#' data.", Biometrics, \bold{41}: 921--932.
+#' 
+#' Package. Pohar M., Stare J. (2006) "Relative survival analysis in R."
+#' Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741--1749.
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' #fit a multiplicative model
+#' #note that the variable year is given in days since 01.01.1960 and that 
+#' #age must be multiplied by 365.241 in order to be expressed in days.
+#' fit <- rsmul(Surv(time,cens)~sex+as.factor(agegr),rmap=list(age=age*365.241),
+#'             ratetable=slopop,data=rdata)
+#' 
+#' 
+#' #check the goodness of fit
+#' rs.br(fit)
+#' 
+#' 
 rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop,
     int, na.action, init, method = "mul", control,rmap, ...)
 {
@@ -1617,6 +2066,80 @@ rsmul <- function (formula = formula(data), data = parent.frame(), ratetable = r
     fit
 }
 
+
+
+#' Fit Cox Proportional Hazards Model in Transformed Time
+#' 
+#' The function transforms each person's time to his/her probability of dying
+#' at that time according to the ratetable. It then fits the Cox proportional
+#' hazards model with the transformed times as a response. It can also be used
+#' for calculatin the transformed times (no covariates are needed in the
+#' formula for that purpose).
+#' 
+#' NOTE: The follow-up time must be specified in days. The \code{ratetable}
+#' being used may have different variable names and formats than the user's
+#' data set, this is dealt with by the \code{rmap} argument. For example, if
+#' age is in years in the data set but in days in the \code{ratetable} object,
+#' age=age*365.241 should be used. The calendar year can be in any date format
+#' (date, Date and POSIXt are allowed), the date formats in the
+#' \code{ratetable} and in the data may differ.  A side product of this
+#' function are the transformed times - stored in teh \code{y} object of the
+#' output. To get these times, covariates are of course irrelevant.
+#' 
+#' @param formula a formula object, with the response as a \code{Surv} object
+#' on the left of a \code{~} operator, and, if desired, terms separated by the
+#' \code{+} operator on the right.
+#' 
+#' NOTE: The follow-up time must be in days.
+#' @param data a data.frame in which to interpret the variables named in the
+#' \code{formula}.
+#' @param ratetable a table of event rates, such as \code{slopop}.
+#' @param int the number of follow-up years used for calculating survival(the
+#' rest is censored). If missing, it is set the the maximum observed follow-up
+#' time.
+#' @param na.action a missing-data filter function, applied to the model.frame,
+#' after any subset argument has been used.  Default is
+#' \code{options()$na.action}.
+#' @param init vector of initial values of the iteration.  Default initial
+#' value is zero for all variables.
+#' @param control a list of parameters for controlling the fitting process.
+#' See the documentation for \code{coxph.control} for details.
+#' @param rmap an optional list to be used if the variables are not organized
+#' and named in the same way as in the \code{ratetable} object. See details
+#' below.
+#' @param ... other arguments will be passed to \code{coxph.control}.
+#' @return an object of class \code{coxph}. See \code{coxph.object} and
+#' \code{coxph.detail} for details.  \item{y}{ an object of class \code{Surv}
+#' containing the transformed times (these times do not depend on covariates).
+#' }
+#' @seealso \code{\link{rsmul}}, \code{\link{invtime}}, \code{\link{rsadd}},
+#' \code{\link{survexp}}.
+#' @references Method: Stare J., Henderson R., Pohar M. (2005) "An individual
+#' measure for relative survival." Journal of the Royal Statistical Society:
+#' Series C, \bold{54} 115--126.
+#' 
+#' Package. Pohar M., Stare J. (2006) "Relative survival analysis in R."
+#' Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741--1749.
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' 
+#' #fit a Cox model using the transformed times
+#' #note that the variable year is given in days since 01.01.1960 and that 
+#' #age must be multiplied by 365.241 in order to be expressed in days.
+#' fit <- rstrans(Surv(time,cens)~sex+as.factor(agegr),rmap=list(age=age*365.241,
+#'         sex=sex,year=year),ratetable=slopop,data=rdata)
+#' 
+#' 
+#' #check the goodness of fit
+#' rs.br(fit)
+#' 
 rstrans <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop,
     int, na.action, init, control,rmap, ...)
 {
@@ -1661,6 +2184,39 @@ rstrans <- function (formula = formula(data), data = parent.frame(), ratetable =
     fit$int <- int
     return(fit)
 }
+
+
+#' Reorganize Data into a Ratetable Object
+#' 
+#' The function assists in reorganizing certain types of data into a ratetable
+#' object.
+#' 
+#' This function only applies for ratetables that are organized by age, sex and
+#' year.
+#' 
+#' @param men a matrix containing the yearly (conditional) probabilities of one
+#' year survival for men. Rows represent age (increasing 1 year per
+#' line,starting with 0), the columns represent cohort years (the limits are in
+#' \code{yearlim}, the increase is in \code{int.length}.
+#' @param women a matrix containing the yearly (conditional) probabilities of
+#' one year survival for women.
+#' @param yearlim the first and last cohort year given in the tables.
+#' @param int.length the length of intervals in which cohort years are given.
+#' @return An object of class \code{ratetable}.
+#' @seealso \code{\link{ratetable}}.
+#' @references Package. Pohar M., Stare J. (2006) "Relative survival analysis
+#' in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741--1749.
+#' @keywords survival
+#' @examples
+#' 
+#' men <- cbind(exp(-365.241*exp(-14.5+.08*(0:100))),exp(-365*exp(-14.7+.085*(0:100))))
+#' women <- cbind(exp(-365.241*exp(-15.5+.085*(0:100))),exp(-365*exp(-15.7+.09*(0:100))))
+#' table <- transrate(men,women,yearlim=c(1980,1990),int.length=10)
+#' 
 transrate <- function (men, women, yearlim, int.length = 1)
 {
     if (any(dim(men) != dim(women)))
@@ -1694,6 +2250,48 @@ transrate <- function (men, women, yearlim, int.length = 1)
     temp
 }
 
+
+
+#' Reorganize Data obtained from Human Life-Table Database into a Ratetable
+#' Object
+#' 
+#' The function assists in reorganizing the .txt files obtained from Human
+#' Life-Table Database (http://www.lifetable.de -> Data by Country) into a
+#' ratetable object.
+#' 
+#' This function works with any table organised in the format provided by the
+#' Human Life-Table Database, but currently only works with TypeLT 1 (i.e. age
+#' intervals of length 1). The age must always start with value 0, but can end
+#' at different values (when that happens, the last value is carried forward).
+#' The rates between the cutpoints are taken to be constant.
+#' 
+#' @param file a vector of file names which the data are to be read from. Must
+#' be in .tex format and in the same format as the files in Human Life-Table
+#' Database.
+#' @param cut.year a vector of cutpoints for years. Must be specified when the
+#' year spans in the files are not consecutive.
+#' @param race a vector of race names for the input files.
+#' @return An object of class \code{ratetable}.
+#' @seealso \code{\link{ratetable}}, \code{\link{transrate.hmd}},
+#' \code{\link{joinrate}}, \code{\link{transrate}}.
+#' @references Package. Pohar M., Stare J. (2006) "Relative survival analysis
+#' in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741--1749.
+#' @keywords survival
+#' @examples
+#' 
+#' \dontrun{
+#' finpop <- transrate.hld(c("FIN_1981-85.txt","FIN_1986-90.txt","FIN_1991-95.txt"))
+#' }
+#' \dontrun{
+#' nzpop <- transrate.hld(c("NZL_1980-82_Non-maori.txt","NZL_1985-87_Non-maori.txt",
+#' 	 "NZL_1980-82_Maori.txt","NZL_1985-87_Maori.txt"),
+#' 	 cut.year=c(1980,1985),race=rep(c("nonmaori","maori"),each=2))
+#' }
+#' 
 transrate.hld <- function(file, cut.year,race){
 	nfiles <- length(file)
 	data <- NULL
@@ -1810,6 +2408,42 @@ transrate.hld <- function(file, cut.year,race){
 	out
 }
 
+
+
+#' Reorganize Data obtained from Human Mortality Database into a Ratetable
+#' Object
+#' 
+#' The function assists in reorganizing the .txt files obtained from Human
+#' Mortality Database (http://www.mortality.org) into a ratetable object.
+#' 
+#' This function works automatically with tables organised in the format
+#' provided by the Human Mortality Database. Download Life Tables for Males and
+#' Females separately from the column named 1x1 (period life tables, organized
+#' by date of death, yearly cutpoints for age as well as calendar year).
+#' 
+#' If you wish to provide the data in the required format by yourself, note
+#' that the only two columns needed are calendar year (Year) and probability of
+#' death (qx). Death probabilities must be calculated up to age 110 (in yearly
+#' intervals).
+#' 
+#' @param male a .txt file, containing the data on males.
+#' @param female a .txt file, containing the data on females.
+#' @return An object of class \code{ratetable}.
+#' @seealso \code{\link{ratetable}}, \code{\link{transrate.hld}},
+#' \code{\link{joinrate}}, \code{\link{transrate}}.
+#' @references Package. Pohar M., Stare J. (2006) "Relative survival analysis
+#' in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741--1749.
+#' @keywords survival
+#' @examples
+#' 
+#' \dontrun{
+#' auspop <- transrate.hmd("mltper_1x1.txt","fltper_1x1.txt")
+#' }
+#' 
 transrate.hmd <- function(male,female){
 	nfiles <- 2
 	men <- try(read.table(male,sep="",header=TRUE),silent=TRUE)
@@ -1863,6 +2497,37 @@ transrate.hmd <- function(male,female){
 
 
 
+
+
+#' Join ratetables
+#' 
+#' The function joins two or more objects organized as \code{ratetable} by
+#' adding a new dimension.
+#' 
+#' This function joins two or more \code{ratetable} objects by adding a new
+#' dimension. The cutpoints of all the rate tables are compared and only the
+#' common intervals kept. If the intervals defined by the cutpoints are not of
+#' the same length, a warning message is displayed.  Each rate table must have
+#' 3 dimensions, i.e. age, sex and year (the order is not important).
+#' 
+#' @param tables a list of ratetables. If names are given, they are included as
+#' \code{dimnames}.
+#' @param dim.name the name of the added dimension.
+#' @return An object of class \code{ratetable}.
+#' @seealso \code{\link{ratetable}}, \code{\link{transrate.hld}},
+#' \code{\link{transrate.hmd}}, \code{\link{transrate}}.
+#' @references Package: Pohar M., Stare J. (2006) "Relative survival analysis
+#' in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272-278.
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741-1749.
+#' @keywords survival
+#' @examples
+#' 
+#' #newpop <- joinrate(list(Arizona=survexp.az,Florida=survexp.fl,
+#' #                   Minnesota=survexp.mn),dim.name="state")
+#' 
 joinrate <- function(tables,dim.name="country"){
 	nfiles <- length(tables)
 	if(is.null(names(tables))) names(tables) <- paste("D",1:nfiles,sep="")
@@ -2135,6 +2800,53 @@ print.summary.rsadd <- function (x, digits = max(3, getOption("digits") - 3), sy
     invisible(x)
 }
 
+
+
+#' Excess hazard function smoothing
+#' 
+#' An Epanechnikov kernel function based smoother for smoothing the baseline
+#' excess hazard calculated by the \code{rsadd} function with the \code{EM}
+#' method.
+#' 
+#' The function performs Epanechnikov kernel smoothing. The follow up time is
+#' divided (according to percentiles of event times) into several intervals
+#' (number of intervals defined by \code{n.bwin}) in which the width is
+#' calculated as a factor of the maximum span between event times.  Boundary
+#' effects are also taken into account on both sides.
+#' 
+#' @param fit Fit from the additive relative survival model using the \code{EM}
+#' method.
+#' @param bwin The relative width of the smoothing window (default is 1).
+#' @param times The times at which the smoother is to be evaluated. If missing,
+#' it is evaluated at all event times.
+#' @param n.bwin Number of times that the window width may change.
+#' @param left If \code{FALSE} (default) smoothing is performed symmetrically,
+#' if \code{TRUE} only leftside neighbours are considered.
+#' @return A list with two components: \item{lambda}{the smoothed excess
+#' baseline hazard function} \item{times}{the times at which the smoothed
+#' excess baseline hazard is evaluated.}
+#' @seealso \code{\link{rsadd}},
+#' @references Package. Pohar M., Stare J. (2006) "Relative survival analysis
+#' in R." Computer Methods and Programs in Biomedicine, \bold{81}: 272--278
+#' 
+#' Relative survival: Pohar, M., Stare, J. (2007) "Making relative survival
+#' analysis relatively easy." Computers in biology and medicine, \bold{37}:
+#' 1741--1749.
+#' 
+#' EM algorithm: Pohar Perme M., Henderson R., Stare, J. (2009) "An approach to
+#' estimation in relative survival regression." Biostatistics, \bold{10}:
+#' 136--146.
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' #fit an additive model with the EM method
+#' fit <- rsadd(Surv(time,cens)~sex+age,rmap=list(age=age*365.241),
+#' 		ratetable=slopop,data=rdata,int=5,method="EM")
+#' sm <- epa(fit)
+#' plot(sm$times,sm$lambda)
+#' 
 epa <- function(fit,bwin,times,n.bwin=16,left=FALSE){
 	#bwin ... width of the window, relative to the default (1)
 	#fit ... EM fit
@@ -2325,6 +3037,105 @@ exp.prep <- function (x, y,ratetable,status,times,fast=FALSE,ys,prec,cmp=F,netwe
     temp
 }
 
+
+
+#' Compute a Relative Survival Curve
+#' 
+#' Computes an estimate of the relative survival curve using the Ederer I,
+#' Ederer II method, Pohar-Perme method or the Hakulinen method
+#' 
+#' NOTE: The follow-up time must be specified in days. The \code{ratetable}
+#' being used may have different variable names and formats than the user's
+#' data set, this is dealt with by the \code{rmap} argument. For example, if
+#' age is in years in the data set but in days in the \code{ratetable} object,
+#' age=age*365.241 should be used. The calendar year can be in any date format
+#' (date, Date and POSIXt are allowed), the date formats in the
+#' \code{ratetable} and in the data may differ.
+#' 
+#' The potential censoring times needed for the calculation of the expected
+#' survival by the Hakulinen method are calculated automatically. The times of
+#' censoring are left as they are, the times of events are replaced with
+#' \code{fin.date - year}.
+#' 
+#' The calculation of the Pohar-Perme estimate is more time consuming since
+#' more data are needed from the population tables.  The old version of the
+#' function, now named \code{rs.survo} can be used as a faster version for the
+#' Hakulinen and Ederer II estimate.
+#' 
+#' Numerical integration is required for Pohar-Perme estimate. The integration
+#' precision is set with argument \code{precision}, which defaults to daily
+#' intervals, a default that should give enough precision for any practical
+#' purpose.
+#' 
+#' Note that even though the estimate is always calculated using numerical
+#' integration, only the values at event and censoring times are reported.
+#' Hence, the function \code{plot} draws a step function in between and the
+#' function \code{summary} reports the value at the last event or censoring
+#' time before the specified time. If the output of the estimated values at
+#' other points is required, this should be specified with argument
+#' \code{add.times}.
+#' 
+#' @param formula a formula object, with the response as a \code{Surv} object
+#' on the left of a \code{~} operator, and, if desired, terms separated by the
+#' \code{+} operator on the right. If no strata are used, \code{~1} should be
+#' specified.
+#' 
+#' NOTE: The follow-up time must be in days.
+#' @param data a data.frame in which to interpret the variables named in the
+#' \code{formula}.
+#' @param ratetable a table of event rates, organized as a \code{ratetable}
+#' object, such as \code{slopop}.
+#' @param na.action a missing-data filter function, applied to the model.frame,
+#' after any subset argument has been used.  Default is
+#' \code{options()$na.action}.
+#' @param fin.date the date of the study ending, used for calculating the
+#' potential follow-up times in the Hakulinen method. If missing, it is
+#' calculated as \code{max(year+time)}.
+#' @param method the method for calculating the relative survival. The options
+#' are \code{pohar-perme}(default), \code{ederer1}, \code{ederer2} and
+#' \code{hakulinen}.
+#' @param conf.type one of \code{plain}, \code{log} (the default), or
+#' \code{log-log}. The first option causes the standard intervals curve +- k
+#' *se(curve), where k is determined from conf.int. The log option calculates
+#' intervals based on the cumulative hazard or log(survival). The last option
+#' bases intervals on the log hazard or log(-log(survival)).
+#' @param conf.int the level for a two-sided confidence interval on the
+#' survival curve(s). Default is 0.95.
+#' @param type defines how survival estimates are to be calculated given the
+#' hazards.  The default (\code{kaplan-meier}) calculates the product integral,
+#' whereas the option \code{fleming-harrington} exponentiates the negative
+#' cumulative hazard. Analogous to the usage in \code{survfit}.
+#' @param add.times specific times at which the curve should be evaluated.
+#' @param precision Precision for numerical integration. Default is 1, which
+#' means that daily intervals are taken, the value may be decreased to get a
+#' higher precision or increased to achieve a faster calculation. The
+#' calculation intervals always include at least all times of event and
+#' censoring as border points.
+#' @param rmap an optional list to be used if the variables are not organized
+#' and named in the same way as in the \code{ratetable} object. See details
+#' below.
+#' @return a \code{survfit} object; see the help on \code{survfit.object} for
+#' details.  The \code{survfit} methods are used for \code{print},
+#' \code{summary}, \code{plot}, \code{lines}, and \code{points}.
+#' @seealso \code{survfit}, \code{survexp}
+#' @references Package: Pohar Perme, M., Pavlic, K. (2018) "Nonparametric
+#' Relative Survival Analysis with the R Package relsurv". Journal of
+#' Statistical Software. 87(8), 1-27, doi: "10.18637/jss.v087.i08" Theory:
+#' Pohar Perme, M., Esteve, J., Rachet, B. (2016) "Analysing Population-Based
+#' Cancer Survival - Settling the Controversies." BMC Cancer, 16 (933), 1-8.
+#' doi:10.1186/s12885-016-2967-9. Theory: Pohar Perme, M., Stare, J., Esteve,
+#' J. (2012) "On Estimation in Relative Survival", Biometrics, 68(1), 113-120.
+#' doi:10.1111/j.1541-0420.2011.01640.x.
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' #calculate the relative survival curve
+#' #note that the variable year must be given in a date format and that 
+#' #age must be multiplied by 365.241 in order to be expressed in days.
+#' rs.surv(Surv(time,cens)~sex,rmap=list(age=age*365.241), ratetable=slopop,data=rdata)
+#' 
 rs.surv <- function (formula = formula(data), data = parent.frame(),ratetable = relsurv::slopop,
      na.action, fin.date, method = "pohar-perme", conf.type = "log",
      conf.int = 0.95,type="kaplan-meier",add.times,precision=1,rmap)
@@ -2464,6 +3275,48 @@ rs.surv <- function (formula = formula(data), data = parent.frame(),ratetable = 
 
 
 
+#' Net Expected Sample Size Is Estimated
+#' 
+#' Calculates how the sample size decreases in time due to population mortality
+#' 
+#' The function calculates the sample size we can expect at a certain time
+#' point if the patients die only due to population causes (population survival
+#' * initial sample size in a certain category), i.e. the number of individuals
+#' that remains at risk at given timepoints after the individuals who die due
+#' to population causes are removed. The result should be used as a guideline
+#' for the sensible length of follow-up interval when calculating the net
+#' survival.
+#' 
+#' The first column of the output reports the number of individuals at time 0.
+#' The last column of the output reports the conditional expected (population)
+#' survival time for each subgroup.
+#' 
+#' @param formula a formula object, same as in \code{rs.surv}. The right-hand
+#' side of the formula object includes the variable that defines the subgroups
+#' (a variable of type \code{factor}) by which the expected sample size is to
+#' be calculated.
+#' @param data a data.frame in which to interpret the variables named in the
+#' \code{formula}.
+#' @param ratetable a table of event rates, organized as a \code{ratetable}
+#' object, such as \code{slopop}.
+#' @param times Times at which the calculation should be evaluated - in years!
+#' @param rmap an optional list to be used if the variables are not organized
+#' and named in the same way as in the \code{ratetable} object. See details of
+#' the \code{rs.surv} function.
+#' @return A list of values.
+#' @seealso \code{rs.surv}
+#' @references Pohar Perme, M., Pavlic, K. (2018) "Nonparametric Relative
+#' Survival Analysis with the R Package relsurv". Journal of Statistical
+#' Software. 87(8), 1-27, doi: "10.18637/jss.v087.i08"
+#' @keywords survival
+#' @examples
+#' 
+#' data(slopop)
+#' data(rdata)
+#' rdata$agegr <-cut(rdata$age,seq(40,95,by=5))
+#' nessie(Surv(time,cens)~agegr,rmap=list(age=age*365.241),
+#' 	ratetable=slopop,data=rdata,times=c(1,3,5,10,15))
+#' 
 nessie <- function (formula = formula(data), data = parent.frame(), ratetable = relsurv::slopop,times,rmap)
 
     #formula: for example Surv(time,cens)~sex
@@ -2698,3 +3551,124 @@ rs.period <- function (formula = formula(data), data = parent.frame(), ratetable
     out
 }
 
+
+
+#' expprep2 function
+#' 
+#' Helper calculation function using C code. Saved also as exp.prep (unexported
+#' function).
+#' 
+#' Helper function used in rs.surv and other relsurv functions.
+#' 
+#' @param x matrix of demographic covariates - each individual has one line
+#' @param y follow-up time for each individual (same length as nrow(x))
+#' @param ratetable rate table used for calculation
+#' @param status status for each individual (same length as nrow(x)!), not
+#' needed if we only need Spi, status needed for rs.surv
+#' @param times times at which we wish to evaluate the quantities, not needed
+#' if we only need Spi, times needed for rs.surv
+#' @param fast for mpp method only
+#' @param ys entry times (if empty, individuals are followed from time 0)
+#' @param prec deprecated
+#' @param cmp should cmpfast.C be used
+#' @param netweiDM should new netwei script be used
+#' @return List containing the calculated hazards and probabilities using the
+#' population mortality tables.
+#' @seealso rs.surv
+#' @keywords survival
+#' @export expprep2
+expprep2 <- function (x, y,ratetable,status,times,fast=FALSE,ys,prec,cmp=F,netweiDM=FALSE) {			#function that prepares the data for C function call
+
+  #x= matrix of demographic covariates - each individual has one line
+  #y= follow-up time for each individual (same length as nrow(x)!)
+  #ratetable= rate table used for calculation
+  #status= status for each individual (same length as nrow(x)!), not needed if we only need Spi, status needed for rs.surv
+  #times= times at which we wish to evaluate the quantities, not needed if we only need Spi, times needed for rs.surv
+  #fast=for mpp method only
+  #netweiDM=should new netwei script be used
+
+  x <- as.matrix(x)
+  if (ncol(x) != length(dim(ratetable)))
+    stop("x matrix does not match the rate table")
+  atts <- attributes(ratetable)
+
+  cuts <- atts$cutpoints
+
+  if (is.null(atts$type)) {
+    rfac <- atts$factor
+    us.special <- (rfac > 1)
+  }
+  else {
+    rfac <- 1 * (atts$type == 1)
+    us.special <- (atts$type == 4)
+  }
+  if (length(rfac) != ncol(x))
+    stop("Wrong length for rfac")
+
+
+  if (any(us.special)) {
+    if (sum(us.special) > 1)
+      stop("Two columns marked for special handling as a US rate table")
+    cols <- match(c("age", "year"), atts$dimid)
+    if (any(is.na(cols)))
+      stop("Ratetable does not have expected shape")
+    if (exists("as.Date")) {
+      bdate <- as.Date("1960/1/1") + (x[, cols[2]] - x[,
+                                                       cols[1]])
+      byear <- format(bdate, "%Y")
+      offset <- as.numeric(bdate - as.Date(paste(byear,
+                                                 "01/01", sep = "/")))
+    }
+    else if (exists("date.mdy")) {
+      bdate <- as.date(x[, cols[2]] - x[, cols[1]])
+      byear <- date.mdy(bdate)$year
+      offset <- bdate - mdy.date(1, 1, byear)
+    }
+    else stop("Can't find an appropriate date class\n")
+    x[, cols[2]] <- x[, cols[2]] - offset
+    if (any(rfac > 1)) {
+      temp <- which(us.special)
+      nyear <- length(cuts[[temp]])
+      nint <- rfac[temp]
+      cuts[[temp]] <- round(approx(nint * (1:nyear), cuts[[temp]],
+                                   nint:(nint * nyear))$y - 1e-04)
+    }
+  }
+
+  if(!missing(status)){		#the function was called from rs.surv
+    if(length(status)!=nrow(x))    stop("Wrong length for status")
+
+    if(missing(times))    times <- sort(unique(y))
+
+    if (any(times < 0))
+      stop("Negative time point requested")
+    ntime <- length(times)
+    if(missing(ys)) ys <- rep(0,length(y))
+    #    times2 <- times
+    #    times2[1] <- preci
+    if(cmp)   temp <- .Call("cmpfast",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
+                            as.integer(atts$dim), as.double(unlist(cuts)), ratetable,
+                            x, y, ys,as.integer(status), times,PACKAGE="relsurv")
+    else if(fast&!missing(prec))    temp <- .Call("netfastpinter2",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
+                                                  as.integer(atts$dim), as.double(unlist(cuts)), ratetable,
+                                                  x, y, ys,as.integer(status), times,prec,PACKAGE="relsurv")
+    else if(fast&missing(prec))    temp <- .Call("netfastpinter",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
+                                                 as.integer(atts$dim), as.double(unlist(cuts)), ratetable,
+                                                 x, y, ys,as.integer(status), times,PACKAGE="relsurv")
+    else if(netweiDM==TRUE)    temp <- .Call("netweiDM",  as.integer(rfac),
+                                             as.integer(atts$dim), as.double(unlist(cuts)), ratetable,
+                                             x, y, ys,as.integer(status), times,PACKAGE="relsurv")
+    else    temp <- .Call("netwei",  as.integer(rfac),
+                          as.integer(atts$dim), as.double(unlist(cuts)), ratetable,
+                          x, y, as.integer(status), times,PACKAGE="relsurv")
+  }
+  else{				#only expected survival at time y is needed for each individual
+    if(length(y)==1)y <- rep(y,nrow(x))
+    if(length(y)!=nrow(x)) stop("Wrong length for status")
+    temp <- .Call("expc",  as.integer(rfac),
+                  as.integer(atts$dim), as.double(unlist(cuts)), ratetable,
+                  x, y,PACKAGE="relsurv")
+    temp  <- temp$surv
+  }
+  temp
+}
