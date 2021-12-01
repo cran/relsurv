@@ -5,7 +5,7 @@ export("epa","invtime","joinrate",
 	"rs.zph","rsadd","rsmul","rstrans",
 	"residuals.rsadd",
 	"survsplit","transrate","transrate.hld",
-	"transrate.hmd","rs.surv.rsadd","survfit.rsadd","cmp.rel","nessie")
+	"transrate.hmd","rs.surv.rsadd","survfit.rsadd","cmp.rel","nessie", 'years', 'plot_f', 'plot_years')
 S3method(residuals, rsadd)
 S3method(plot, rs.br)
 S3method(plot, cmp.rel)

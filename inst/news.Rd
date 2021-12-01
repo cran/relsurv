@@ -1,6 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
 
+\section{Changes in version 2.2-6}{
+  \itemize{
+    \item 1 December 2021  Function years has been added for calculating the years life difference
+}
+}
 \section{Changes in version 2.2-5}{
   \itemize{
     \item 5 July 2021  exp.prep is copied and exported as expprep2
