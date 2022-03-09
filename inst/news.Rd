@@ -1,6 +1,15 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
 
+\section{Changes in version 2.2-7}{
+  \itemize{
+    \item 09 March 2022  The slopop object has been updated containing data for 2020
+    \item 09 March 2022  The C scripts cmpfast.c, netfastpinter2.c, netfastp.c have been
+    updated to correctly assign individuals at risk for left truncated data
+    \item 09 March 2022  A small bug was fixed in the years function
+    \item 09 March 2022  Change if(class) to if(inherits) function where Debian servers gave a note
+}
+}
 \section{Changes in version 2.2-6}{
   \itemize{
     \item 1 December 2021  Function years has been added for calculating the years life difference

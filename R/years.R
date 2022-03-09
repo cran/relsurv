@@ -197,6 +197,12 @@ years <- function(
   estimator=c("F_P_final") #  #' @param estimator which estimator should be used for calculating
   # estimator <- match.arg(estimator)
 
+  Call <- match.call()
+
+  if(!missing(rmap) & !is.boot & !first.boot)  rmap <- substitute(rmap)
+
+  measure <- match.arg(measure)
+  var.estimator <- match.arg(var.estimator)
 
   if(var.estimator=='bootstrap'){
     bootstrap <- TRUE
@@ -205,12 +211,6 @@ years <- function(
   } else{
     stop('Incorrect value provided in argument var.estimator.')
   }
-
-  Call <- match.call()
-
-  if(!missing(rmap) & !is.boot & !first.boot)  rmap <- substitute(rmap)
-
-  measure <- match.arg(measure)
 
   data_orig <- data
   out <- NULL
@@ -334,9 +334,17 @@ years <- function(
 
   # Calculate AUC:
   if(length(mod$time)>1){
-    survs <- c(1, mod$surv[1:(length(mod$surv)-1)])
-    auc_data <- sum(diff(c(0, mod$time))*(1 - survs))
-    auc_data_vec <- cumsum(diff(c(0, mod$time))*(1 - survs))
+    if(if_start_stop){
+      survs <- c(1, mod$surv[1:(length(mod$surv)-1)])
+      t_diff <- diff(c(mod$time[1], mod$time))
+      auc_data <- sum(t_diff*(1 - survs))
+      auc_data_vec <- cumsum(t_diff*(1 - survs))
+    } else{
+      survs <- mod$surv
+      t_diff <- diff(c(0, mod$time))
+      auc_data <- sum(t_diff*(1 - survs))
+      auc_data_vec <- cumsum(t_diff*(1 - survs))
+    }
   } else{
     auc_data <- mod$time*mod$surv
     auc_data_vec <- auc_data
@@ -380,7 +388,7 @@ years <- function(
     # tis <- sort(unique(rform$Y[inx])) #unique times
     if(!if_start_stop){
       tis <- rform$Y[inx] #unique times
-      tis_seq <- seq(1, max(rform$Y[inx]), precision)
+      tis_seq <- seq(0, max(rform$Y[inx]), precision)
     } else{
       tis <- sort(unique(c(rform$Y[inx], data[, start_col]))) #unique times
       tis_seq <- seq(min(data[, start_col]), max(rform$Y[inx], data[, start_col]), precision)
@@ -421,6 +429,10 @@ years <- function(
         YL_O_vec <- out$auc_data_vec
         YL_O <- out$auc_data
         F_O_time <- mod$time
+        if(!(0 %in% F_O_time)){
+          F_O_time <- c(0, F_O_time)
+          YL_O_vec <- c(0, YL_O_vec)
+        }
       }
 
       F_O <- data.frame(time=F_O_time, area=YL_O_vec)
@@ -430,6 +442,8 @@ years <- function(
       # YL_P continue:
       it_auc_P <- rep(NA, nrow(data))
       it_auc_P_mat <- matrix(0, nrow=nrow(data), ncol=ltis)
+
+
 
       for(it in 1:nrow(data)){
         temp <- exp.prep(rform$R[it,,drop=FALSE],max(rform$Y),rform$ratetable,rform$status[it],times=tis,fast=FALSE, cmp=FALSE, ys=starting_age[it], netweiDM = FALSE)
@@ -441,7 +455,7 @@ years <- function(
           cumhazs <- cumsum(hazs)
           F_P <- 1 - exp(-cumhazs)
           it_auc_P[it] <- sum(c(tis[it_wh], diff(tis[it_wh:ltis]))*c(0, F_P[1:(length(F_P)-1)]))/365.241
-          it_auc_P_mat[it,it_wh:ltis] <- sum(c(tis[it_wh], diff(tis[it_wh:ltis]))*c(0, F_P[1:(length(F_P)-1)]))/365.241
+          it_auc_P_mat[it,it_wh:ltis] <- cumsum(c(0, diff(tis[it_wh:ltis]))*c(0, F_P[1:(length(F_P)-1)]))/365.241
         } else{
           # it_wh <- which(data$age[it] == tis)
           hazs <- temp$yidli[1:ltis]
@@ -628,7 +642,7 @@ years <- function(
 
   kt <- 1 # the only stratum
   inx <- which(data$Xs == names(out_n)[kt]) #individuals within this stratum
-  if(!if_start_stop) tis <- sort(unique(c(rform$Y[inx], seq(1, max(rform$Y[inx]), precision)))) #unique times
+  if(!if_start_stop) tis <- sort(unique(c(rform$Y[inx], seq(0, max(rform$Y[inx]), precision)))) #unique times
   else tis <- sort(unique(c(rform$Y[inx], data[, start_col], seq(min(data[, start_col]), max(rform$Y[inx], data[, start_col]), precision)))) #unique times
 
   if(!missing(add.times)){

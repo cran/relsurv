@@ -224,7 +224,7 @@ SEXP cmpfast(   SEXP   efac2,   SEXP edims2,
 		si[i] = si[i]* exp(-hazard);
 
 
-		if(ys[i]<=times[j]){		// if start of observation before this time
+		if(ys[i]<times[j]){		// if start of observation before this time
 			yisi[j]+=1/si[i];
 			yisitt[j]+=1/sitt[i];
 			yidlisi[j]+=hazard/si[i];

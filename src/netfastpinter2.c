@@ -236,7 +236,7 @@ for (j=0; j<ntime ; j++) {			/* loop in time */
 		et2 = pystep2(edim, &indx, &indx2, &wt, data2, efac, edims, ecut, fthiscell, 1);
 		lambdapi = expect[indx];
 		lambdapi2 = expect[indx2];
-		if(ys[i]<=times[j]){			//he has entered before the crude interval - this guy is at risk for the whole interval - contributes to the values on this interval
+		if(ys[i]<times[j]){			//he has entered before the crude interval - this guy is at risk for the whole interval - contributes to the values on this interval
 					fyidlisi+= lambdapi/si[i];
 					fyidlisi2+= lambdapi/(si[i]*exp(-fthiscell* lambdapi));
 					fyisi+=1/si[i];
