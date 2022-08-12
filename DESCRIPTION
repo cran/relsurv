@@ -1,7 +1,7 @@
 Package: relsurv
 Title: Relative Survival
-Date: 2022-03-09
-Version: 2.2-7
+Date: 2022-08-12
+Version: 2.2-8
 Authors@R: c(person(c("Maja","Pohar","Perme"),role=c("aut"),email="maja.pohar@mf.uni-lj.si"), person(c("Damjan","Manevski"),role=c("aut", "cre"),email="damjan.manevski@mf.uni-lj.si"))
 Author: Maja Pohar Perme [aut],
   Damjan Manevski [aut, cre]
@@ -14,5 +14,5 @@ LazyData: true
 NeedsCompilation: yes
 Repository: CRAN
 RoxygenNote: 7.1.1
-Packaged: 2022-03-09 10:12:48 UTC; dame_
-Date/Publication: 2022-03-09 12:00:02 UTC
+Packaged: 2022-08-12 12:44:58 UTC; dame_
+Date/Publication: 2022-08-12 13:40:02 UTC

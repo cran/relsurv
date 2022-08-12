@@ -1,6 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
 
+\section{Changes in version 2.2-8}{
+  \itemize{
+    \item 12 August 2022  Update Sint objects for new version
+}
+}
+
 \section{Changes in version 2.2-7}{
   \itemize{
     \item 09 March 2022  The slopop object has been updated containing data for 2020

@@ -29,7 +29,7 @@
 #include "survprotomoj.h"
 
 double pystep(int nc,        int  *index,  int  *index2,   double *wt,
-	      double *data,  Sint *fac,    Sint *dims,     double **cuts,
+	      double *data,  int *fac,    int *dims,     double **cuts,
 	      double step,   int  edge)
     {
     int i,j;

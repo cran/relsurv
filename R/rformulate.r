@@ -123,7 +123,7 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action, rm
   # TMT -- note the new class
   if(length(wh.year)>0){
       if(min(R[,wh.year])>1850 & max(R[,wh.year])<2020&
-         class(cutpoints[[wh.year]])=="rtdate")
+         inherits(cutpoints[[wh.year]], "rtdate"))
         warning("The calendar year must be one of the date classes (Date, date, POSIXt)\n (Your variable seems to be expressed in years) \n")
   }
   #checking if one of the continuous variables is fixed:

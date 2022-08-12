@@ -232,7 +232,7 @@ years <- function(
 
   # if(starting.time=="left.truncated"){
   if(!missing(admin.cens)){
-    if(class(admin.cens)!='Date') warning('Object of class Date should be supplied to admin.cens.')
+    if(!inherits(admin.cens, 'Date')) warning('Object of class Date should be supplied to admin.cens.')
     end_date <- data$year+(data$stop-data$age)
     if(any(end_date > admin.cens)) warning('There are events that occur after the date of administrative censoring. Please check the values in arguments data and admin.cens.')
     id_admin_cens <- which(admin.cens==end_date)
