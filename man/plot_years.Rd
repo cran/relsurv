@@ -12,7 +12,7 @@ plot_years(
   ybreak,
   xlimits,
   ylimits,
-  conf.int = TRUE,
+  conf.int = FALSE,
   ymirror = FALSE,
   yminus = FALSE
 )
@@ -49,5 +49,5 @@ A ggplot2 implementation for plotting the years measure. The type of curve is
 dependent upon the measure calculated using the \code{years} function (argument \code{measure}).
 }
 \seealso{
-\code{years}, \code{plot_f}
+\code{\link{years}}, \code{\link{plot_f}}
 }

@@ -1,6 +1,13 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
 
+\section{Changes in version 2.2-9}{
+  \itemize{
+    \item 21 December 2022  Make a few improvements in the years function, primarily for measure='yl2017'
+    \item 21 December 2022  Implement left-truncation in rsadd (time-dependent covariates already available)
+}
+}
+
 \section{Changes in version 2.2-8}{
   \itemize{
     \item 12 August 2022  Update Sint objects for new version

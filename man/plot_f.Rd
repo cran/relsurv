@@ -36,13 +36,13 @@ plot_f(
 A ggplot object
 }
 \description{
-Plots the estimated observed and population curve for the following measures: years lost/saved (Andersen, 2017), or
-life years difference (Manevski, Ruzic Gorenjec, Andersen, Pohar Perme, 2022). Note that this function cannot be used for the years lost measure (Andersen, 2013).
+Plots the estimated observed and population curve for the
+life years difference (Manevski, Ruzic Gorenjec, Andersen, Pohar Perme, 2022).
 }
 \details{
 A ggplot2 implementation for plotting the observed and population curves. The type of curves is
 dependent upon the measure calculated using \code{years} function (argument \code{measure}).
 }
 \seealso{
-\code{years}, \code{plot_years}
+\code{\link{years}}, \code{\link{plot_years}}
 }

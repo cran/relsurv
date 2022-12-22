@@ -14,7 +14,9 @@ rsadd(formula, data=parent.frame(), ratetable = relsurv::slopop,
 \item{formula}{
 a formula object, with the response as a \code{Surv} object on the
           left of a \code{~} operator, and, if desired, terms separated  by
-          the \code{+} operator on the right. 
+          the \code{+} operator on the right. \code{Surv(start,stop,event)} 
+	    outcomes are also possible for time-dependent covariates and 
+	    left-truncation for \code{method='EM'}.
 
  NOTE: The follow-up time must be in days.
 }

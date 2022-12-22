@@ -30,7 +30,7 @@ nessie_spi <- function(formula = formula(data), data, ratetable = relsurv::slopo
   }
   na.action <- NA
   rform <- rformulate(formula, data, ratetable, na.action,
-                                rmap)
+                      rmap)
 
   data <- rform$data
   data$Xs <- rep(1, nrow(data))
@@ -62,7 +62,7 @@ nessie_spi <- function(formula = formula(data), data, ratetable = relsurv::slopo
   l_tis <- length(tis)
   temps <- lapply(1:n_rows, function(inx) {
     temp <- exp.prep(rform$R[inx, , drop = FALSE], rform$Y[inx], rform$ratetable,
-                               rform$status[inx], times = tis, fast = TRUE, cmp=FALSE,ys=data$start[inx])
+                     rform$status[inx], times = tis, fast = TRUE, cmp=FALSE,ys=data$start[inx])
     s_pi <- exp(-cumsum(temp$yidli))
 
     s_pi_helper <- which.min(temp$yidli==0)-1
@@ -115,9 +115,9 @@ nessie_spi <- function(formula = formula(data), data, ratetable = relsurv::slopo
 #' (date, Date and POSIXt are allowed), the date formats in the
 #' \code{ratetable} and in the data may differ.
 #'
-#' Numerical integration is required for the population curves. The integration
+#' Numerical integration is performed, argument
 #' precision is set with argument \code{precision}, which defaults to 30-day
-#' intervals. For higher accuracy take a smaller value (e.g. precision=1 makes
+#' intervals for intergration. For higher accuracy take a smaller value (e.g. precision=1 makes
 #' the integration on a daily basis).
 #'
 #' The observed curves are reported at event and censoring times. The
@@ -132,15 +132,13 @@ nessie_spi <- function(formula = formula(data), data, ratetable = relsurv::slopo
 #' \code{formula}.
 #' @param measure choose which measure is used: 'yd' (life years difference; Manevski, Ruzic Gorenjec, Andersen, Pohar Perme, 2022), 'yl2017' (years lost/saved; Andersen 2017),
 #' 'yl2013' (years lost/saved; Andersen 2013).
-#' the population cumulative incidence curve. Relevant only for \code{measure='yd'}.
-#' For \code{measure='yl2013'} and \code{measure='yl2017'} the estimators defined in (Andersen, 2013) and (Andersen, 2017)
-#' are used.
 #' @param ratetable a table of event rates, organized as a \code{ratetable}
 #' object, such as \code{slopop}.
 #' @param rmap an optional list to be used if the variables are not organized
 #' and named in the same way as in the \code{ratetable} object. See details
 #' below.
 #' @param var.estimator Choose the estimator for the variance ('none', 'bootstrap', 'greenwood'). Default is 'none'.
+#' The 'greenwood' option is possible only for \code{measure='yd'}.
 #' @param B if \code{var.estimator} is 'bootstrap'. The number of bootstrap replications. Default is 100.
 #' @param precision precision for numerical integration of the population curve. Default is 30 (days).
 #' The value may be decreased to get a
@@ -149,16 +147,13 @@ nessie_spi <- function(formula = formula(data), data, ratetable = relsurv::slopo
 #' @param na.action a missing-data filter function. Default is \code{na.omit}.
 #' @param conf.int the confidence level for a two-sided confidence interval. Default is 0.95.
 #' @param timefix the timefix argument in survival::survfit.formula. Default is FALSE.
-#' @param admin.cens if a Date is supplied, administrative censoring is taken into account at that time
-#' in the population curve. Works only if there's late entry, e.g. if the formula is \code{Surv(start,stop,event)~1}.
-#' @param arg.example temporary argument, used for checking additionalities.
-#' @param cause.val for competing risks, to be added.
 #' @param is.boot if TRUE, the function \code{years} has been called during a bootstrap replication.
 #' @param first.boot if TRUE, this is the first bootstrap replication.
 #' @return A list containing the years measure, the observed and population curves (or the excess curve for Andersen 2013).
 #' The values are given as separate data.frames through time. Times are given in days, all areas are given in years.
+#' For \code{measure='yl2017'} values are reported only at the last time point.
 #' Functions \code{plot_f} and \code{plot_years} can be then used for plotting.
-#' @seealso \code{plot_f}, \code{plot_years}
+#' @seealso \code{\link{plot_f}}, \code{\link{plot_years}}
 #' @examples
 #'
 #' library(relsurv)
@@ -170,37 +165,43 @@ nessie_spi <- function(formula = formula(data), data, ratetable = relsurv::slopo
 #' # Plot the life years difference estimate:
 #' plot_years(mod, conf.int=FALSE)
 years <- function(
-  formula=formula(data),
-  data,
-  measure=c('yd', 'yl2017', 'yl2013'),
-  # estimator=c("F_P_final"),#, "F_P_Spi", "F_P_Spi2", "F_P", "F_P2", "all"),
-  ratetable=relsurv::slopop,
-  rmap,
-  var.estimator=c('none', 'bootstrap', 'greenwood'),
-  B=100,
-  precision=30,
-  add.times,
-  na.action=stats::na.omit,
-  conf.int=0.95,
-  timefix=FALSE,
-  admin.cens,
-  arg.example=FALSE,
-  cause.val,
-  is.boot=FALSE,
-  first.boot=FALSE
+    formula=formula(data),
+    data,
+    measure=c('yd', 'yl2017', 'yl2013'),
+    # estimator=c("F_P_final"),#, "F_P_Spi", "F_P_Spi2", "F_P", "F_P2", "all"),
+    ratetable=relsurv::slopop,
+    rmap,
+    var.estimator=c('none', 'bootstrap', 'greenwood'),
+    B=100,
+    precision=30,
+    add.times,
+    na.action=stats::na.omit,
+    conf.int=0.95,
+    timefix=FALSE,
+    # admin.cens,
+    # cause.val,
+    is.boot=FALSE,
+    first.boot=FALSE
+    # ,estimator.observed='Kaplan-Meier'
 ){
 
+  # OLD ARGUMENTS:
   # F_P_Spi: Tako kot F_P_final, ignorira censoring. Ali pa vzame samo admin cens
   # F_P_Spi2: Vzame ves censoring
+  # @param cause.val for competing risks, to be added.
+  # @param admin.cens if a Date is supplied, administrative censoring is taken into account at that time
+  # in the population curve. Works only if there's late entry, e.g. if the formula is \code{Surv(start,stop,event)~1}.
 
+  ############ #
+  # PREPARE OBJECTS:
+  ############ #
 
   estimator=c("F_P_final") #  #' @param estimator which estimator should be used for calculating
   # estimator <- match.arg(estimator)
+  arg.example <- FALSE # @param arg.example temporary argument, used for checking additionalities.
 
   Call <- match.call()
-
   if(!missing(rmap) & !is.boot & !first.boot)  rmap <- substitute(rmap)
-
   measure <- match.arg(measure)
   var.estimator <- match.arg(var.estimator)
 
@@ -212,7 +213,9 @@ years <- function(
     stop('Incorrect value provided in argument var.estimator.')
   }
 
-  data_orig <- data
+  if(!is.data.frame(data)) stop('Argument data is not a data.frame object.')
+  data <- as.data.frame(data)
+
   out <- NULL
   late.values <- FALSE
 
@@ -230,30 +233,14 @@ years <- function(
   # data$age <- round(data$age*365.241)
   # data$stop <- round(data$stop*365.241)
 
-  # if(starting.time=="left.truncated"){
-  if(!missing(admin.cens)){
-    if(!inherits(admin.cens, 'Date')) warning('Object of class Date should be supplied to admin.cens.')
-    end_date <- data$year+(data$stop-data$age)
-    if(any(end_date > admin.cens)) warning('There are events that occur after the date of administrative censoring. Please check the values in arguments data and admin.cens.')
-    id_admin_cens <- which(admin.cens==end_date)
-  }
-  # }
-
-  starting_age <- rep(0,nrow(data))
-
   # If Surv(start,stop, event) (possibly + mstate)
   if_start_stop <- length(as.character(formula[[2]])) %in% c(4,5)
 
   if(if_start_stop){
-    starting.time <- 'left.truncated'
-  } else{
-    starting.time <- 'zero'
-  }
-
-  if(if_start_stop){
     start_col <- as.character(formula[[2]])[2]
     stop_col <- as.character(formula[[2]])[3]
-    starting_age <- data[, start_col]
+    status_col <- as.character(formula[[2]])[4]
+    starting_age <- as.vector(as.matrix(data[, start_col]))
   } else{
     stop_col <- as.character(formula[[2]])[2]
     if(!(stop_col %in% colnames(data))){
@@ -261,9 +248,60 @@ years <- function(
     }
   }
 
+  # Check if no. at risk falls to zero at some point:
+  if(if_start_stop){
+    # Prepare at-risk matrix:
+    find_tajms <- unique(sort(c(data[,start_col], data[,stop_col])))
+    mat <- lapply(1:nrow(data), function(x) ifelse((data[x, start_col] < find_tajms) & (find_tajms <= data[x, stop_col]), 1, 0))
+    mat2 <- matrix(unlist(mat), nrow = nrow(data), byrow = TRUE)
+    # The sum of the individual at-risk processes:
+    yi_left <- colSums(mat2)
+    # If there's an empty at-risk at a later timepoint, censor the data:
+    wh_yi <- which(yi_left==0)
+    if(length(wh_yi)>1){
+      if((!is.boot) & (!first.boot)){
+        warning(paste0('In the time interval ', find_tajms[wh_yi[2]-1], '-', find_tajms[wh_yi[2]],
+                       ' the at-risk sample is empty (nobody is followed). Survival cannot be estimated in this time interval.',
+                       ' The data is censored at time ', find_tajms[wh_yi[2]-1], '.'))
+      }
+      # Censor data:
+      data <- data[data[,start_col] <= find_tajms[wh_yi[2]-1], ]
+      wh_cen <- which(data[, stop_col] > find_tajms[wh_yi[2]-1])
+      data[wh_cen, stop_col] <- find_tajms[wh_yi[2]-1]
+      data[wh_cen, status_col] <- 0
+      if(!missing(add.times)){
+        if(any(add.times > find_tajms[wh_yi[2]-1])) add.times <- add.times[add.times<=find_tajms[wh_yi[2]-1]]
+      }
+    }
+    rm(mat,mat2)
+  }
+  data_orig <- data
+
+  # if(starting.time=="left.truncated"){
+  # if(!missing(admin.cens)){
+  #   if(!inherits(admin.cens, 'Date')) warning('Object of class Date should be supplied to admin.cens.')
+  #   end_date <- data$year+(data$stop-data$age)
+  #   if(any(end_date > admin.cens)) warning('There are events that occur after the date of administrative censoring. Please check the values in arguments data and admin.cens.')
+  #   id_admin_cens <- which(admin.cens==end_date)
+  # }
+  # }
+
+  if(if_start_stop){
+    starting.time <- 'left.truncated'
+  } else{
+    starting.time <- 'zero'
+  }
+
+  # Starting age
+  starting_age <- rep(0,nrow(data))
+  if(if_start_stop){
+    starting_age <- as.vector(as.matrix(data[, start_col]))
+  }
   starting_age <- as.numeric(starting_age)
 
-  # CIF on data:
+  ############ #
+  # YEARS ON DATA - GENERAL:
+  ############ #
 
   surv_obj <- as.character(formula[[2]])
 
@@ -289,15 +327,13 @@ years <- function(
   }
   status_obj <- surv_obj[length(surv_obj)]
 
-
-  if(!missing(cause.val)){
-    mod$n.risk <- mod$n.risk[,1]
-    mod$n.event <- mod$n.event[,cause.val+1]
-    mod$surv <- 1-mod$pstate[,cause.val+1]
-    mod$std.err <- mod$std.err[,cause.val+1]
-    mod$cumhaz <- mod$cumhaz[,cause.val]
-  }
-
+  # if(!missing(cause.val)){
+  #   mod$n.risk <- mod$n.risk[,1]
+  #   mod$n.event <- mod$n.event[,cause.val+1]
+  #   mod$surv <- 1-mod$pstate[,cause.val+1]
+  #   mod$std.err <- mod$std.err[,cause.val+1]
+  #   mod$cumhaz <- mod$cumhaz[,cause.val]
+  # }
 
   if(!missing(add.times)){
     mod_sum <- summary(mod, times = sort(unique(c(mod$time, add.times))))
@@ -337,14 +373,12 @@ years <- function(
     if(if_start_stop){
       survs <- c(1, mod$surv[1:(length(mod$surv)-1)])
       t_diff <- diff(c(mod$time[1], mod$time))
-      auc_data <- sum(t_diff*(1 - survs))
-      auc_data_vec <- cumsum(t_diff*(1 - survs))
     } else{
       survs <- mod$surv
       t_diff <- diff(c(0, mod$time))
-      auc_data <- sum(t_diff*(1 - survs))
-      auc_data_vec <- cumsum(t_diff*(1 - survs))
     }
+    auc_data <- sum(t_diff*(1 - survs))
+    auc_data_vec <- cumsum(t_diff*(1 - survs))
   } else{
     auc_data <- mod$time*mod$surv
     auc_data_vec <- auc_data
@@ -354,7 +388,7 @@ years <- function(
   out$auc_data <- auc_data/365.241
   out$auc_data_vec <- auc_data_vec/365.241
 
-  # HM?
+  # Exact hazards:
   if(exact.hazards){
     mod$time <- seq(min(mod$time), max(mod$time), by=1)
     mod$surv <- exp(-cumsum(rep(ratetable[1,1,1], max(mod$time)-min(mod$time)+1)))
@@ -363,7 +397,10 @@ years <- function(
     out$auc_data <- sum(out$F_data)/365.241
   }
 
-  ###
+  ############ #
+  # SEPARATE YEARS FOR EVERY MEASURE:
+  ############ #
+
   if(measure %in% c('yl2017', 'yl2013')){
     # YL_P preparation:
     data_yi <- data
@@ -413,7 +450,7 @@ years <- function(
       # YL_O (used only for yl2017):
       if(if_start_stop){
         it_auc <- rep(NA, nrow(data_orig))
-        mod_sum <- summary(mod, times=unique(sort(c(data_orig[,start_col], data_orig[,stop_col]))))
+        mod_sum <- summary(mod, times=tis) # unique(sort(c(data_orig[,start_col], data_orig[,stop_col])))
         lsurv <- length(mod_sum$surv)
         val_mat <- matrix(0, nrow=nrow(data_orig), ncol=lsurv)
         for(it in 1:nrow(data_orig)){
@@ -422,9 +459,15 @@ years <- function(
           it_auc[it] <- sum(c(0, diff(mod_sum$time[it_wh:lsurv]))*(1 - it_surv))/365.241
           val_mat[it, it_wh:lsurv] <- cumsum(c(0, diff(mod_sum$time[it_wh:lsurv]))*(1 - it_surv))/365.241
         }
-        YL_O_vec <- colMeans(val_mat)
+        # spodaj <- mod_sum$n.risk + cumsum(mod_sum$n.event) + cumsum(mod_sum$n.censor)
+        YL_O_vec <- colMeans(val_mat) # colSums(val_mat)/spodaj
         YL_O <- mean(it_auc)
         F_O_time <- mod_sum$time
+        F_O_ext <- data.frame(time=F_O_time, area=YL_O_vec)
+        # Subset:
+        F_O_ext2 <- subset(F_O_ext, time %in% mod$time)
+        F_O_time <- F_O_ext2$time
+        YL_O_vec <- F_O_ext2$area
       } else{
         YL_O_vec <- out$auc_data_vec
         YL_O <- out$auc_data
@@ -433,21 +476,30 @@ years <- function(
           F_O_time <- c(0, F_O_time)
           YL_O_vec <- c(0, YL_O_vec)
         }
+        # Prepare extended F_O object:
+        if(0 %in% mod$time){
+          F_O_temp <- data.frame(time=mod$time, surv=mod$surv)
+        } else{
+          F_O_temp <- data.frame(time=c(0, mod$time), surv=c(1, mod$surv))
+        }
+        F_O_ext <- data.frame(time=tis)
+        F_O_ext <- merge(F_O_ext, F_O_temp, by='time', all.x=TRUE)
+        F_O_ext$surv <- mstateNAfix(F_O_ext$surv, 0)
+
+        tis_diff <- diff(c(0, F_O_ext$time))
+        F_O_ext$area <- cumsum(tis_diff*(1 - F_O_ext$surv))/365.241
+        F_O_ext <- F_O_ext[,c('time', 'area')]
       }
 
       F_O <- data.frame(time=F_O_time, area=YL_O_vec)
-
 
       ###
       # YL_P continue:
       it_auc_P <- rep(NA, nrow(data))
       it_auc_P_mat <- matrix(0, nrow=nrow(data), ncol=ltis)
 
-
-
       for(it in 1:nrow(data)){
         temp <- exp.prep(rform$R[it,,drop=FALSE],max(rform$Y),rform$ratetable,rform$status[it],times=tis,fast=FALSE, cmp=FALSE, ys=starting_age[it], netweiDM = FALSE)
-        # temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis2,fast=FALSE, cmp=FALSE, ys=starting_age, netweiDM = TRUE)
         if(if_start_stop){
           it_wh <- which(data[it, start_col] == tis)
           hazs <- temp$yidli[it_wh:ltis]
@@ -468,19 +520,9 @@ years <- function(
 
       }
       YL_P <- mean(it_auc_P)
-      YL=YL_O-YL_P
       F_P <- data.frame(time=tis, area=colMeans(it_auc_P_mat))
 
-      F_O_tajms <- F_P$time[!(F_P$time %in% F_O$time)]
-      if(length(F_O_tajms)>0){
-        F_O_tmp <- data.frame(time=F_O_tajms, area=NA)
-        F_O_ext <- rbind(F_O, F_O_tmp)
-        F_O_ext <- F_O_ext[order(F_O_ext$time),]
-        F_O_ext$area <- mstateNAfix(F_O_ext$area, 0)
-        yd_curve <- data.frame(time=tis, est=F_O_ext$area - F_P$area)
-      } else{
-        yd_curve <- data.frame(time=tis, est=F_O$area - F_P$area)
-      }
+      yd_curve <- data.frame(time=tis, est=F_O_ext$area - F_P$area)
 
       # Bootstrap:
       if(bootstrap){
@@ -505,7 +547,6 @@ years <- function(
         F_P$area.se <- colVars(yl_boot[[3]], na.rm=TRUE)^(1/2)
         yl_boot <- as.data.frame(t(yl_boot[[1]]))
         yd_curve$est.se <- (colVars(yl_boot, na.rm=TRUE))^(1/2)
-
       }
 
       # Add CI:
@@ -515,28 +556,31 @@ years <- function(
           yd_curve$upper <- yd_curve$est + yd_curve$est.se*stats::qnorm(0.5+conf.int/2)
         }
       }
+      # Values to be reported:
+      if((!is.boot) & (!first.boot)){
+        if(if_start_stop){
+          # Report only at last time point - the values until this time are not suitable to report:
+          out <- list(years=utils::tail(yd_curve,1), F_O=utils::tail(F_O,1), F_P=utils::tail(F_P,1), measure=measure)
+        } else{
+          # Report full measures:
+          out <- list(years=yd_curve, F_O=F_O, F_P=F_P, measure=measure)
+        }
+      } else{
+        out <- list(years=yd_curve, F_O=F_O, F_P=F_P, measure=measure)
+      }
+      return(out)
 
-      return(list(years=yd_curve, F_O=F_O, F_P=F_P, measure=measure))
-
-    } else{
+    } else{ # measure == 'yl2013'
       temp <- exp.prep(rform$R[,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status,times=tis, fast=TRUE, cmp=FALSE, ys=starting_age)
-
       temp$yi[temp$yi==0] <- Inf
 
-      out$time <- c(out$time, tis)						#add times
-
-      # Calculate hazards:
+      # Calculate measures:
       haz.pop <- temp$yidli/temp$yi
-
-      out$haz.pop <- c(out$haz.pop,haz.pop)
-      out$cum.haz.pop <- cumsum(out$haz.pop)
-
       mod_tis <- summary(mod, times = tis)
       F_E <- cumsum(mod_tis$surv*(mod_tis$n.event/mod_tis$n.risk - haz.pop))
       ltis <- length(tis)
 
-
-      # To be checked
+      # To be checked, doesn't work ok
       # # Var as in Pavlic2018:
       # F_E_st <- sapply(1:ltis, function(s){
       #   (sum(mod_tis$surv[s:ltis]*(mod_tis$n.event[s:ltis]/mod_tis$n.risk[s:ltis] - haz.pop[s:ltis]))/mod_tis$surv[s]) # *c(0, diff(tis[s:ltis]))  /365.241
@@ -555,14 +599,13 @@ years <- function(
       # # Predlog glede na Andersen 2013:
       # F_Ese <- (cumsum((surv_int^2*(mod_tis$n.event - temp$yidli) + F_E_int^2*temp$yidli)/(mod_tis$n.risk^2)*c(0, diff(tis)))/365.241)^(1/2)
 
-
+      # Calculate measures:
       YL <- cumsum(F_E*c(0, diff(tis)))/365.241
-
       F_E_area <- cumsum(c(0, diff(tis))*c(0, F_E[1:(length(F_E)-1)]))/365.241
-
       F_E_df <- data.frame(time=tis, prob=F_E, area=F_E_area) # , prob.se=F_Ese
       yd_curve <- data.frame(time=tis, est=YL)
 
+      # Bootstrap:
       if(bootstrap){
         data_b <- data_orig
         data_b$id <- 1:nrow(data_b)
@@ -588,7 +631,6 @@ years <- function(
         F_E_df$area.se <- area.se
         yl_boot <- as.data.frame(t(yl_boot[[1]]))
         yd_curve$est.se <- (colVars(yl_boot, na.rm=TRUE))^(1/2)
-
       }
 
       if((!is.boot) & (!first.boot)){
@@ -599,135 +641,15 @@ years <- function(
       }
 
       out <- list(years=yd_curve, F_E=F_E_df, measure=measure)
-
       return(out)
     }
-  }
+  } else{ # measure == 'yd'
 
-  ################################################### #
-  ## Prava varianca:
-  times_all2 <- c(0, diff(mod$time))/365.241
-  surv_all <- c(1, mod$surv[1:(length(mod$surv)-1)])
-  auc_all <- cumsum(times_all2*surv_all)
-  out$auc_data_var1 <- sum(((auc_all[length(auc_all)] - auc_all)^2*mod$n.event)/(mod$n.risk*(mod$n.risk - mod$n.event)), na.rm=T)
-  obs_var_time <- sapply(1:length(auc_all), function(x) {
-    numer <- mod$n.risk[1:x]*(mod$n.risk[1:x] - mod$n.event[1:x])
-    numer[numer==0] <- Inf
-    sum(((auc_all[x] - auc_all[1:x])^2*mod$n.event[1:x])/numer)
-  })
-  if(is.nan(obs_var_time[length(obs_var_time)])){
-    obs_var_time[length(obs_var_time)] <- obs_var_time[length(obs_var_time)-1]
-  }
+    ################################################### #
+    # CIF on population:
 
-  ################################################### #
-  # CIF on population:
-
-  data_yi <- data
-
-  rform <- rformulate(formula, data, ratetable, na.action=na.action, rmap = rmap)
-  data <- rform$data
-  if(if_start_stop){
-    if(!(start_col %in% colnames(data))){
-      data[,start_col] <- data_orig[, start_col]
-    }
-  }
-
-  # Check covariates:
-  p <- rform$m
-  if (p > 0) stop("There shouldn't be any covariates in the formula. This function gives non-parametric estimates of the hazards.")
-  else data$Xs <- rep(1, nrow(data)) #if no covariates, just put 1
-
-  out_n <- table(data$Xs) #table of strata
-  out$time <- out$haz.excess <- out$haz.pop <- out$std.err <- out$strata <-  NULL
-
-  kt <- 1 # the only stratum
-  inx <- which(data$Xs == names(out_n)[kt]) #individuals within this stratum
-  if(!if_start_stop) tis <- sort(unique(c(rform$Y[inx], seq(0, max(rform$Y[inx]), precision)))) #unique times
-  else tis <- sort(unique(c(rform$Y[inx], data[, start_col], seq(min(data[, start_col]), max(rform$Y[inx], data[, start_col]), precision)))) #unique times
-
-  if(!missing(add.times)){
-    tis <- sort(unique(c(tis, add.times)))
-  }
-
-  # Fix demographic covariates:
-  if(if_start_stop){
-    rform$R[,"year"] <- rform$R[,"year"] - rform$R[,"age"]
-    rform$R[,"age"] <- 0
-  }
-
-  if(estimator=='F_P' | estimator=="all"){
-    # Prepare at-risk matrix:
-    # browser()
-    # mat <- lapply(1:nrow(data), function(x) ifelse((data$start[x] < tis) & (tis <= data$Y[x]), 1, NA))
-    # mat2 <- matrix(unlist(mat), nrow = nrow(data_yi), byrow = TRUE)
-    # # The sum of the individual at-risk processes:
-    # yi_left <- colSums(mat2)
-    # yi_left[yi_left == 0] <- Inf
-    #
-    # mat3 <- lapply(1:nrow(data), function(x) data$age[x] + c(0, diff(tis)))
-
-    if(any(rform$Y[inx]<=starting_age)) browser()
-
-    temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE, cmp=FALSE, ys=starting_age)
-    # Fix at-risk process, if needed:
-    temp$yi[temp$yi==0] <- Inf
-
-    out$time <- c(out$time, tis)						#add times
-
-    # Calculate hazards:
-    haz.pop <- temp$yidli/temp$yi
-    out$haz.pop <- c(out$haz.pop,haz.pop)
-    out$cum.haz.pop <- cumsum(out$haz.pop)
-    out$F_P <- 1-exp(-out$cum.haz.pop)
-    out$auc_pop <- sum(c(tis[1], diff(tis))*c(0, out$F_P[1:(length(out$F_P)-1)]))/365.241
-
-  }
-  data_spi2 <- data
-
-  if(estimator=='F_P_Spi2' | estimator=="all"){
-
-    if(any(data_spi2$start>=data_spi2$Y)) browser()
-    # Take into account censoring:
-    exp.surv2 <- nessie_spi(Surv(start, Y, stat)~1, data=data_spi2, ratetable=ratetable,
-                            tis=tis, starting.time=starting.time, include.censoring = TRUE,
-                            arg.example)
-    out$haz.pop.spi2 <- exp.surv2$yidli/exp.surv2$yi
-    out$cum.haz.pop.spi2 <- cumsum(out$haz.pop.spi2)
-    out$F_P_Spi2 <- 1-exp(-out$cum.haz.pop.spi2)
-    out$auc_pop_Spi2 <- sum(c(tis[1], diff(tis))*c(0, out$F_P_Spi2[1:(length(out$F_P_Spi2)-1)]))/365.241
-  }
-  if(estimator=='F_P_Spi' | estimator=="all"){
-    if((!missing(admin.cens))){
-      data_spi2$stat <- 1
-      data_spi2$stat[id_admin_cens] <- 0
-      exp.surv <- nessie_spi(Surv(start, Y, stat)~1, data=data_spi2, ratetable=ratetable,
-                             tis=tis, starting.time=starting.time, include.censoring = TRUE,
-                             arg.example)
-    } else{
-      # Don't take into account censoring:
-      exp.surv <- nessie_spi(Surv(start, Y, stat)~1, data=data_spi2, ratetable=ratetable,
-                             tis=tis, starting.time=starting.time, include.censoring = FALSE,
-                             arg.example)
-    }
-
-    out$haz.pop.spi <- exp.surv$yidli/exp.surv$yi
-    out$cum.haz.pop.spi <- cumsum(out$haz.pop.spi)
-    out$F_P_Spi <- 1-exp(-out$cum.haz.pop.spi)
-    out$auc_pop_Spi <- sum(c(tis[1], diff(tis))*c(0, out$F_P_Spi[1:(length(out$F_P_Spi)-1)]))/365.241
-  }
-
-  if(estimator=='F_P_final'){
-    # Shift all to the end:
-    if(if_start_stop) data_yi[,stop_col] <- max(data_yi[,stop_col])
-
-    rform2 <- rform
-    rform <- rformulate(formula, data_yi, ratetable, na.action=na.action, rmap = rmap)
-
-    # Shift all to the end:
-    if(!if_start_stop){
-      rform$Y <- rep(max(rform$Y), length(rform$Y))
-      rform$data[,"Y"] <- rform$Y
-    }
+    data_yi <- data
+    rform <- rformulate(formula, data, ratetable, na.action=na.action, rmap = rmap)
     data <- rform$data
     if(if_start_stop){
       if(!(start_col %in% colnames(data))){
@@ -740,11 +662,17 @@ years <- function(
     if (p > 0) stop("There shouldn't be any covariates in the formula. This function gives non-parametric estimates of the hazards.")
     else data$Xs <- rep(1, nrow(data)) #if no covariates, just put 1
 
-    out$haz.pop2 <- NULL
+    out_n <- table(data$Xs) #table of strata
+    out$time <- out$haz.excess <- out$haz.pop <- out$std.err <- out$strata <-  NULL
 
     kt <- 1 # the only stratum
     inx <- which(data$Xs == names(out_n)[kt]) #individuals within this stratum
-    tis2 <- tis
+    if(!if_start_stop) tis <- sort(unique(c(rform$Y[inx], seq(0, max(rform$Y[inx]), precision)))) #unique times
+    else tis <- sort(unique(c(rform$Y[inx], data[, start_col], seq(min(data[, start_col]), max(rform$Y[inx], data[, start_col]), precision)))) #unique times
+
+    if(!missing(add.times)){
+      tis <- sort(unique(c(tis, add.times)))
+    }
 
     # Fix demographic covariates:
     if(if_start_stop){
@@ -752,262 +680,379 @@ years <- function(
       rform$R[,"age"] <- 0
     }
 
-    if(any(starting_age>=rform$Y[inx])) browser()
-    # temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis2,fast=TRUE, cmp=FALSE, ys=0)
-    # temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis2,fast=TRUE, cmp=FALSE, ys=starting_age)
-    temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis2,fast=FALSE, cmp=FALSE, ys=starting_age, netweiDM = TRUE)
-    temp$sidliD[1] <- 0
-    # temp$sisD[1] <- 1
-    temp$sisD[temp$sisD==0] <- Inf
-    haz.pop2 <- temp$sidliD/temp$sisD
-
-    out$haz.pop2 <- c(out$haz.pop2, haz.pop2)
-    out$cum.haz.pop2 <- cumsum(out$haz.pop2)
-    out$F_P2 <- 1-exp(-out$cum.haz.pop2)
-    out$auc_pop2 <- sum(c(tis2[1], diff(tis2))*c(0, out$F_P2[1:(length(out$F_P2)-1)]))/365.241
-
-    out$sidli <- temp$sidli
-    out$sis <- temp$sis
-
-    # DODATEK:
-    haz.pop.ves.cas <- temp$sidli
-    haz.pop.ves.cas[1] <- 0
-    haz.pop.ves.cas <- haz.pop.ves.cas/temp$sis
-    out$cum.haz.pop.ves.cas <- cumsum(haz.pop.ves.cas)
-    out$F_P_ves_cas <- 1 - exp(-out$cum.haz.pop.ves.cas)
-    out$auc_pop_ves_cas <- sum(c(tis2[1], diff(tis2))*c(0, out$F_P_ves_cas[1:(length(out$F_P_ves_cas)-1)]))/365.241
-  }
-
-  if(estimator=='F_P2' | estimator=="all"){
-    # Shift all to the end:
-    if(if_start_stop) data_yi[,stop_col] <- max(data_yi[,stop_col])
-
-    rform2 <- rform
-
-    rform <- rformulate(formula, data_yi, ratetable, na.action=na.action, rmap = rmap)
-
-    # Shift all to the end:
-    if(!if_start_stop){
-      rform$Y <- rep(max(rform$Y), length(rform$Y))
-      rform$data[,"Y"] <- rform$Y
+    ### #
+    # Greenwood Variance of area (not F):
+    # First prepare objects:
+    mod_gw <- summary(mod, times = tis)
+    gw_df <- data.frame(time=mod_gw$time, surv=mod_gw$surv, n.risk=mod_gw$n.risk, n.event=mod_gw$n.event)
+    # Then calculate:
+    times_all2 <- c(0, diff(gw_df$time))/365.241
+    surv_all <- c(1, gw_df$surv[1:(length(gw_df$surv)-1)])
+    auc_all <- cumsum(times_all2*surv_all)
+    area_var <- sapply(1:length(auc_all), function(x) {
+      numer <- gw_df$n.risk[1:x]*(gw_df$n.risk[1:x] - gw_df$n.event[1:x])
+      numer[numer==0] <- Inf
+      sum(((auc_all[x] - auc_all[1:x])^2*gw_df$n.event[1:x])/numer)
+    })
+    if(is.nan(area_var[length(area_var)])){
+      area_var[length(area_var)] <- area_var[length(area_var)-1]
     }
-    data <- rform$data
-    if(if_start_stop){
-      if(!(start_col %in% colnames(data))){
-        data[,start_col] <- data_orig[, start_col]
+    ### #
+
+    if(estimator=='F_P' | estimator=="all"){
+      # Prepare at-risk matrix:
+      # browser()
+      # mat <- lapply(1:nrow(data), function(x) ifelse((data$start[x] < tis) & (tis <= data$Y[x]), 1, NA))
+      # mat2 <- matrix(unlist(mat), nrow = nrow(data_yi), byrow = TRUE)
+      # # The sum of the individual at-risk processes:
+      # yi_left <- colSums(mat2)
+      # yi_left[yi_left == 0] <- Inf
+      #
+      # mat3 <- lapply(1:nrow(data), function(x) data$age[x] + c(0, diff(tis)))
+
+      if(any(rform$Y[inx]<=starting_age)) browser()
+
+      temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE, cmp=FALSE, ys=starting_age)
+      # Fix at-risk process, if needed:
+      temp$yi[temp$yi==0] <- Inf
+
+      out$time <- c(out$time, tis)						#add times
+
+      # Calculate hazards:
+      haz.pop <- temp$yidli/temp$yi
+      out$haz.pop <- c(out$haz.pop,haz.pop)
+      out$cum.haz.pop <- cumsum(out$haz.pop)
+      out$F_P <- 1-exp(-out$cum.haz.pop)
+      out$auc_pop <- sum(c(tis[1], diff(tis))*c(0, out$F_P[1:(length(out$F_P)-1)]))/365.241
+
+    }
+
+    data_spi2 <- data
+    if(estimator=='F_P_Spi2' | estimator=="all"){
+
+      if(any(data_spi2$start>=data_spi2$Y)) browser()
+      # Take into account censoring:
+      exp.surv2 <- nessie_spi(Surv(start, Y, stat)~1, data=data_spi2, ratetable=ratetable,
+                              tis=tis, starting.time=starting.time, include.censoring = TRUE,
+                              arg.example)
+      out$haz.pop.spi2 <- exp.surv2$yidli/exp.surv2$yi
+      out$cum.haz.pop.spi2 <- cumsum(out$haz.pop.spi2)
+      out$F_P_Spi2 <- 1-exp(-out$cum.haz.pop.spi2)
+      out$auc_pop_Spi2 <- sum(c(tis[1], diff(tis))*c(0, out$F_P_Spi2[1:(length(out$F_P_Spi2)-1)]))/365.241
+    }
+    if(estimator=='F_P_Spi' | estimator=="all"){
+      if(TRUE){ # (!missing(admin.cens))    - tega nimamo vec
+        data_spi2$stat <- 1
+        # data_spi2$stat[id_admin_cens] <- 0  # - tole ni bilo zakomentirano, ko smo imeli admin.cens
+        exp.surv <- nessie_spi(Surv(start, Y, stat)~1, data=data_spi2, ratetable=ratetable,
+                               tis=tis, starting.time=starting.time, include.censoring = TRUE,
+                               arg.example)
+      } else{
+        # Don't take into account censoring:
+        exp.surv <- nessie_spi(Surv(start, Y, stat)~1, data=data_spi2, ratetable=ratetable,
+                               tis=tis, starting.time=starting.time, include.censoring = FALSE,
+                               arg.example)
       }
+
+      out$haz.pop.spi <- exp.surv$yidli/exp.surv$yi
+      out$cum.haz.pop.spi <- cumsum(out$haz.pop.spi)
+      out$F_P_Spi <- 1-exp(-out$cum.haz.pop.spi)
+      out$auc_pop_Spi <- sum(c(tis[1], diff(tis))*c(0, out$F_P_Spi[1:(length(out$F_P_Spi)-1)]))/365.241
+    }
+    if(estimator=='F_P_final'){
+      # Shift all to the end:
+      if(if_start_stop) data_yi[,stop_col] <- max(data_yi[,stop_col])
+
+      rform2 <- rform
+      rform <- rformulate(formula, data_yi, ratetable, na.action=na.action, rmap = rmap)
+
+      # Shift all to the end:
+      if(!if_start_stop){
+        rform$Y <- rep(max(rform$Y), length(rform$Y))
+        rform$data[,"Y"] <- rform$Y
+      }
+      data <- rform$data
+      if(if_start_stop){
+        if(!(start_col %in% colnames(data))){
+          data[,start_col] <- data_orig[, start_col]
+        }
+      }
+
+      # Check covariates:
+      p <- rform$m
+      if (p > 0) stop("There shouldn't be any covariates in the formula. This function gives non-parametric estimates of the hazards.")
+      else data$Xs <- rep(1, nrow(data)) #if no covariates, just put 1
+
+      out$haz.pop2 <- NULL
+
+      kt <- 1 # the only stratum
+      inx <- which(data$Xs == names(out_n)[kt]) #individuals within this stratum
+
+      # Fix demographic covariates:
+      if(if_start_stop){
+        rform$R[,"year"] <- rform$R[,"year"] - rform$R[,"age"]
+        rform$R[,"age"] <- 0
+      }
+
+      if(any(starting_age>=rform$Y[inx])) browser()
+      temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=FALSE, cmp=FALSE, ys=starting_age, netweiDM = TRUE)
+      temp$sidliD[1] <- 0
+      # temp$sisD[1] <- 1
+      temp$sisD[temp$sisD==0] <- Inf
+      haz.pop2 <- temp$sidliD/temp$sisD
+
+      out$haz.pop2 <- c(out$haz.pop2, haz.pop2)
+      out$cum.haz.pop2 <- cumsum(out$haz.pop2)
+      out$F_P2 <- 1-exp(-out$cum.haz.pop2)
+      out$auc_pop2 <- sum(c(tis[1], diff(tis))*c(0, out$F_P2[1:(length(out$F_P2)-1)]))/365.241
+
+      out$sidli <- temp$sidli
+      out$sis <- temp$sis
+
+      # DODATEK:
+      haz.pop.ves.cas <- temp$sidli
+      haz.pop.ves.cas[1] <- 0
+      haz.pop.ves.cas <- haz.pop.ves.cas/temp$sis
+      out$cum.haz.pop.ves.cas <- cumsum(haz.pop.ves.cas)
+      out$F_P_ves_cas <- 1 - exp(-out$cum.haz.pop.ves.cas)
+      out$auc_pop_ves_cas <- sum(c(tis[1], diff(tis))*c(0, out$F_P_ves_cas[1:(length(out$F_P_ves_cas)-1)]))/365.241
+    }
+    if(estimator=='F_P2' | estimator=="all"){
+      # Shift all to the end:
+      if(if_start_stop) data_yi[,stop_col] <- max(data_yi[,stop_col])
+
+      rform2 <- rform
+
+      rform <- rformulate(formula, data_yi, ratetable, na.action=na.action, rmap = rmap)
+
+      # Shift all to the end:
+      if(!if_start_stop){
+        rform$Y <- rep(max(rform$Y), length(rform$Y))
+        rform$data[,"Y"] <- rform$Y
+      }
+      data <- rform$data
+      if(if_start_stop){
+        if(!(start_col %in% colnames(data))){
+          data[,start_col] <- data_orig[, start_col]
+        }
+      }
+
+      # Check covariates:
+      p <- rform$m
+      if (p > 0) stop("There shouldn't be any covariates in the formula. This function gives non-parametric estimates of the hazards.")
+      else data$Xs <- rep(1, nrow(data)) #if no covariates, just put 1
+
+      out$haz.pop2 <- NULL
+
+      kt <- 1 # the only stratum
+      inx <- which(data$Xs == names(out_n)[kt]) #individuals within this stratum
+
+      # Fix demographic covariates:
+      if(if_start_stop){
+        rform$R[,"year"] <- rform$R[,"year"] - rform$R[,"age"]
+        rform$R[,"age"] <- 0
+      }
+
+      if(any(starting_age>=rform$Y[inx])) browser()
+
+      # temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE, cmp=FALSE, ys=0)
+      temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE, cmp=FALSE, ys=starting_age)
+
+      # Fix at-risk process, if needed:
+      temp$yi[temp$yi==0] <- Inf
+
+      # Calculate hazards:
+      haz.pop2 <- temp$yidli/temp$yi
+
+      out$haz.pop2 <- c(out$haz.pop2, haz.pop2)
+      out$cum.haz.pop2 <- cumsum(out$haz.pop2)
+      out$F_P2 <- 1-exp(-out$cum.haz.pop2)
+      # out$auc_pop2 <- sum(c(tis[1], diff(tis))*out$F_P2)/365.241
+      out$auc_pop2 <- sum(c(tis[1], diff(tis))*c(0, out$F_P2[1:(length(out$F_P2)-1)]))/365.241
     }
 
-    # Check covariates:
-    p <- rform$m
-    if (p > 0) stop("There shouldn't be any covariates in the formula. This function gives non-parametric estimates of the hazards.")
-    else data$Xs <- rep(1, nrow(data)) #if no covariates, just put 1
+    ###
+    # Bootstrap:
+    if(bootstrap){
+      # browser()
+      data_b <- data_orig
+      data_b$id <- 1:nrow(data_b)
+      yl_boot <- ylboot(theta=ylboot.iter, data=data_b, id="id",
+                        B=B, verbose=0, #all_times = all_times,
+                        ratetable=ratetable#, add.times=add.times
+                        , starting.time, estimator, precision,
+                        add.times = add.times,
+                        formula = formula,
+                        rmap = rmap, measure=measure
+      )
+      L_OP <- yl_boot[[3]]
+      F_boot <- yl_boot[[2]]
+      yl_boot <- as.data.frame(t(yl_boot[[1]]))
+    }
+    ###
+    estimator.orig <- estimator
+    if(estimator=='F_P_final') estimator = 'F_P2'
 
-    out$haz.pop2 <- NULL
+    out$strata <- c(out$strata, length(tis))				#number of times in this strata
+    names(out$strata) <-  names(out_n)
+    out$strata <-  NULL
+    out$auc <- c(auc_data=out$auc_data, auc_pop=out$auc_pop, auc_pop2=out$auc_pop2, auc_pop_Spi=out$auc_pop_Spi, auc_pop_Spi2=out$auc_pop_Spi2)
 
-    kt <- 1 # the only stratum
-    inx <- which(data$Xs == names(out_n)[kt]) #individuals within this stratum
-    tis2 <- tis
-    # tis2 <- sort(unique(rform$Y[inx])) #unique times
-
-    # Fix demographic covariates:
-    if(if_start_stop){
-      rform$R[,"year"] <- rform$R[,"year"] - rform$R[,"age"]
-      rform$R[,"age"] <- 0
+    if(estimator=='all'){
+      F_P_final <- data.frame(time=out$time,F_P=out$F_P, F_P2=out$F_P2, F_P_Spi=out$F_P_Spi, F_P_Spi2=out$F_P_Spi2)
+    } else if(estimator=='F_P'){
+      F_P_final <- data.frame(time=tis,prob=out$F_P)
+    } else if(estimator=='F_P2'){
+      F_P_final <- data.frame(time=tis,prob=out$F_P2)
+    } else if(estimator=='F_P_Spi'){
+      F_P_final <- data.frame(time=tis,prob=out$F_P_Spi)
+    } else if(estimator=='F_P_Spi2'){
+      F_P_final <- data.frame(time=tis,prob=out$F_P_Spi2)
     }
 
-    if(any(starting_age>=rform$Y[inx])) browser()
+    # YD through time:
+    F_data_yd <- data.frame(time=mod$time, F_data=out$F_data)
+    pop.times <- F_P_final$time[!(F_P_final$time %in% mod$time)]
+    if(length(pop.times) > 0){
+      F_data_yd_tmp <- data.frame(time=pop.times, F_data=NA)
+      F_data_yd <- rbind(F_data_yd, F_data_yd_tmp)
+      F_data_yd <- F_data_yd[order(F_data_yd$time),]
+      F_data_yd$F_data <- mstateNAfix(F_data_yd$F_data, 0)
+    }
+    F_data_yd$var <- area_var
 
-    # temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis2,fast=TRUE, cmp=FALSE, ys=0)
-    temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis2,fast=TRUE, cmp=FALSE, ys=starting_age)
+    yd_data <- cumsum(c(F_data_yd$time[1], diff(F_data_yd$time))*c(0, F_data_yd$F_data[1:(nrow(F_data_yd)-1)]))/365.241
 
-    # Fix at-risk process, if needed:
-    temp$yi[temp$yi==0] <- Inf
-
-    # Calculate hazards:
-    haz.pop2 <- temp$yidli/temp$yi
-
-    out$haz.pop2 <- c(out$haz.pop2, haz.pop2)
-    out$cum.haz.pop2 <- cumsum(out$haz.pop2)
-    out$F_P2 <- 1-exp(-out$cum.haz.pop2)
-    # out$auc_pop2 <- sum(c(tis2[1], diff(tis2))*out$F_P2)/365.241
-    out$auc_pop2 <- sum(c(tis2[1], diff(tis2))*c(0, out$F_P2[1:(length(out$F_P2)-1)]))/365.241
-  }
-
-  ###
-  # Bootstrap:
-  if(bootstrap){
-    # browser()
-    data_b <- data_orig
-    data_b$id <- 1:nrow(data_b)
-    yl_boot <- ylboot(theta=ylboot.iter, data=data_b, id="id",
-                       B=B, verbose=0, #all_times = all_times,
-                       ratetable=ratetable#, add.times=add.times
-                       , starting.time, estimator, precision,
-                      add.times = add.times,
-                      formula = formula,
-                      rmap = rmap, measure=measure
+    # Population part:
+    F_P_yd <- F_P_final
+    yd_pop <- cumsum(c(F_P_yd$time[1], diff(F_P_yd$time))*c(0, F_P_yd$prob[1:(nrow(F_P_yd)-1)]))/365.241
+    yd_curve <- data.frame(time=F_data_yd$time, yd=yd_data - yd_pop,
+                           obs_var=F_data_yd$var,
+                           # obs_var22=obs_var_time22,
+                           yd_data=yd_data,
+                           yd_pop=yd_pop
     )
-    L_OP <- yl_boot[[3]]
-    F_boot <- yl_boot[[2]]
-    yl_boot <- as.data.frame(t(yl_boot[[1]]))
-  }
-  ###
-  estimator.orig <- estimator
-  if(estimator=='F_P_final') estimator = 'F_P2'
-
-  out$strata <- c(out$strata, length(tis))				#number of times in this strata
-  names(out$strata) <-  names(out_n)
-  out$strata <-  NULL
-  out$auc <- c(auc_data=out$auc_data, auc_pop=out$auc_pop, auc_pop2=out$auc_pop2, auc_pop_Spi=out$auc_pop_Spi, auc_pop_Spi2=out$auc_pop_Spi2)
-
-  if(estimator=='all'){
-    F_P_final <- data.frame(time=out$time,F_P=out$F_P, F_P2=out$F_P2, F_P_Spi=out$F_P_Spi, F_P_Spi2=out$F_P_Spi2)
-  } else if(estimator=='F_P'){
-    F_P_final <- data.frame(time=tis,prob=out$F_P)
-  } else if(estimator=='F_P2'){
-    F_P_final <- data.frame(time=tis,prob=out$F_P2)
-  } else if(estimator=='F_P_Spi'){
-    F_P_final <- data.frame(time=tis,prob=out$F_P_Spi)
-  } else if(estimator=='F_P_Spi2'){
-    F_P_final <- data.frame(time=tis,prob=out$F_P_Spi2)
-  }
-
-  # YD through time:
-  # if(is.boot) browser()
-
-  F_data_yd <- data.frame(time=mod$time, F_data=out$F_data, var=obs_var_time)
-  pop.times <- F_P_final$time[!(F_P_final$time %in% mod$time)]
-  if(length(pop.times) > 0){
-    F_data_yd_tmp <- data.frame(time=pop.times, F_data=NA, var=NA)
-    F_data_yd <- rbind(F_data_yd, F_data_yd_tmp)
-    F_data_yd <- F_data_yd[order(F_data_yd$time),]
-    F_data_yd$F_data <- mstateNAfix(F_data_yd$F_data, 0)
-    F_data_yd$var <- mstateNAfix(F_data_yd$var, 0)
-  }
-
-  yd_data <- cumsum(c(F_data_yd$time[1], diff(F_data_yd$time))*c(0, F_data_yd$F_data[1:(nrow(F_data_yd)-1)]))/365.241
-
-  F_P_yd <- F_P_final
-  yd_pop <- cumsum(c(F_P_yd$time[1], diff(F_P_yd$time))*c(0, F_P_yd$prob[1:(nrow(F_P_yd)-1)]))/365.241
-  yd_curve <- data.frame(time=F_data_yd$time, yd=yd_data - yd_pop,
-                         obs_var=F_data_yd$var,
-                         # obs_var22=obs_var_time22,
-                         yd_data=yd_data,
-                         yd_pop=yd_pop
-                         )
-  ###
-  # Add values at time zero:
-
-  F_data_tmp <- data.frame(time=mod$time,
-             prob=out$F_data,
-             prob.se=mod$std.err,
-             area=NA,
-             area.se=NA)
-  F_tmp <- F_data_tmp[1,]
-  F_tmp$time <- min(starting_age)
-  F_tmp$prob <- 0
-  F_tmp$prob.se <- 0
-  if(!(F_tmp$time %in% F_data_tmp$time)) F_data_tmp <- rbind(F_tmp, F_data_tmp)
-
-  if(!if_start_stop){
-    F_P_final_tmp <- F_P_final[1,]
-    F_P_final_tmp$time <- min(starting_age)
-    F_P_final_tmp$prob <- 0
-    if(!(F_P_final_tmp$time %in% F_P_final$time)) F_P_final <- rbind(F_P_final_tmp, F_P_final)
-  }
-
-  yd_curve_tmp <- yd_curve[1,]
-  yd_curve_tmp$time <- min(starting_age)
-  yd_curve_tmp[,2:ncol(yd_curve_tmp)] <- 0
-  if(!(yd_curve_tmp$time %in% yd_curve$time)) yd_curve <- rbind(yd_curve_tmp, yd_curve)
-
-  if(bootstrap){
-    yd_curve$boot_var <- colVars(yl_boot, na.rm=TRUE)
-    if(late.values){
-      last_val <- utils::tail(yd_curve$boot_var[!is.na(yd_curve$boot_var)],1)
-      yd_curve$boot_var[is.na(yd_curve$boot_var)] <- last_val
+    ###
+    # Greenwood for prob:
+    greenwood_est <- (mod$surv^2*cumsum(mod$n.event/((mod$n.risk - mod$n.event)*mod$n.risk)))^(1/2)
+    # If Surv(t)=0 in the end, take the last var estimate:
+    if(any(rev(mod$surv)==0)){
+      greenwood_wh <- which(mod$surv==0)
+      greenwood_est[greenwood_wh] <- greenwood_est[greenwood_wh[1]-1]
     }
-    yl_sd_boot <- stats::sd(yl_boot[, ncol(yl_boot)], na.rm=TRUE)
-  }
 
-  # Add areas:
-  F_data_tmp$area <- yd_curve$yd_data[yd_curve$time %in% F_data_tmp$time]
-  F_P_final$area <- yd_curve$yd_pop#[yd_curve$time %in% F_P_final$time]
-  F_data_tmp$area.se <- yd_curve$obs_var[yd_curve$time %in% F_data_tmp$time]^(1/2)
+    F_data_tmp <- data.frame(time=mod$time,
+                             prob=out$F_data,
+                             prob.se=greenwood_est,
+                             area=NA,
+                             area.se=NA)
+    # Add values at time zero:
+    F_tmp <- F_data_tmp[1,]
+    F_tmp$time <- min(starting_age)
+    F_tmp$prob <- 0
+    F_tmp$prob.se <- 0
+    if(!(F_tmp$time %in% F_data_tmp$time)) F_data_tmp <- rbind(F_tmp, F_data_tmp)
 
-  # If, add boot variance:
-  if(bootstrap & (!is.boot)){
-    F_data_tmp$prob.se <- (F_boot$F_data[F_boot$time %in% F_data_tmp$time])^(1/2)
-    F_P_final$prob.se <- (F_boot$F_P#[F_boot$time %in% F_P_final$time]
-                          )^(1/2)
-    F_data_tmp$area.se <- L_OP$L_O[L_OP$time %in% F_data_tmp$time]^(1/2)
-    F_P_final$area.se <- L_OP$L_P^(1/2)
-  }
-
-  # Column order:
-  F_data_tmp <- F_data_tmp[, c('time', 'prob', 'area', 'prob.se', 'area.se')]
-
-  # Choose relevant columns:
-  if(bootstrap){
-    yd_curve <- yd_curve[,c('time', 'yd', 'boot_var')]
-  } else{
-    yd_curve <- yd_curve[,c('time', 'yd', 'obs_var')]
-  }
-  yd_curve[,3] <- yd_curve[,3]^(1/2)
-  colnames(yd_curve)[2:3] <- c('est', 'est.se')
-  yd_curve$lower <- yd_curve$est - yd_curve$est.se*stats::qnorm(0.5+conf.int/2)
-  yd_curve$upper <- yd_curve$est + yd_curve$est.se*stats::qnorm(0.5+conf.int/2)
-
-  return_obj <- list(F_data=F_data_tmp,
-                     F_P=F_P_final,
-                     auc=out$auc,
-                     yd_curve=yd_curve,
-                     starting.time=starting.time,
-                     estimator=estimator.orig,
-                     out=out
-  )
-
-  if(bootstrap){
-    return_obj[[length(return_obj)+1]] <- F_boot
-    names(return_obj)[length(return_obj)] <- 'F_boot'
-    return_obj[[length(return_obj)+1]] <- L_OP
-    names(return_obj)[length(return_obj)] <- 'L_OP'
-    return_obj <- append(return_obj, yl_sd_boot)
-    names(return_obj)[length(return_obj)] <- 'yl_sd_boot'
-  }
-
-  return_short <- list(years=return_obj$yd_curve, F_O=return_obj$F_data, F_P=return_obj$F_P, measure=measure)
-
-  if((bootstrap & (!is.boot)) #| ((!bootstrap) & (!is.boot))
-     ){
-    return_obj <- return_short
-  }
-  if((!bootstrap) & (!is.boot)){
-    return_obj <- return_short
-  }
-  if(is.boot){
-    return_obj <- return_short
-  }
-
-  if(var.estimator=='none'){
-    return_obj$years <- return_obj$years[,1:2]
-    find_cols <- (!grepl('.se', colnames(return_obj[[2]])))
-    return_obj[[2]] <- return_obj[[2]][,find_cols]
-    if(length(return_obj)==4){
-      find_cols <- (!grepl('.se', colnames(return_obj[[3]])))
-      return_obj[[3]] <- return_obj[[3]][,find_cols]
+    if(!if_start_stop){
+      F_P_final_tmp <- F_P_final[1,]
+      F_P_final_tmp$time <- min(starting_age)
+      F_P_final_tmp$prob <- 0
+      if(!(F_P_final_tmp$time %in% F_P_final$time)) F_P_final <- rbind(F_P_final_tmp, F_P_final)
     }
-  }
 
-  return(return_obj)
+    yd_curve_tmp <- yd_curve[1,]
+    yd_curve_tmp$time <- min(starting_age)
+    yd_curve_tmp[,2:ncol(yd_curve_tmp)] <- 0
+    if(!(yd_curve_tmp$time %in% yd_curve$time)) yd_curve <- rbind(yd_curve_tmp, yd_curve)
+
+    # Bootstrap:
+    if(bootstrap){
+      yd_curve$boot_var <- colVars(yl_boot, na.rm=TRUE)
+      if(late.values){
+        last_val <- utils::tail(yd_curve$boot_var[!is.na(yd_curve$boot_var)],1)
+        yd_curve$boot_var[is.na(yd_curve$boot_var)] <- last_val
+      }
+      yl_sd_boot <- stats::sd(yl_boot[, ncol(yl_boot)], na.rm=TRUE)
+    }
+
+    # Add areas:
+    F_data_tmp$area <- yd_curve$yd_data[yd_curve$time %in% F_data_tmp$time]
+    F_P_final$area <- yd_curve$yd_pop#[yd_curve$time %in% F_P_final$time]
+    F_data_tmp$area.se <- yd_curve$obs_var[yd_curve$time %in% F_data_tmp$time]^(1/2)
+
+    # If, add boot variance:
+    if(bootstrap & (!is.boot)){
+      F_data_tmp$prob.se <- (F_boot$F_data[F_boot$time %in% F_data_tmp$time])^(1/2)
+      F_P_final$prob.se <- (F_boot$F_P#[F_boot$time %in% F_P_final$time]
+      )^(1/2)
+      F_data_tmp$area.se <- L_OP$L_O[L_OP$time %in% F_data_tmp$time]^(1/2)
+      F_P_final$area.se <- L_OP$L_P^(1/2)
+    }
+
+    # Column order:
+    F_data_tmp <- F_data_tmp[, c('time', 'prob', 'area', 'prob.se', 'area.se')]
+
+    # Choose relevant columns:
+    if(bootstrap){
+      yd_curve <- yd_curve[,c('time', 'yd', 'boot_var')]
+    } else{
+      yd_curve <- yd_curve[,c('time', 'yd', 'obs_var')]
+    }
+    yd_curve[,3] <- yd_curve[,3]^(1/2)
+    colnames(yd_curve)[2:3] <- c('est', 'est.se')
+    yd_curve$lower <- yd_curve$est - yd_curve$est.se*stats::qnorm(0.5+conf.int/2)
+    yd_curve$upper <- yd_curve$est + yd_curve$est.se*stats::qnorm(0.5+conf.int/2)
+
+    return_obj <- list(F_data=F_data_tmp,
+                       F_P=F_P_final,
+                       auc=out$auc,
+                       yd_curve=yd_curve,
+                       starting.time=starting.time,
+                       estimator=estimator.orig,
+                       out=out
+    )
+
+    if(bootstrap){
+      return_obj[[length(return_obj)+1]] <- F_boot
+      names(return_obj)[length(return_obj)] <- 'F_boot'
+      return_obj[[length(return_obj)+1]] <- L_OP
+      names(return_obj)[length(return_obj)] <- 'L_OP'
+      return_obj <- append(return_obj, yl_sd_boot)
+      names(return_obj)[length(return_obj)] <- 'yl_sd_boot'
+    }
+
+    return_short <- list(years=return_obj$yd_curve, F_O=return_obj$F_data, F_P=return_obj$F_P, measure=measure)
+
+    if((bootstrap & (!is.boot)) #| ((!bootstrap) & (!is.boot))
+    ){
+      return_obj <- return_short
+    }
+    if((!bootstrap) & (!is.boot)){
+      return_obj <- return_short
+    }
+    if(is.boot){
+      return_obj <- return_short
+    }
+
+    if(var.estimator=='none'){
+      return_obj$years <- return_obj$years[,1:2]
+      find_cols <- (!grepl('.se', colnames(return_obj[[2]])))
+      return_obj[[2]] <- return_obj[[2]][,find_cols]
+      if(length(return_obj)==4){
+        find_cols <- (!grepl('.se', colnames(return_obj[[3]])))
+        return_obj[[3]] <- return_obj[[3]][,find_cols]
+      }
+    }
+
+    return(return_obj)
+  }
 }
 
 utils::globalVariables(c("time", "prob", "Curve", "est", "lower", "upper"))
 
 # Bootstrap function:
 ylboot <- function(theta, data, B = 5, id = "id", verbose = 0,
-                           #all_times,
+                   #all_times,
                    ratetable=relsurv::slopop, #add.times,
                    starting.time, estimator, precision,
                    add.times,
@@ -1068,7 +1113,6 @@ ylboot <- function(theta, data, B = 5, id = "id", verbose = 0,
     }
   }
   res <- as.data.frame(t(res))
-
   if(measure == 'yl2013'){
     return(list(res, F_E))
   }
@@ -1253,7 +1297,7 @@ ylboot.iter <- function(formula, data, #all_times,
                         ratetable=relsurv::slopop,
                         first=FALSE, add.times,
                         rmap, measure
-                        ){
+){
   if(!missing(rmap))  rmap <- as.call(rmap)
   if(first){
     is.boot <- FALSE
@@ -1268,11 +1312,11 @@ ylboot.iter <- function(formula, data, #all_times,
 
   if(missing(add.times)){
     object <- years(formula = formula, data = data, ratetable = ratetable,
-                 precision=precision, var.estimator='greenwood', is.boot=is.boot, first.boot = first.boot, rmap = rmap, measure=measure)
+                    precision=precision, var.estimator='greenwood', is.boot=is.boot, first.boot = first.boot, rmap = rmap, measure=measure)
     # estimator = estimator,
   } else{
     object <- years(formula = formula, data = data, ratetable = ratetable,
-                 precision=precision, var.estimator='greenwood', add.times=add.times, is.boot=is.boot, first.boot = first.boot, rmap = rmap, measure=measure)
+                    precision=precision, var.estimator='greenwood', add.times=add.times, is.boot=is.boot, first.boot = first.boot, rmap = rmap, measure=measure)
     # estimator = estimator,
   }
   if(measure=='yd'){
@@ -1319,8 +1363,8 @@ gg_color_hue <- function(n) {
 
 #' Plot the absolute risk (observed and population curve)
 #'
-#' Plots the estimated observed and population curve for the following measures: years lost/saved (Andersen, 2017), or
-#' life years difference (Manevski, Ruzic Gorenjec, Andersen, Pohar Perme, 2022). Note that this function cannot be used for the years lost measure (Andersen, 2013).
+#' Plots the estimated observed and population curve for the
+#' life years difference (Manevski, Ruzic Gorenjec, Andersen, Pohar Perme, 2022).
 #'
 #' A ggplot2 implementation for plotting the observed and population curves. The type of curves is
 #' dependent upon the measure calculated using \code{years} function (argument \code{measure}).
@@ -1334,7 +1378,7 @@ gg_color_hue <- function(n) {
 #' @param ylimits define the limits on the y axis (this is supplied to \code{scale_y_continuous}).
 #' @param show.legend if TRUE, the legend is shown on the graph.
 #' @return A ggplot object
-#' @seealso \code{years}, \code{plot_years}
+#' @seealso \code{\link{years}}, \code{\link{plot_years}}
 #'
 plot_f <- function(years, xlab='Time interval', ylab='Absolute risk', xbreak, ybreak, xlimits, ylimits, show.legend=TRUE){
   # years: object given from the years() function
@@ -1346,10 +1390,9 @@ plot_f <- function(years, xlab='Time interval', ylab='Absolute risk', xbreak, yb
   # ylimits: Define the limits on the y axis
   # show.legend: TRUE by default (shows the legend)
 
-  # library(ggplot2)
-
+  # Checks:
   if(years$measure != 'yd'){
-    stop("The plot_f function is only available for the life years difference measure (argument measure='yd' in the years function).")
+    stop("The plot_f function is available only for the YD measure (argument measure='yd' in the years function).")
   }
 
   out <- rbind(
@@ -1368,8 +1411,8 @@ plot_f <- function(years, xlab='Time interval', ylab='Absolute risk', xbreak, yb
   colorji <- colorji[c(1,3)]
 
   g <- ggplot2::ggplot(out)+
-    ggplot2::geom_step(ggplot2::aes(time/365.241, prob, color=Curve), size=1.001
-                )+
+    ggplot2::geom_step(ggplot2::aes(time/365.241, prob, color=Curve)#, size=1.001
+    )+
     ggplot2::scale_color_manual(values=colorji)+
     ggplot2::xlab(xlab)+
     ggplot2::ylab(ylab)
@@ -1378,7 +1421,7 @@ plot_f <- function(years, xlab='Time interval', ylab='Absolute risk', xbreak, yb
   poly_P <- plot.helper(years, 'F_P')
 
   g <- g+
-    pammtools::geom_stepribbon(ggplot2::aes(x=time/365.241, ymin=0, ymax=prob, fill=Curve), alpha=0.3)+
+    pammtools::geom_stepribbon(ggplot2::aes(x=time/365.241, ymin=0, ymax=prob, fill=Curve), alpha=0.3, linetype='dashed')+
     ggplot2::scale_fill_manual(values = colorji)
 
   if(!missing(xbreak)){
@@ -1400,7 +1443,7 @@ plot_f <- function(years, xlab='Time interval', ylab='Absolute risk', xbreak, yb
   g <- g +
     ggplot2::theme_bw()+
     ggplot2::theme(legend.position = 'bottom',
-          legend.title = ggplot2::element_blank())+
+                   legend.title = ggplot2::element_blank())+
     ggplot2::theme(text = ggplot2::element_text(size=14))+
     ggplot2::theme(
       panel.grid.major.x = ggplot2::element_line(linetype='dashed', colour = 'grey85'),
@@ -1434,9 +1477,9 @@ plot_f <- function(years, xlab='Time interval', ylab='Absolute risk', xbreak, yb
 #' @param ymirror mirror the y values (w.r.t. the x axis).
 #' @param yminus use function y -> -y when plotting.
 #' @return A ggplot object
-#' @seealso \code{years}, \code{plot_f}
+#' @seealso \code{\link{years}}, \code{\link{plot_f}}
 #'
-plot_years <- function(years, xlab='Time interval', ylab='Years', xbreak, ybreak, xlimits, ylimits, conf.int=TRUE, ymirror=FALSE, yminus=FALSE){
+plot_years <- function(years, xlab='Time interval', ylab='Years', xbreak, ybreak, xlimits, ylimits, conf.int=FALSE, ymirror=FALSE, yminus=FALSE){
 
   out <- years$years
 
@@ -1444,6 +1487,10 @@ plot_years <- function(years, xlab='Time interval', ylab='Years', xbreak, ybreak
     if(is.null(out$lower)){
       stop('Confidence intervals not present in the years object. Please set conf.int=FALSE or use the var.estimator argument in the years function.')
     }
+  }
+
+  if(years$measure=='yl2017' & nrow(out)==1){
+    stop('The years measure is reported at the end of follow-up thus it is not plotted.')
   }
 
   if(yminus){
@@ -1456,7 +1503,7 @@ plot_years <- function(years, xlab='Time interval', ylab='Years', xbreak, ybreak
   }
 
   if(missing(xlimits)){
-    xlimits <- c(min(years$years$time[1]), max(years$years$time))/365.241
+    xlimits <- c(min(out$time[1]), max(out$time))/365.241
   }
   if(missing(ylimits)){
     tmp_vec <- out$est
@@ -1467,12 +1514,13 @@ plot_years <- function(years, xlab='Time interval', ylab='Years', xbreak, ybreak
   }
 
   g <- ggplot2::ggplot(out)+
-    ggplot2::geom_step(ggplot2::aes(time/365.241, est), size=1.001)
+    ggplot2::geom_step(ggplot2::aes(time/365.241, est)#, size=1.001
+                       )
 
   if(conf.int){
     g <- g+
-      ggplot2::geom_step(ggplot2::aes(time/365.241, lower))+
-      ggplot2::geom_step(ggplot2::aes(time/365.241, upper))
+      ggplot2::geom_step(ggplot2::aes(time/365.241, lower), linetype='dashed')+
+      ggplot2::geom_step(ggplot2::aes(time/365.241, upper), linetype='dashed')
   }
 
   g <- g+
@@ -1491,8 +1539,8 @@ plot_years <- function(years, xlab='Time interval', ylab='Years', xbreak, ybreak
   trans <- function(x) -x
   inv <- function(x) -x
   reverse_fun <- scales::trans_new(name = "reverse_new",
-                           transform = trans,
-                           inverse = inv
+                                   transform = trans,
+                                   inverse = inv
   )
 
   if(!missing(ybreak)){

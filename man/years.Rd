@@ -17,9 +17,6 @@ years(
   na.action = stats::na.omit,
   conf.int = 0.95,
   timefix = FALSE,
-  admin.cens,
-  arg.example = FALSE,
-  cause.val,
   is.boot = FALSE,
   first.boot = FALSE
 )
@@ -34,10 +31,7 @@ NOTE: The follow-up time must be in days.}
 \code{formula}.}
 
 \item{measure}{choose which measure is used: 'yd' (life years difference; Manevski, Ruzic Gorenjec, Andersen, Pohar Perme, 2022), 'yl2017' (years lost/saved; Andersen 2017),
-'yl2013' (years lost/saved; Andersen 2013).
-the population cumulative incidence curve. Relevant only for \code{measure='yd'}.
-For \code{measure='yl2013'} and \code{measure='yl2017'} the estimators defined in (Andersen, 2013) and (Andersen, 2017)
-are used.}
+'yl2013' (years lost/saved; Andersen 2013).}
 
 \item{ratetable}{a table of event rates, organized as a \code{ratetable}
 object, such as \code{slopop}.}
@@ -46,7 +40,8 @@ object, such as \code{slopop}.}
 and named in the same way as in the \code{ratetable} object. See details
 below.}
 
-\item{var.estimator}{Choose the estimator for the variance ('none', 'bootstrap', 'greenwood'). Default is 'none'.}
+\item{var.estimator}{Choose the estimator for the variance ('none', 'bootstrap', 'greenwood'). Default is 'none'.
+The 'greenwood' option is possible only for \code{measure='yd'}.}
 
 \item{B}{if \code{var.estimator} is 'bootstrap'. The number of bootstrap replications. Default is 100.}
 
@@ -62,13 +57,6 @@ higher precision or increased to achieve a faster calculation.}
 
 \item{timefix}{the timefix argument in survival::survfit.formula. Default is FALSE.}
 
-\item{admin.cens}{if a Date is supplied, administrative censoring is taken into account at that time
-in the population curve. Works only if there's late entry, e.g. if the formula is \code{Surv(start,stop,event)~1}.}
-
-\item{arg.example}{temporary argument, used for checking additionalities.}
-
-\item{cause.val}{for competing risks, to be added.}
-
 \item{is.boot}{if TRUE, the function \code{years} has been called during a bootstrap replication.}
 
 \item{first.boot}{if TRUE, this is the first bootstrap replication.}
@@ -76,6 +64,7 @@ in the population curve. Works only if there's late entry, e.g. if the formula i
 \value{
 A list containing the years measure, the observed and population curves (or the excess curve for Andersen 2013).
 The values are given as separate data.frames through time. Times are given in days, all areas are given in years.
+For \code{measure='yl2017'} values are reported only at the last time point.
 Functions \code{plot_f} and \code{plot_years} can be then used for plotting.
 }
 \description{
@@ -94,9 +83,9 @@ age=age*365.241 should be used. The calendar year can be in any date format
 (date, Date and POSIXt are allowed), the date formats in the
 \code{ratetable} and in the data may differ.
 
-Numerical integration is required for the population curves. The integration
+Numerical integration is performed, argument
 precision is set with argument \code{precision}, which defaults to 30-day
-intervals. For higher accuracy take a smaller value (e.g. precision=1 makes
+intervals for intergration. For higher accuracy take a smaller value (e.g. precision=1 makes
 the integration on a daily basis).
 
 The observed curves are reported at event and censoring times. The
@@ -115,5 +104,5 @@ plot_f(mod)
 plot_years(mod, conf.int=FALSE)
 }
 \seealso{
-\code{plot_f}, \code{plot_years}
+\code{\link{plot_f}}, \code{\link{plot_years}}
 }
