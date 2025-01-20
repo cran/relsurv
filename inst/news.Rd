@@ -1,6 +1,22 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
 
+\section{Changes in version 2.3-1}{
+  \itemize{
+    \item 16 January 2025  Add survaalen and rsaalen functions for fitting Aalen additive hazards models
+    \item 16 January 2025  Add Rcpp implementation in relsurv
+    \item 16 January 2025  Remove date library
+    \item 16 January 2025  Function rsfitterem (EM algorithm): improve when no smoothing (bwin=0), baseline cumulative hazard (Lambda0) for Surv(start,stop,event)
+    \item 16 January 2025  Function rsadd: improve functionality when rmap and cause are called
+    \item 16 January 2025  Function rs.surv: add two arguments for calculating SNS
+    \item 16 January 2025  Function rs.surv: improvements in the output so that it is comparable to survival::survfit
+    \item 16 January 2025  Function joinrate: add new argument for merging years and ages in the new object
+    \item 16 January 2025  Function joinrate: expand functionality for more than 3 dimensions
+    \item 16 January 2025  Add predict.rsadd function which provides subject-specific predicted hazards
+    \item 16 January 2025  Add data for 2021 and 2022 in slopop
+}
+}
+
 \section{Changes in version 2.2-9}{
   \itemize{
     \item 21 December 2022  Make a few improvements in the years function, primarily for measure='yl2017'

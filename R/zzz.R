@@ -62,4 +62,4 @@
   # }
   library.dynam("relsurv", pkg, lib)
 
-  }#end of .onLoad
+}#end of .onLoad

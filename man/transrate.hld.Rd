@@ -53,7 +53,7 @@ analysis relatively easy." Computers in biology and medicine, \bold{37}:
 1741--1749.
 }
 \seealso{
-\code{\link{ratetable}}, \code{\link{transrate.hmd}},
+\code{\link[survival:ratetable]{survival::ratetable}}, \code{\link{transrate.hmd}},
 \code{\link{joinrate}}, \code{\link{transrate}}.
 }
 \keyword{survival}

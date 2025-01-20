@@ -124,7 +124,7 @@ rformulate <- function (formula, data = parent.frame(), ratetable, na.action, rm
   if(length(wh.year)>0){
       if(min(R[,wh.year])>1850 & max(R[,wh.year])<2020&
          inherits(cutpoints[[wh.year]], "rtdate"))
-        warning("The calendar year must be one of the date classes (Date, date, POSIXt)\n (Your variable seems to be expressed in years) \n")
+        warning("The calendar year must be one of the date classes (Date, POSIXt)\n (Your variable seems to be expressed in years) \n")
   }
   #checking if one of the continuous variables is fixed:
   if(nrt!=ncol(R)){
@@ -200,7 +200,7 @@ temp <- R
 
   # we pass the altered cutpoints forward, keep them in the date format (could be changed eventually to get rid of the date package dependence)
   attr(ratetable, "cutpoints") <- lapply(cutpoints, function(x) {
-      if(inherits(x, 'rtabledate')) class(x) <- 'date'
+      if(inherits(x, 'rtabledate')) class(x) <- 'Date'
       x})
 
   out <- list(data = data, R = R, status = status, start = start,

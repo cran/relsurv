@@ -61,7 +61,7 @@ nessie_spi <- function(formula = formula(data), data, ratetable = relsurv::slopo
   out$yidli <- NULL
   l_tis <- length(tis)
   temps <- lapply(1:n_rows, function(inx) {
-    temp <- exp.prep(rform$R[inx, , drop = FALSE], rform$Y[inx], rform$ratetable,
+    temp <- exp_prep(rform$R[inx, , drop = FALSE], rform$Y[inx], rform$ratetable,
                      rform$status[inx], times = tis, fast = TRUE, cmp=FALSE,ys=data$start[inx])
     s_pi <- exp(-cumsum(temp$yidli))
 
@@ -112,7 +112,7 @@ nessie_spi <- function(formula = formula(data), data, ratetable = relsurv::slopo
 #' data set, this is dealt with the \code{rmap} argument. For example, if
 #' age is in years in the data but in days in the \code{ratetable} object,
 #' age=age*365.241 should be used. The calendar year can be in any date format
-#' (date, Date and POSIXt are allowed), the date formats in the
+#' (Date and POSIXt are allowed), the date formats in the
 #' \code{ratetable} and in the data may differ.
 #'
 #' Numerical integration is performed, argument
@@ -499,7 +499,7 @@ years <- function(
       it_auc_P_mat <- matrix(0, nrow=nrow(data), ncol=ltis)
 
       for(it in 1:nrow(data)){
-        temp <- exp.prep(rform$R[it,,drop=FALSE],max(rform$Y),rform$ratetable,rform$status[it],times=tis,fast=FALSE, cmp=FALSE, ys=starting_age[it], netweiDM = FALSE)
+        temp <- exp_prep(rform$R[it,,drop=FALSE],max(rform$Y),rform$ratetable,rform$status[it],times=tis,fast=FALSE, cmp=FALSE, ys=starting_age[it], netweiDM = FALSE)
         if(if_start_stop){
           it_wh <- which(data[it, start_col] == tis)
           hazs <- temp$yidli[it_wh:ltis]
@@ -571,7 +571,7 @@ years <- function(
       return(out)
 
     } else{ # measure == 'yl2013'
-      temp <- exp.prep(rform$R[,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status,times=tis, fast=TRUE, cmp=FALSE, ys=starting_age)
+      temp <- exp_prep(rform$R[,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status,times=tis, fast=TRUE, cmp=FALSE, ys=starting_age)
       temp$yi[temp$yi==0] <- Inf
 
       # Calculate measures:
@@ -712,7 +712,7 @@ years <- function(
 
       if(any(rform$Y[inx]<=starting_age)) browser()
 
-      temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE, cmp=FALSE, ys=starting_age)
+      temp <- exp_prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE, cmp=FALSE, ys=starting_age)
       # Fix at-risk process, if needed:
       temp$yi[temp$yi==0] <- Inf
 
@@ -795,7 +795,7 @@ years <- function(
       }
 
       if(any(starting_age>=rform$Y[inx])) browser()
-      temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=FALSE, cmp=FALSE, ys=starting_age, netweiDM = TRUE)
+      temp <- exp_prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=FALSE, cmp=FALSE, ys=starting_age, netweiDM = TRUE)
       temp$sidliD[1] <- 0
       # temp$sisD[1] <- 1
       temp$sisD[temp$sisD==0] <- Inf
@@ -855,8 +855,8 @@ years <- function(
 
       if(any(starting_age>=rform$Y[inx])) browser()
 
-      # temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE, cmp=FALSE, ys=0)
-      temp <- exp.prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE, cmp=FALSE, ys=starting_age)
+      # temp <- exp_prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE, cmp=FALSE, ys=0)
+      temp <- exp_prep(rform$R[inx,,drop=FALSE],rform$Y[inx],rform$ratetable,rform$status[inx],times=tis,fast=TRUE, cmp=FALSE, ys=starting_age)
 
       # Fix at-risk process, if needed:
       temp$yi[temp$yi==0] <- Inf
@@ -1343,7 +1343,7 @@ ylboot.iter <- function(formula, data, #all_times,
 
 }
 
-plot.helper <- function(years, obj){
+plot_helper_years <- function(years, obj){
 
   df_poly <- data.frame(time=years[[obj]]$time/365.241,
                         prob=years[[obj]]$prob)
@@ -1417,8 +1417,8 @@ plot_f <- function(years, xlab='Time interval', ylab='Absolute risk', xbreak, yb
     ggplot2::xlab(xlab)+
     ggplot2::ylab(ylab)
 
-  poly_data <- plot.helper(years, 'F_O')
-  poly_P <- plot.helper(years, 'F_P')
+  poly_data <- plot_helper_years(years, 'F_O')
+  poly_P <- plot_helper_years(years, 'F_P')
 
   g <- g+
     pammtools::geom_stepribbon(ggplot2::aes(x=time/365.241, ymin=0, ymax=prob, fill=Curve), alpha=0.3, linetype='dashed')+

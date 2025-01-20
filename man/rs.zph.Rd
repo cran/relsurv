@@ -60,6 +60,6 @@ analysis relatively easy." Computers in biology and medicine, \bold{37}:
 }
 \seealso{
 \code{\link{rsadd}}, \code{rsmul}, \code{rstrans},
-\code{\link{resid}}, \code{\link{cox.zph}}.
+\code{\link{resid}}, \code{\link[survival:cox.zph]{survival::cox.zph}}.
 }
 \keyword{survival}

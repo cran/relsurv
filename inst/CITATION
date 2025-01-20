@@ -15,6 +15,22 @@ bibentry(bibtype = "Article",
   header       = "To cite relsurv in publications use:"
 )
 
+bibentry(bibtype = "Article",
+  title        = "Expected life years compared to the general population",
+  author       = c(person(given = c("Damjan"),
+                          family = "Manevski",
+                          email = "damjan.manevski@mf.uni-lj.si"),
+                   person(given = "Nina",
+                          family = "Ru\\v{z}i\\v{c} Gorenjec"),
+                   person(given = "Per",
+                          family = "Kragh Andersen"),
+                   person(given = "Maja",
+                          family = "Pohar Perme")),
+  journal      = "Biometrical Journal",
+  year         = "2023",
+  doi          = "10.1002/bimj.202200070"
+)
+
 bibentry(bibtype= "Article",
          title="Relative survival analysis in {R}",
 	 author=c(person(c("M.", "Pohar")),

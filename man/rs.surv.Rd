@@ -16,7 +16,9 @@ rs.surv(
   type = "kaplan-meier",
   add.times,
   precision = 1,
-  rmap
+  rmap,
+  weight.table = NULL,
+  weight.names = NULL
 )
 }
 \arguments{
@@ -70,6 +72,16 @@ censoring as border points.}
 \item{rmap}{an optional list to be used if the variables are not organized
 and named in the same way as in the \code{ratetable} object. See details
 below.}
+
+\item{weight.table}{Default is NULL. If defined it is used for calculating
+standardized net survival. Supply a data.frame
+that contains the weights and group names for calculating the standardized net survival.
+The group column also has to be included in the data argument.
+For the theory see the details below.}
+
+\item{weight.names}{Default is NULL. If defined it is used for calculating
+standardized net survival. Supply a character vector of length two with the
+names of the group and weight columns in \code{weight.table}.}
 }
 \value{
 a \code{survfit} object; see the help on \code{survfit.object} for
@@ -86,7 +98,7 @@ being used may have different variable names and formats than the user's
 data set, this is dealt with by the \code{rmap} argument. For example, if
 age is in years in the data set but in days in the \code{ratetable} object,
 age=age*365.241 should be used. The calendar year can be in any date format
-(date, Date and POSIXt are allowed), the date formats in the
+(Date and POSIXt are allowed), the date formats in the
 \code{ratetable} and in the data may differ.
 
 The potential censoring times needed for the calculation of the expected
@@ -111,6 +123,15 @@ function \code{summary} reports the value at the last event or censoring
 time before the specified time. If the output of the estimated values at
 other points is required, this should be specified with argument
 \code{add.times}.
+
+Standardized net survival can be also calculated:
+
+\eqn{SNS (t) = \sum_{j} w_j {NS}_j (t)}
+
+where \eqn{NS_j} is the net survival in the j-th group, \eqn{w_j}
+is the weight for the j-th group and \eqn{SNS} is the standardized net survival.
+\eqn{SNS} can be calculated by using the \code{weight.table} and \code{weight.names} arguments. The function
+also returns the corresponding standard error and confidence interval.
 }
 \examples{
 
@@ -120,6 +141,12 @@ data(rdata)
 #note that the variable year must be given in a date format and that
 #age must be multiplied by 365.241 in order to be expressed in days.
 rs.surv(Surv(time,cens)~sex,rmap=list(age=age*365.241), ratetable=slopop,data=rdata)
+
+# SNS:
+wei <- data.frame(agegr=c('<54', '54-61', '62-70', '71-95'),
+                  weight=c(0.2, 0.2, 0.3, 0.3))
+rs.surv(Surv(time,cens)~1, rmap=list(age=age*365.241), ratetable=slopop, data=rdata,
+   weight.table=wei, weight.names = c('agegr', 'weight'))
 
 }
 \references{

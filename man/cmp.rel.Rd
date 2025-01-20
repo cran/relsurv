@@ -79,7 +79,7 @@ being used may have different variable names and formats than the user's
 data set, this is dealt with by the \code{rmap} argument. For example, if
 age is in years in the data set but in days in the \code{ratetable} object,
 age=age*365.241 should be used. The calendar year can be in any date format
-(date, Date and POSIXt are allowed), the date formats in the
+(Date and POSIXt are allowed), the date formats in the
 \code{ratetable} and in the data may differ.
 
 Note that numerical integration is required to calculate the variance
@@ -98,7 +98,7 @@ time.
 data(slopop)
 data(rdata)
 #calculate the crude probability of death
-#note that the variable year must be given in a date format and that 
+#note that the variable year must be given in a date format and that
 #age must be multiplied by 365.241 in order to be expressed in days.
 fit <- cmp.rel(Surv(time,cens)~sex,rmap=list(age=age*365.241),
 		ratetable=slopop,data=rdata,tau=3652.41)

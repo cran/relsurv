@@ -80,7 +80,7 @@ being used may have different variable names and formats than the user's
 data set, this is dealt with the \code{rmap} argument. For example, if
 age is in years in the data but in days in the \code{ratetable} object,
 age=age*365.241 should be used. The calendar year can be in any date format
-(date, Date and POSIXt are allowed), the date formats in the
+(Date and POSIXt are allowed), the date formats in the
 \code{ratetable} and in the data may differ.
 
 Numerical integration is performed, argument

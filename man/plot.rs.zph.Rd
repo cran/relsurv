@@ -80,6 +80,6 @@ analysis relatively easy." Computers in biology and medicine, \bold{37}:
 1741-1749, 2007.
 }
 \seealso{
-\code{\link{rs.zph}}, \code{\link{plot.cox.zph}}.
+\code{\link{rs.zph}}, \code{\link[survival:plot.cox.zph]{survival::plot.cox.zph}}
 }
 \keyword{survival}

@@ -1,11 +1,21 @@
-useDynLib(relsurv,.registration = TRUE)
-import(survival, date,splines)
+useDynLib(relsurv, .registration=TRUE)
+importFrom(Rcpp, evalCpp)
+import(survival, splines)
+importFrom("graphics", "abline", "axis", "box", "legend", "lines",
+             "par", "plot", "points", "polygon")
+importFrom("stats", "approx", "binomial", "coef", "delete.response",
+             "glm", "glm.control", "median", "model.extract",
+             "model.frame", "model.matrix", "pchisq", "pnorm", "poisson",
+             "printCoefmat", "qchisq", "resid", "symnum", "terms","as.formula",
+           "model.offset", "predict", "aggregate")
+importFrom("utils", "getFromNamespace", "read.table")
 export("epa","invtime","joinrate",
 	"rs.br","rs.diff","rs.surv",
 	"rs.zph","rsadd","rsmul","rstrans",
 	"residuals.rsadd",
 	"survsplit","transrate","transrate.hld",
-	"transrate.hmd","rs.surv.rsadd","survfit.rsadd","cmp.rel","nessie", 'years', 'plot_f', 'plot_years')
+	"transrate.hmd","rs.surv.rsadd","survfit.rsadd","cmp.rel","nessie", 'years', 'plot_f', 'plot_years',
+	'predict.rsadd', 'rsaalen', 'survaalen', 'popsurv')
 S3method(residuals, rsadd)
 S3method(plot, rs.br)
 S3method(plot, cmp.rel)
@@ -18,13 +28,5 @@ S3method(print, summary.rsadd)
 S3method(print, rsdiff)
 S3method(print, rs.br)
 S3method(survfit, rsadd)
+S3method(predict, rsadd)
 export(expprep2)
-importFrom("graphics", "abline", "axis", "box", "legend", "lines",
-             "par", "plot", "points", "polygon")
-importFrom("stats", "approx", "binomial", "coef", "delete.response",
-             "glm", "glm.control", "median", "model.extract",
-             "model.frame", "model.matrix", "pchisq", "pnorm", "poisson",
-             "printCoefmat", "qchisq", "resid", "symnum", "terms","as.formula", "model.offset")
-importFrom("utils", "getFromNamespace", "read.table")
-
-

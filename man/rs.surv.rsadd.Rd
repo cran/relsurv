@@ -36,7 +36,7 @@ fit <- rsadd(Surv(time,cens)~sex+age+year,rmap=list(age=age*365.241),
 	ratetable=slopop,data=rdata,int=c(0:10,15))
 
 #calculate the predicted curve for a male individual, aged 65, diagnosed in 1982
-d <- rs.surv.rsadd(fit,newdata=data.frame(sex=1,age=65,year=as.date("1Jul1982")))
+d <- rs.surv.rsadd(fit,newdata=data.frame(sex=1,age=65,year=as.Date("1982-01-01")))
 #plot the curve (will result in a step function since the baseline is assumed piecewise constant)
 plot(d,xscale=365.241)
 
