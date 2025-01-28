@@ -3254,6 +3254,12 @@ exp_prep <- function (x, y,ratetable,status,times,fast=FALSE,ys,prec,cmp=F,netwe
     if(missing(ys)) ys <- rep(0,length(y))
     #    times2 <- times
     #    times2[1] <- preci
+
+    # It may be an integer...check and make it numeric. Otherwise problems in C functions:
+    if(is.integer(x[1,1])){
+      x <- apply(x, 2, as.numeric)
+    }
+
     if(cmp)   temp <- .Call("cmpfast",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
                             as.integer(atts$dim), as.double(unlist(cuts)), ratetable,
                             x, y, ys,as.integer(status), times,PACKAGE="relsurv")
@@ -3648,6 +3654,10 @@ rs.surv <- function(formula = formula(data), data = parent.frame(),ratetable = r
     n <- nrow(mf)
     Terms2 <- terms(formula, c("strata", "cluster"))
     ll <- attr(Terms2, "term.labels")
+    # Check if ratetable in linear predictor, if yes remove it:
+    if(any(grepl(pattern = 'ratetable', x = ll))){
+      ll <- ll[!grepl(pattern = 'ratetable', x = ll)]
+    }
     if (length(ll) == 0)
       data$Xs <- factor(rep(1, n))
     else data$Xs <- strata(mf[ll])
@@ -4129,6 +4139,12 @@ expprep2 <- function (x, y,ratetable,status,times,fast=FALSE,ys,prec,cmp=F,netwe
     if(missing(ys)) ys <- rep(0,length(y))
     #    times2 <- times
     #    times2[1] <- preci
+
+    # It may be an integer...check and make it numeric. Otherwise problems in C functions:
+    if(is.integer(x[1,1])){
+      x <- apply(x, 2, as.numeric)
+    }
+
     if(cmp)   temp <- .Call("cmpfast",  as.integer(rfac), 		#fast=pohar-perme or ederer2 - data from pop. tables only while under follow-up
                             as.integer(atts$dim), as.double(unlist(cuts)), ratetable,
                             x, y, ys,as.integer(status), times,PACKAGE="relsurv")

@@ -1,6 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the relsurv package}
 
+\section{Changes in version 2.3-2}{
+  \itemize{
+    \item 28 January 2025  Fixed a bug in rs.surv that caused problems in popEpi.
+}
+}
+
 \section{Changes in version 2.3-1}{
   \itemize{
     \item 16 January 2025  Add survaalen and rsaalen functions for fitting Aalen additive hazards models

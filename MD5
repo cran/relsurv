@@ -1,6 +1,6 @@
-a11fdf6c3c12c478f08c268cce4de493 *DESCRIPTION
+3733a8386b2190d0e135573cc7de9bac *DESCRIPTION
 eb5fe17e9df6d20471829678a3029820 *NAMESPACE
-488c6d4b46d039a7e6ca293076f34298 *R/Rcode.r
+f64a3d4d43c5cf4089d8d0d7e060154a *R/Rcode.r
 18f2da677fcfa9d26e0cf3733d0a14c5 *R/RcppExports.R
 90f14d8947f5b361ce9ec8efa73aae28 *R/cmprel.r
 c90fe0af1a20d1264a61f7d90d77e670 *R/dLambdaP.R
@@ -24,7 +24,7 @@ d305671f142f259237eabddd2eba54d9 *data/ebmt1wide.rda
 a37dab9cfd9a03748d7345b819aa57d6 *data/rdata.rda
 b095651e528285a392843423b6e48de8 *data/slopop.rda
 89f161383f120588561c63f7b2f8e7fd *inst/CITATION
-153e30b7a5620e69fe0835550e7428b3 *inst/news.Rd
+8a83e32924e90b4ef972df23bac85c5f *inst/news.Rd
 3a2c172f38ee0239b2de982f55452aa6 *man/cmp.rel.Rd
 e9e43bae88190dd04b902a6e3e4e702c *man/colrec.Rd
 f5395249d92e04bd9b13d70c3b7953af *man/ebmt1wide.Rd
